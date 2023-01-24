@@ -1,3 +1,0 @@
-[submodule "staking-farm"]
-	path = staking-farm
-	url = git@github.com:referencedev/staking-farm.git
