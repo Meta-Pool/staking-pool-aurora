@@ -2,9 +2,12 @@
 
 pragma solidity ^0.8.9;
 
-contract StakingPoolAurora {
+import "./StAuroraToken.sol";
+import "hardhat/console.sol";
+
+contract StakingPoolAurora is StAuroraToken {
     /// Owner's account ID (it will be a DAO on phase II)
-    address public owner;
+    address public owner_account_id;
 
     /// Avoid re-entry when async-calls are in-flight
     bool public contract_busy;
@@ -201,7 +204,8 @@ contract StakingPoolAurora {
     }
 
     constructor(address _owner, address _treasury, address _operator, address _aurora_token) {
-        owner = _owner;
+        console.log("Are we here?");
+        owner_account_id = _owner;
         contract_busy = false;
         operator_account_id = _operator;
         treasury_account_id = _treasury;
