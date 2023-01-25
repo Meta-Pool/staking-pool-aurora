@@ -45,7 +45,7 @@ describe("Staking Pool AURORA", function () {
         initialSupply,
         "Aurora Token",
         "AURORA",
-        alice
+        alice.address
     );
     await AuroraTokenContract.deployed();
 
@@ -79,22 +79,21 @@ describe("Staking Pool AURORA", function () {
     // of your tests. It receives the test name, and a callback function.
     //
     // If the callback function is async, Mocha will `await` it.
-    it("Should set the right owner", async function () {
+    it("Should set the right owner, treasury, operator and AURORA token", async function () {
       // We use loadFixture to setup our environment, and then assert that
       // things went well
-      console.log("0 META");
-      const { hardhatPool, owner } = await loadFixture(deployPoolFixture);
+      const {
+        PoolContract,
+        AuroraTokenContract,
+        owner,
+        treasury,
+        operator
+      } = await loadFixture(deployPoolFixture);
 
-      console.log("TOKEN OWNER: %s", await hardhatPool.owner());
-      console.log("TOKEN OWNER: %s", await hardhatPool.owner_account_id());
-
-      // `expect` receives a value and wraps it in an assertion object. These
-      // objects have a lot of utility methods to assert values.
-
-      // This test expects the owner variable stored in the contract to be
-      // equal to our Signer's owner.
-      expect(await hardhatPool.owner()).to.equal(owner.address);
-    //   expect(await hardhatPool.owner()).to.equal(owner.address);
+      expect(await PoolContract.owner()).to.equal(owner.address);
+      expect(await PoolContract.treasury_address()).to.equal(treasury.address);
+      expect(await PoolContract.operator_address()).to.equal(operator.address);
+      expect(await PoolContract.aurora_token_address()).to.equal(AuroraTokenContract.address);
     });
 
     // it("Should assign the total supply of tokens to the owner", async function () {

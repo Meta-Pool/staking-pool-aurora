@@ -7,7 +7,7 @@ import "hardhat/console.sol";
 
 contract StakingPoolAurora is StAuroraToken {
     /// Owner's account ID (it will be a DAO on phase II)
-    address public owner_account_id;
+    address public owner;
 
     /// Avoid re-entry when async-calls are in-flight
     bool public contract_busy;
@@ -110,16 +110,16 @@ contract StakingPoolAurora is StAuroraToken {
     /// min amount accepted as deposit or stake
     uint256 public min_deposit_amount;
 
-    address public aurora_token;
+    address public aurora_token_address;
 
     /// Operator account ID (who's in charge to call distribute_xx() on a periodic basis)
-    address public operator_account_id;
+    address public operator_address;
     /// operator_rewards_fee_basis_points. (0.2% default) 100 basis point => 1%. E.g.: owner_fee_basis_points=30 => 0.3% owner's fee
     uint16 public operator_rewards_fee_basis_points;
     /// owner's cut on Liquid Unstake fee (3% default)
     uint16 public operator_swap_cut_basis_points;
     /// Treasury account ID (it will be controlled by a DAO on phase II)
-    address public treasury_account_id;
+    address public treasury_address;
     /// treasury cut on Liquid Unstake (25% from the fees by default)
     uint16 public treasury_swap_cut_basis_points;
 
@@ -211,12 +211,11 @@ contract StakingPoolAurora is StAuroraToken {
         string memory st_aurora_name,
         string memory st_aurora_symbol
     ) StAuroraToken(st_aurora_name, st_aurora_symbol) {
-        console.log("Are we here?");
-        owner_account_id = _owner;
+        owner = _owner;
         contract_busy = false;
-        operator_account_id = _operator;
-        treasury_account_id = _treasury;
-        aurora_token = _aurora_token;
+        operator_address = _operator;
+        treasury_address = _treasury;
+        aurora_token_address = _aurora_token;
         contract_account_balance = 0;
 
         uint16 DEFAULT_OPERATOR_REWARDS_FEE_BASIS_POINTS = 0;
