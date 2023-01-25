@@ -5,6 +5,8 @@ pragma solidity ^0.8.9;
 import "./StAuroraToken.sol";
 import "hardhat/console.sol";
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 contract StakingPoolAurora is StAuroraToken {
     /// Owner's account ID (it will be a DAO on phase II)
     address public owner;
@@ -141,12 +143,15 @@ contract StakingPoolAurora is StAuroraToken {
 
     // Good old MetaPool contract ends here -----------------------------------------------------
 
-    struct RewardMeter {
-        ///added with staking
-        ///subtracted on unstaking. WARN: Since unstaking can include rewards, delta_staked *CAN BECOME NEGATIVE*
-        int256 delta_staked; //i128 changing this requires accounts migration
-        uint16 last_multiplier_pct; // (pct: 100 => x1, 200 => x2)
-    }
+    event AuroraDeposit(address indexed user, uint256 amount);
+    event StAuroraMinted(address indexed user, uint256 amount);
+
+    // struct RewardMeter {
+    //     ///added with staking
+    //     ///subtracted on unstaking. WARN: Since unstaking can include rewards, delta_staked *CAN BECOME NEGATIVE*
+    //     int256 delta_staked; //i128 changing this requires accounts migration
+    //     uint16 last_multiplier_pct; // (pct: 100 => x1, 200 => x2)
+    // }
 
     struct Account {
         /// This amount increments with deposits and decrements with for_staking
@@ -180,7 +185,7 @@ contract StakingPoolAurora is StAuroraToken {
         // if the user calls farm_meta() we perform both
         // pub realized_meta: u128,
         ///Staking rewards meter (to mint stNEAR for the user)
-        RewardMeter staking_meter;
+        // RewardMeter staking_meter;
         ///LP fee gains meter (to mint meta for the user)
         // RewardMeter lp_meter;
 
@@ -208,9 +213,9 @@ contract StakingPoolAurora is StAuroraToken {
         address _treasury,
         address _operator,
         address _auroraToken,
-        string memory stAuroraName,
-        string memory stAuroraSymbol
-    ) StAuroraToken(stAuroraName, stAuroraSymbol) {
+        string memory _stAuroraName,
+        string memory _stAuroraSymbol
+    ) StAuroraToken(_stAuroraName, _stAuroraSymbol) {
         owner = _owner;
         contractBusy = false;
         operatorAddress = _operator;
@@ -244,5 +249,34 @@ contract StakingPoolAurora is StAuroraToken {
         nslpMaxDiscountBasisPoints = 180; //1.8%
         nslpMinDiscountBasisPoints = 25; //0.25%
         minDepositAmount = 10 * (10 ** 18);
+    }
+
+    function assertMinDepositAmount(uint256 _amount) internal view {
+        require(_amount >= minDepositAmount, "LESS_THAN_MIN_DEPOSIT_AMOUNT");
+    }
+
+    // function calculateCurrentStAuroraPerAurora() public view returns()
+
+    function calculateTotalStAuroraAmount(uint256 _amount) public pure returns(uint256) {
+        // TODO: it is not 1 to 1 !!
+        return _amount;
+    }
+
+    function depositAndStake(uint256 _amount) public payable {
+        // console.log("deposited amount: %s", _amount);
+        // console.log("      min amount: %s", minDepositAmount);
+        assertMinDepositAmount(_amount);
+        IERC20(auroraTokenAddress).transferFrom(msg.sender, address(this), _amount);
+        emit AuroraDeposit(msg.sender, _amount);
+
+        Account storage account = accounts[msg.sender];
+        account.available += _amount;
+
+        totalAvailable += _amount;
+        contractAccountBalance += _amount;
+
+        uint256 stAuroraAmount = calculateTotalStAuroraAmount(_amount);
+        mintAfterStake(msg.sender, stAuroraAmount);
+        emit StAuroraMinted(msg.sender, stAuroraAmount);
     }
 }

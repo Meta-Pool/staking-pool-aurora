@@ -69,7 +69,8 @@ describe("Staking Pool AURORA", function () {
       treasury,
       operator,
       alice,
-      bob
+      bob,
+      decimals
     };
   }
 
@@ -96,11 +97,11 @@ describe("Staking Pool AURORA", function () {
       expect(await PoolContract.auroraTokenAddress()).to.equal(AuroraTokenContract.address);
     });
 
-    // it("Should assign the total supply of tokens to the owner", async function () {
-    //   const { hardhatToken, owner } = await loadFixture(deployPoolFixture);
-    //   const ownerBalance = await hardhatToken.balanceOf(owner.address);
-    //   expect(await hardhatToken.totalSupply()).to.equal(ownerBalance);
-    // });
+    it("Should assign the total supply of Aurora tokens to Alice", async function () {
+      const { AuroraTokenContract, alice } = await loadFixture(deployPoolFixture);
+      const ownerBalance = await AuroraTokenContract.balanceOf(alice.address);
+      expect(await AuroraTokenContract.totalSupply()).to.equal(ownerBalance);
+    });
   });
 
   describe("Staking Aurora tokens", function () {
@@ -108,13 +109,39 @@ describe("Staking Pool AURORA", function () {
       const {
           PoolContract,
           AuroraTokenContract,
-          owner,
-          treasury,
-          operator
+          alice,
+          decimals
       } = await loadFixture(deployPoolFixture);
 
-      PoolContract.depositAndStake();
-    })
+      const originalAuroraAmount = await AuroraTokenContract.balanceOf(alice.address);
+      const amountToStake = ethers.BigNumber.from(10).mul(decimals);
+      await AuroraTokenContract.connect(alice).approve(PoolContract.address, amountToStake);
+      await PoolContract.connect(alice).depositAndStake(amountToStake);
+
+      expect(await PoolContract.balanceOf(alice.address)).to.equal(
+        await PoolContract.calculateTotalStAuroraAmount(amountToStake)
+      );
+
+      expect(await AuroraTokenContract.balanceOf(alice.address)).to.equal(
+        ethers.BigNumber.from(originalAuroraAmount).sub(amountToStake)
+      );
+    });
+
+    it("Should not allow less than min deposit amount", async function () {
+      const {
+          PoolContract,
+          AuroraTokenContract,
+          alice,
+          decimals
+      } = await loadFixture(deployPoolFixture);
+
+      const amountToStake = ethers.BigNumber.from(6).mul(decimals);
+      await AuroraTokenContract.connect(alice).approve(PoolContract.address, amountToStake);
+
+      await expect(
+        PoolContract.connect(alice).depositAndStake(amountToStake)
+      ).to.be.revertedWith("LESS_THAN_MIN_DEPOSIT_AMOUNT");
+    });
   });
 
 //   describe("Transactions", function () {
