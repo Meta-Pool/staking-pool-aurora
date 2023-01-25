@@ -26,32 +26,51 @@ describe("Staking Pool AURORA", function () {
   // Network to that snapshot in every test.
   async function deployPoolFixture() {
     // Get the ContractFactory and Signers here.
+    const AuroraToken = await ethers.getContractFactory("Token");
     const Pool = await ethers.getContractFactory("StakingPoolAurora");
-    const [owner, treasury, operator, aurora_token, addr1, addr2] = await ethers.getSigners();
-
-    console.log("0 HERE");
+    const [
+        owner,
+        treasury,
+        operator,
+        alice,
+        bob
+    ] = await ethers.getSigners();
 
     // To deploy our contract, we just have to call Token.deploy() and await
     // its deployed() method, which happens once its transaction has been
     // mined.
-    const hardhatPool = await Pool.deploy(owner.address, treasury.address, operator.address, aurora_token.address);
-    // const hardhatPool = await Pool.deploy("staked aurora", "stAURORA", owner, addr1);
+    const decimals = ethers.BigNumber.from(10).pow(18);
+    const initialSupply = ethers.BigNumber.from(10_000_000).mul(decimals);
+    const AuroraTokenContract = await AuroraToken.deploy(
+        initialSupply,
+        "Aurora Token",
+        "AURORA",
+        alice
+    );
+    await AuroraTokenContract.deployed();
 
-    console.log("1 HERE");
-
-    await hardhatPool.deployed();
-
-
-    console.log("2 HERE");
-
-    // SIMULATE STAKING TODO:
-    // await hardhatToken.mintAfterStake(owner.address, 10_000_000 * (10 ** 18));
-    await hardhatPool.mintAfterStake(owner.address, 1_000_000);
-
-    console.log("3 HERE");
+    const PoolContract = await Pool.deploy(
+        owner.address,
+        treasury.address,
+        operator.address,
+        AuroraTokenContract.address,
+        "Staked Aurora Token",
+        "stAURORA"
+    );
+    await PoolContract.deployed();
 
     // Fixtures can return anything you consider useful for your tests
-    return { Pool, hardhatPool, owner, addr1, addr2 };
+    return {
+        Pool,
+        PoolContract,
+        AuroraToken,
+        AuroraTokenContract,
+        owner,
+        treasury,
+        operator,
+        alice,
+        bob
+    };
   }
 
   // You can nest describe calls to create subsections.

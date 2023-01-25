@@ -203,7 +203,14 @@ contract StakingPoolAurora is StAuroraToken {
         uint128 nslp_shares;
     }
 
-    constructor(address _owner, address _treasury, address _operator, address _aurora_token) {
+    constructor(
+        address _owner,
+        address _treasury,
+        address _operator,
+        address _aurora_token,
+        string memory st_aurora_name,
+        string memory st_aurora_symbol
+    ) StAuroraToken(st_aurora_name, st_aurora_symbol) {
         console.log("Are we here?");
         owner_account_id = _owner;
         contract_busy = false;
