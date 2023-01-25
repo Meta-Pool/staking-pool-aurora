@@ -29,11 +29,11 @@ describe("Staking Pool AURORA", function () {
     const AuroraToken = await ethers.getContractFactory("Token");
     const Pool = await ethers.getContractFactory("StakingPoolAurora");
     const [
-        owner,
-        treasury,
-        operator,
-        alice,
-        bob
+      owner,
+      treasury,
+      operator,
+      alice,
+      bob
     ] = await ethers.getSigners();
 
     // To deploy our contract, we just have to call Token.deploy() and await
@@ -42,34 +42,34 @@ describe("Staking Pool AURORA", function () {
     const decimals = ethers.BigNumber.from(10).pow(18);
     const initialSupply = ethers.BigNumber.from(10_000_000).mul(decimals);
     const AuroraTokenContract = await AuroraToken.deploy(
-        initialSupply,
-        "Aurora Token",
-        "AURORA",
-        alice.address
+      initialSupply,
+      "Aurora Token",
+      "AURORA",
+      alice.address
     );
     await AuroraTokenContract.deployed();
 
     const PoolContract = await Pool.deploy(
-        owner.address,
-        treasury.address,
-        operator.address,
-        AuroraTokenContract.address,
-        "Staked Aurora Token",
-        "stAURORA"
+      owner.address,
+      treasury.address,
+      operator.address,
+      AuroraTokenContract.address,
+      "Staked Aurora Token",
+      "stAURORA"
     );
     await PoolContract.deployed();
 
     // Fixtures can return anything you consider useful for your tests
     return {
-        Pool,
-        PoolContract,
-        AuroraToken,
-        AuroraTokenContract,
-        owner,
-        treasury,
-        operator,
-        alice,
-        bob
+      Pool,
+      PoolContract,
+      AuroraToken,
+      AuroraTokenContract,
+      owner,
+      treasury,
+      operator,
+      alice,
+      bob
     };
   }
 
@@ -79,7 +79,7 @@ describe("Staking Pool AURORA", function () {
     // of your tests. It receives the test name, and a callback function.
     //
     // If the callback function is async, Mocha will `await` it.
-    it("Should set the right owner, treasury, operator and AURORA token", async function () {
+    it("Should set the right owner, treasury, operator and Aurora token", async function () {
       // We use loadFixture to setup our environment, and then assert that
       // things went well
       const {
@@ -91,9 +91,9 @@ describe("Staking Pool AURORA", function () {
       } = await loadFixture(deployPoolFixture);
 
       expect(await PoolContract.owner()).to.equal(owner.address);
-      expect(await PoolContract.treasury_address()).to.equal(treasury.address);
-      expect(await PoolContract.operator_address()).to.equal(operator.address);
-      expect(await PoolContract.aurora_token_address()).to.equal(AuroraTokenContract.address);
+      expect(await PoolContract.treasuryAddress()).to.equal(treasury.address);
+      expect(await PoolContract.operatorAddress()).to.equal(operator.address);
+      expect(await PoolContract.auroraTokenAddress()).to.equal(AuroraTokenContract.address);
     });
 
     // it("Should assign the total supply of tokens to the owner", async function () {
@@ -101,6 +101,20 @@ describe("Staking Pool AURORA", function () {
     //   const ownerBalance = await hardhatToken.balanceOf(owner.address);
     //   expect(await hardhatToken.totalSupply()).to.equal(ownerBalance);
     // });
+  });
+
+  describe("Staking Aurora tokens", function () {
+    it("Should allow staking and have correct balances", async function () {
+      const {
+          PoolContract,
+          AuroraTokenContract,
+          owner,
+          treasury,
+          operator
+      } = await loadFixture(deployPoolFixture);
+
+      PoolContract.depositAndStake();
+    })
   });
 
 //   describe("Transactions", function () {

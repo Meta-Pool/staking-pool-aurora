@@ -10,16 +10,16 @@ contract StakingPoolAurora is StAuroraToken {
     address public owner;
 
     /// Avoid re-entry when async-calls are in-flight
-    bool public contract_busy;
+    bool public contractBusy;
 
     /// no auto-staking. true while changing staking pools
-    bool public staking_paused;
+    bool public stakingPaused;
 
-    /// What should be the contract_account_balance according to our internal accounting (if there's extra, it is 30% tx-fees)
+    /// What should be the contractAccountBalance according to our internal accounting (if there's extra, it is 30% tx-fees)
     /// This amount increments with attachedNEAR calls (inflow) and decrements with deposit_and_stake calls (outflow)
     /// increments with retrieve_from_staking_pool (inflow) and decrements with user withdrawals from the contract (outflow)
     /// It should match env::balance()
-    uint256 public contract_account_balance;
+    uint256 public contractAccountBalance;
 
     /// Every time a user performs a delayed-unstake, stNEAR tokens are burned and the user gets a unstaked_claim that will
     /// be fulfilled 4 epochs from now. If there are someone else staking in the same epoch, both orders (stake & d-unstake) cancel each other
@@ -29,55 +29,55 @@ contract StakingPoolAurora is StAuroraToken {
     /// The funds here are *reserved* for the unstake-claims and can only be used to fulfill those claims
     /// This amount decrements at unstake-withdraw, sending the NEAR to the user
     /// Note: There's a extra functionality (quick-exit) that can speed-up unstaking claims if there's funds in this amount.
-    uint256 public reserve_for_unstake_claims;
+    uint256 public reserveForUnstakeClaims;
 
     /// This value is equivalent to sum(accounts.available)
     /// This amount increments with user's deposits_into_available and decrements when users stake_from_available
     /// increments with unstake_to_available and decrements with withdraw_from_available
     /// Note: in the current simplified UI user-flow of the meta-pool, only the NSLP & the treasury can have available balance
     /// the rest of the users mov directly between their NEAR native accounts & the contract accounts, only briefly occupying acc.available
-    uint256 public total_available;
+    uint256 public totalAvailable;
 
     //-- ORDERS
     /// The total amount of "stake" orders in the current epoch
-    uint256 public epoch_stake_orders;
+    uint256 public epochStakeOrders;
     /// The total amount of "delayed-unstake" orders in the current epoch
-    uint256 public epoch_unstake_orders;
+    uint256 public epochUnstakeOrders;
     // this two amounts can cancel each other at end_of_epoch_clearing
     /// The epoch when the last end_of_epoch_clearing was performed. To avoid calling it twice in the same epoch.
-    uint256 public epoch_last_clearing;
+    uint256 public epochLastClearing;
 
     /// The total amount of tokens selected for staking by the users
     /// not necessarily what's actually staked since staking can is done in batches
-    /// Share price is computed using this number. share_price = total_for_staking/total_shares
-    uint256 public total_for_staking;
+    /// Share price is computed using this number. share_price = totalForStaking/total_shares
+    uint256 public totalForStaking;
 
     /// The total amount of tokens actually staked (the tokens are in the staking pools)
-    // During distribute_staking(), If !staking_paused && total_for_staking<total_actually_staked, then the difference gets staked in the pools
-    // During distribute_unstaking(), If total_actually_staked>total_for_staking, then the difference gets unstaked from the pools
-    uint256 public total_actually_staked;
+    // During distribute_staking(), If !staking_paused && totalForStaking<totalActuallyStaked, then the difference gets staked in the pools
+    // During distribute_unstaking(), If totalActuallyStaked>totalForStaking, then the difference gets unstaked from the pools
+    uint256 public totalActuallyStaked;
 
     /// how many "shares" were minted. Every time someone "stakes" he "buys pool shares" with the staked amount
     // the buy share price is computed so if she "sells" the shares on that moment she recovers the same near amount
-    // staking produces rewards, rewards are added to total_for_staking so share_price will increase with rewards
-    // share_price = total_for_staking/total_shares
+    // staking produces rewards, rewards are added to totalForStaking so share_price will increase with rewards
+    // share_price = totalForStaking/total_shares
     // when someone "unstakes" they "burns" X shares at current price to recoup Y near
-    uint256 public total_stake_shares; //total stNEAR minted
+    uint256 public totalStakeShares; //total stNEAR minted
 
     /// META is the governance token. Total meta minted
     // uint256 public total_meta;
 
     /// The total amount of tokens actually unstaked and in the waiting-delay (the tokens are in the staking pools)
-    uint256 public total_unstaked_and_waiting;
+    uint256 public totalUnstakedAndWaiting;
 
     /// sum(accounts.unstake). Every time a user delayed-unstakes, this amount is incremented
     /// when the funds are withdrawn the amount is decremented.
-    /// Control: total_unstaked_claims == reserve_for_unstaked_claims + total_unstaked_and_waiting
-    uint256 public total_unstake_claims;
+    /// Control: total_unstaked_claims == reserve_for_unstaked_claims + totalUnstakedAndWaiting
+    uint256 public totalUnstakeClaims;
 
     /// the staking pools will add rewards to the staked amount on each epoch
     /// here we store the accumulated amount only for stats purposes. This amount can only grow
-    uint256 public accumulated_staked_rewards;
+    uint256 public accumulatedStakedRewards;
 
     /// user's accounts
     mapping(address => Account) public accounts;
@@ -92,12 +92,12 @@ contract StakingPoolAurora is StAuroraToken {
     //The next 3 values define the Liq.Provider fee curve
     // NEAR/stNEAR Liquidity pool fee curve params
     // We assume this pool is always UNBALANCED, there should be more NEAR than stNEAR 99% of the time
-    ///NEAR/stNEAR Liquidity target. If the Liquidity reach this amount, the fee reaches nslp_min_discount_basis_points
-    uint256 public nslp_liquidity_target; // 150_000*NEAR initially
+    ///NEAR/stNEAR Liquidity target. If the Liquidity reach this amount, the fee reaches nslpMinDiscountBasisPoints
+    uint256 public nslpLiquidityTarget; // 150_000*NEAR initially
     ///NEAR/stNEAR Liquidity pool max fee
-    uint16 public nslp_max_discount_basis_points; //5% initially
+    uint16 public nslpMaxDiscountBasisPoints; //5% initially
     ///NEAR/stNEAR Liquidity pool min fee
-    uint16 public nslp_min_discount_basis_points; //0.5% initially
+    uint16 public nslpMinDiscountBasisPoints; //0.5% initially
 
     // //The next 3 values define meta rewards multipliers. (10 => 1x, 20 => 2x, ...)
     // ///for each stNEAR paid staking reward, reward stNEAR holders with META. default:5x. reward META = rewards * (mult_pct*10) / 100
@@ -108,20 +108,20 @@ contract StakingPoolAurora is StAuroraToken {
     // uint16 public lp_provider_meta_mult_pct;
 
     /// min amount accepted as deposit or stake
-    uint256 public min_deposit_amount;
+    uint256 public minDepositAmount;
 
-    address public aurora_token_address;
+    address public auroraTokenAddress;
 
     /// Operator account ID (who's in charge to call distribute_xx() on a periodic basis)
-    address public operator_address;
-    /// operator_rewards_fee_basis_points. (0.2% default) 100 basis point => 1%. E.g.: owner_fee_basis_points=30 => 0.3% owner's fee
-    uint16 public operator_rewards_fee_basis_points;
+    address public operatorAddress;
+    /// operatorRewardsFeeBasisPoints. (0.2% default) 100 basis point => 1%. E.g.: owner_fee_basis_points=30 => 0.3% owner's fee
+    uint16 public operatorRewardsFeeBasisPoints;
     /// owner's cut on Liquid Unstake fee (3% default)
-    uint16 public operator_swap_cut_basis_points;
+    uint16 public operatorSwapCutBasisPoints;
     /// Treasury account ID (it will be controlled by a DAO on phase II)
-    address public treasury_address;
+    address public treasuryAddress;
     /// treasury cut on Liquid Unstake (25% from the fees by default)
-    uint16 public treasury_swap_cut_basis_points;
+    uint16 public treasurySwapCutBasisPoints;
 
     // Configurable info for [NEP-129](https://github.com/nearprotocol/NEPs/pull/129)
     // pub web_app_url: Option<String>,
@@ -161,8 +161,8 @@ contract StakingPoolAurora is StAuroraToken {
         /// The amount of st_near (stake shares) of the total staked balance in the pool(s) this user owns.
         /// When someone stakes, share-price is computed and shares are "sold" to the user so he only owns what he's staking and no rewards yet
         /// When a user request a transfer to other user, shares from the origin are moved to shares of the destination
-        /// The share_price can be computed as total_for_staking/total_stake_shares
-        /// stNEAR price = total_for_staking/total_stake_shares
+        /// The share_price can be computed as totalForStaking/totalStakeShares
+        /// stNEAR price = totalForStaking/totalStakeShares
         uint256 stake_shares; //st_near this account owns
 
         /// Incremented when the user asks for Delayed-Unstaking. The amount of unstaked near in the pools
@@ -207,43 +207,42 @@ contract StakingPoolAurora is StAuroraToken {
         address _owner,
         address _treasury,
         address _operator,
-        address _aurora_token,
-        string memory st_aurora_name,
-        string memory st_aurora_symbol
-    ) StAuroraToken(st_aurora_name, st_aurora_symbol) {
+        address _auroraToken,
+        string memory stAuroraName,
+        string memory stAuroraSymbol
+    ) StAuroraToken(stAuroraName, stAuroraSymbol) {
         owner = _owner;
-        contract_busy = false;
-        operator_address = _operator;
-        treasury_address = _treasury;
-        aurora_token_address = _aurora_token;
-        contract_account_balance = 0;
+        contractBusy = false;
+        operatorAddress = _operator;
+        treasuryAddress = _treasury;
+        auroraTokenAddress = _auroraToken;
+        contractAccountBalance = 0;
 
         uint16 DEFAULT_OPERATOR_REWARDS_FEE_BASIS_POINTS = 0;
-        operator_rewards_fee_basis_points = DEFAULT_OPERATOR_REWARDS_FEE_BASIS_POINTS;
+        operatorRewardsFeeBasisPoints = DEFAULT_OPERATOR_REWARDS_FEE_BASIS_POINTS;
         
         uint16 DEFAULT_OPERATOR_SWAP_CUT_BASIS_POINTS = 0;
-        operator_swap_cut_basis_points = DEFAULT_OPERATOR_SWAP_CUT_BASIS_POINTS;
+        operatorSwapCutBasisPoints = DEFAULT_OPERATOR_SWAP_CUT_BASIS_POINTS;
 
         uint16 DEFAULT_TREASURY_SWAP_CUT_BASIS_POINTS = 0;
-        treasury_swap_cut_basis_points = DEFAULT_TREASURY_SWAP_CUT_BASIS_POINTS;
+        treasurySwapCutBasisPoints = DEFAULT_TREASURY_SWAP_CUT_BASIS_POINTS;
 
-        staking_paused = false;
-        total_available = 0;
-        total_for_staking = 0;
-        total_actually_staked = 0;
-        total_unstaked_and_waiting = 0;
-        reserve_for_unstake_claims = 0;
-        total_unstake_claims = 0;
-        epoch_stake_orders = 0;
-        epoch_unstake_orders = 0;
-        epoch_last_clearing = 0;
-        accumulated_staked_rewards = 0;
-        total_stake_shares = 0;
+        stakingPaused = false;
+        totalAvailable = 0;
+        totalForStaking = 0;
+        totalActuallyStaked = 0;
+        totalUnstakedAndWaiting = 0;
+        reserveForUnstakeClaims = 0;
+        totalUnstakeClaims = 0;
+        epochStakeOrders = 0;
+        epochUnstakeOrders = 0;
+        epochLastClearing = 0;
+        accumulatedStakedRewards = 0;
+        totalStakeShares = 0;
  
-        nslp_liquidity_target = 10_000 * (10 ** 18);
-        nslp_max_discount_basis_points = 180; //1.8%
-        nslp_min_discount_basis_points = 25; //0.25%
-        min_deposit_amount = 10 * (10 ** 18);
-
+        nslpLiquidityTarget = 10_000 * (10 ** 18);
+        nslpMaxDiscountBasisPoints = 180; //1.8%
+        nslpMinDiscountBasisPoints = 25; //0.25%
+        minDepositAmount = 10 * (10 ** 18);
     }
 }
