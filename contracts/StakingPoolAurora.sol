@@ -5,8 +5,9 @@ pragma solidity ^0.8.9;
 import "./StAuroraToken.sol";
 import "hardhat/console.sol";
 
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
 interface IAuroraPlus {
 
@@ -18,7 +19,7 @@ interface IAuroraPlus {
         returns (uint256);
 }
 
-contract StakingPoolAurora is StAuroraToken {
+contract StakingPoolAurora is ERC4626 {
     /// Owner's account ID (it will be a DAO on phase II)
     address public owner;
 
@@ -123,17 +124,17 @@ contract StakingPoolAurora is StAuroraToken {
     /// min amount accepted as deposit or stake
     uint256 public minDepositAmount;
 
-    address public auroraTokenAddress;
-    address public auroraPlusAddress;
+    // address public auroraToken; // Use asset()
+    address public auroraPlus;
 
     /// Operator account ID (who's in charge to call distribute_xx() on a periodic basis)
-    address public operatorAddress;
+    address public operator;
     /// operatorRewardsFeeBasisPoints. (0.2% default) 100 basis point => 1%. E.g.: owner_fee_basis_points=30 => 0.3% owner's fee
     uint16 public operatorRewardsFeeBasisPoints;
     /// owner's cut on Liquid Unstake fee (3% default)
     uint16 public operatorSwapCutBasisPoints;
     /// Treasury account ID (it will be controlled by a DAO on phase II)
-    address public treasuryAddress;
+    address public treasury;
     /// treasury cut on Liquid Unstake (25% from the fees by default)
     uint16 public treasurySwapCutBasisPoints;
 
@@ -228,13 +229,16 @@ contract StakingPoolAurora is StAuroraToken {
         address _auroraPlus,
         string memory _stAuroraName,
         string memory _stAuroraSymbol
-    ) StAuroraToken(_stAuroraName, _stAuroraSymbol) {
+    )
+        ERC20(_stAuroraName, _stAuroraSymbol)
+        ERC4626(IERC20(_auroraToken))
+    {
         owner = _owner;
         contractBusy = false;
-        operatorAddress = _operator;
-        treasuryAddress = _treasury;
-        auroraTokenAddress = _auroraToken;
-        auroraPlusAddress = _auroraPlus;
+        operator = _operator;
+        treasury = _treasury;
+        // auroraToken = _auroraToken; << use asset()
+        auroraPlus = _auroraPlus;
         contractAccountBalance = 0;
 
         uint16 DEFAULT_OPERATOR_REWARDS_FEE_BASIS_POINTS = 0;
@@ -269,7 +273,7 @@ contract StakingPoolAurora is StAuroraToken {
         require(_amount >= minDepositAmount, "LESS_THAN_MIN_DEPOSIT_AMOUNT");
     }
 
-    function convertToShares(uint256 assets) public view returns (uint256 shares) {
+    function convertToShares(uint256 assets) public override view returns (uint256 shares) {
         // TODO: it is not 1 to 1 !!
         return assets;
     }
@@ -278,7 +282,7 @@ contract StakingPoolAurora is StAuroraToken {
         // console.log("deposited amount: %s", _amount);
         // console.log("      min amount: %s", minDepositAmount);
         assertMinDepositAmount(_amount);
-        IERC20(auroraTokenAddress).transferFrom(msg.sender, address(this), _amount);
+        IERC20(asset()).transferFrom(msg.sender, address(this), _amount);
         emit AuroraDeposit(msg.sender, _amount);
 
         Account storage account = accounts[msg.sender];
@@ -288,7 +292,11 @@ contract StakingPoolAurora is StAuroraToken {
         contractAccountBalance += _amount;
 
         uint256 stAuroraAmount = convertToShares(_amount);
-        mintAfterStake(msg.sender, stAuroraAmount);
+        _mint(msg.sender, stAuroraAmount);
         emit StAuroraMinted(msg.sender, stAuroraAmount);
+    }
+
+    function totalAssets() public view virtual override returns (uint256) {
+        return _asset.balanceOf(address(this));
     }
 }
