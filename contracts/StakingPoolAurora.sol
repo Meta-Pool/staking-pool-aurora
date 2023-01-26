@@ -7,6 +7,17 @@ import "hardhat/console.sol";
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+
+interface IAuroraPlus {
+
+    function stake(uint256 amount) external;
+
+    function getUserTotalDeposit(address account)
+        external
+        view
+        returns (uint256);
+}
+
 contract StakingPoolAurora is StAuroraToken {
     /// Owner's account ID (it will be a DAO on phase II)
     address public owner;
@@ -113,6 +124,7 @@ contract StakingPoolAurora is StAuroraToken {
     uint256 public minDepositAmount;
 
     address public auroraTokenAddress;
+    address public auroraPlusAddress;
 
     /// Operator account ID (who's in charge to call distribute_xx() on a periodic basis)
     address public operatorAddress;
@@ -213,6 +225,7 @@ contract StakingPoolAurora is StAuroraToken {
         address _treasury,
         address _operator,
         address _auroraToken,
+        address _auroraPlus,
         string memory _stAuroraName,
         string memory _stAuroraSymbol
     ) StAuroraToken(_stAuroraName, _stAuroraSymbol) {
@@ -221,6 +234,7 @@ contract StakingPoolAurora is StAuroraToken {
         operatorAddress = _operator;
         treasuryAddress = _treasury;
         auroraTokenAddress = _auroraToken;
+        auroraPlusAddress = _auroraPlus;
         contractAccountBalance = 0;
 
         uint16 DEFAULT_OPERATOR_REWARDS_FEE_BASIS_POINTS = 0;
@@ -255,11 +269,9 @@ contract StakingPoolAurora is StAuroraToken {
         require(_amount >= minDepositAmount, "LESS_THAN_MIN_DEPOSIT_AMOUNT");
     }
 
-    // function calculateCurrentStAuroraPerAurora() public view returns()
-
-    function calculateTotalStAuroraAmount(uint256 _amount) public pure returns(uint256) {
+    function convertToShares(uint256 assets) public view returns (uint256 shares) {
         // TODO: it is not 1 to 1 !!
-        return _amount;
+        return assets;
     }
 
     function depositAndStake(uint256 _amount) public payable {
@@ -275,7 +287,7 @@ contract StakingPoolAurora is StAuroraToken {
         totalAvailable += _amount;
         contractAccountBalance += _amount;
 
-        uint256 stAuroraAmount = calculateTotalStAuroraAmount(_amount);
+        uint256 stAuroraAmount = convertToShares(_amount);
         mintAfterStake(msg.sender, stAuroraAmount);
         emit StAuroraMinted(msg.sender, stAuroraAmount);
     }
