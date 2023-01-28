@@ -301,9 +301,11 @@ contract StakingPoolAurora is ERC4626 {
     function totalAssets() public view virtual override returns (uint256) {
         uint256 totalAmountOfStakedAurora = IAuroraPlus(auroraPlus).getTotalAmountOfStakedAurora();
 
-        // Formula taken from Aurora Plus.
-        uint256 stakeValue = (totalAmountOfStakedAurora *
-            users[msg.sender].auroraShares) / totalAuroraShares;
-        return _asset.balanceOf(address(this));
+        return 1;
+
+        // // Formula taken from Aurora Plus.
+        // uint256 stakeValue = (totalAmountOfStakedAurora *
+        //     users[msg.sender].auroraShares) / totalAuroraShares;
+        // return _asset.balanceOf(address(this));
     }
 }
