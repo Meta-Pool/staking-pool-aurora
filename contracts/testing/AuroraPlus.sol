@@ -113,4 +113,18 @@ contract AuroraPlus {
         uint256 factor = (block.timestamp - deployTimestamp) * (10 ** 16);
         return totalAmountOfStakedAurora + factor;
     }
+
+    /// @dev a user stakes amount of AURORA tokens
+    /// The user should approve these tokens to the treasury
+    /// contract in order to complete the stake.
+    /// @param amount is the AURORA amount.
+    function stake(uint256 amount) external pausable(1) {
+        _before();
+        _stake(msg.sender, amount);
+        IERC20Upgradeable(auroraToken).safeTransferFrom(
+            msg.sender,
+            address(treasury),
+            amount
+        );
+    }
 }
