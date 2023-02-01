@@ -109,6 +109,13 @@ contract AuroraPlus {
         return deposits[account];
     }
 
+    /// @dev gets the user shares
+    /// @param account the user address
+    /// @return user shares
+    function getUserShares(address account) external view returns (uint256) {
+        return users[account].auroraShares;
+    }
+
     /// @dev gets the total amount of staked aurora
     /// @return totalAmountOfStakedAurora + latest reward schedule
     function getTotalAmountOfStakedAurora() external view returns (uint256) {

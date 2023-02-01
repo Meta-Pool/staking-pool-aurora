@@ -8,17 +8,19 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface IStakingManager {
-    address immutable stAurora;
-    address immutable auroraStaking;
-    address immutable auroraToken;
+
+    function stAurora() external view returns (address);
+    function auroraStaking() external view returns (address);
+    function auroraToken() external view returns (address);
+
 }
 
 interface IAuroraStaking {
     function stake(uint256 amount) external;
 }
 
-contract Depositor {
-    address public immutable stakingManager;
+contract Depositor is Ownable {
+    address public stakingManager;
 
     modifier onlyManager() {
         require(msg.sender == stakingManager);
@@ -26,6 +28,11 @@ contract Depositor {
     }
 
     constructor(address _stakingManager) {
+        require(_stakingManager != address(0));
+        stakingManager = _stakingManager;
+    }
+
+    function updataStakingManager(address _stakingManager) public onlyOwner {
         require(_stakingManager != address(0));
         stakingManager = _stakingManager;
     }

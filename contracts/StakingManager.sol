@@ -10,19 +10,19 @@ import "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
 interface IAuroraStaking {
 
-    uint256 public totalAuroraShares;
-
-    struct User {
-        uint256 deposit;
-        uint256 auroraShares;
-        uint256 streamShares;
-        mapping(uint256 => uint256) pendings; // The amount of tokens pending release for user per stream
-        mapping(uint256 => uint256) releaseTime; // The release moment per stream
-        mapping(uint256 => uint256) rpsDuringLastClaim; // RPS or reward per share during the previous rewards claim
-    }
+    // struct User {
+    //     uint256 deposit;
+    //     uint256 auroraShares;
+    //     uint256 streamShares;
+    //     mapping(uint256 => uint256) pendings; // The amount of tokens pending release for user per stream
+    //     mapping(uint256 => uint256) releaseTime; // The release moment per stream
+    //     mapping(uint256 => uint256) rpsDuringLastClaim; // RPS or reward per share during the previous rewards claim
+    // }
     
-    mapping(address => User) public users;
+    // mapping(address => User) public users;
 
+    function totalAuroraShares() external view returns (uint256);
+    function getUserShares(address account) external view returns (uint256);
     function getTotalAmountOfStakedAurora() external view returns (uint256);
 }
 
@@ -45,17 +45,19 @@ contract StakingManager {
     }
 
     function getTotalAssetsFromDepositors() public returns (uint256) {
-        uint8 arrayLength = depositors.length;
+        uint256 arrayLength = depositors.length;
         uint256 depositorsAuroraShares = 0;
+        IAuroraStaking auroraContract = IAuroraStaking(auroraStaking);
+
         if (arrayLength == 0) return 0;
         for (uint i=0; i<arrayLength; i++) {
-            depositorsAuroraShares += IAuroraStaking(stAurora).users[depositors[i]];
+            depositorsAuroraShares += auroraContract.getUserShares(depositors[i]);
         }
         if (depositorsAuroraShares == 0) return 0;
-        uint256 denominator = IAuroraStaking(stAurora).totalAuroraShares;
+        uint256 denominator = auroraContract.totalAuroraShares();
         if (denominator == 0) return 0;
         uint256 numerator = (depositorsAuroraShares *
-            IAuroraStaking(stAurora).getTotalAmountOfStakedAurora());
+            auroraContract.getTotalAmountOfStakedAurora());
         uint256 stakeValue = numerator / denominator;
         return stakeValue;
     }
