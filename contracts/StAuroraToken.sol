@@ -8,8 +8,8 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface IStakingManager {
-    function nextDepositor() external returns (address);
-    function totalAssets() external returns (uint256);
+    function nextDepositor() external view returns (address);
+    function totalAssets() external view returns (uint256);
 }
 
 interface IDepositor {
@@ -20,7 +20,9 @@ contract StAuroraToken is ERC4626, Ownable {
 
     address public stakingManager;
 
-    constructor(address asset_) ERC4626(IERC20(asset_)) {}
+    constructor(address asset_, string memory _name, string memory _symbol)
+        ERC4626(IERC20(asset_))
+        ERC20(_name, _symbol) {}
 
     function updataStakingManager(address _stakingManager) public onlyOwner {
         require(_stakingManager != address(0));

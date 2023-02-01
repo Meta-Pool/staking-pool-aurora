@@ -113,7 +113,7 @@ contract AuroraPlus {
     /// @param account the user address
     /// @return user shares
     function getUserShares(address account) external view returns (uint256) {
-        return users[account].auroraShares;
+        return deposits[account];
     }
 
     /// @dev gets the total amount of staked aurora
@@ -128,13 +128,16 @@ contract AuroraPlus {
     /// The user should approve these tokens to the treasury
     /// contract in order to complete the stake.
     /// @param amount is the AURORA amount.
-    function stake(uint256 amount) external pausable(1) {
-        _before();
-        _stake(msg.sender, amount);
-        IERC20Upgradeable(auroraToken).safeTransferFrom(
-            msg.sender,
-            address(treasury),
-            amount
-        );
+    function stake(uint256 amount) external {
+        deposits[msg.sender] += amount;
+
+
+        // _before();
+        // _stake(msg.sender, amount);
+        // IERC20Upgradeable(auroraToken).safeTransferFrom(
+        //     msg.sender,
+        //     address(treasury),
+        //     amount
+        // );
     }
 }

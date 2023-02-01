@@ -58,5 +58,7 @@ contract Depositor is Ownable {
             address(this),
             _assets
         );
+
+        IAuroraStaking(auroraStaking).stake(_assets);
     }
 }
