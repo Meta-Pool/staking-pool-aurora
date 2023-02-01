@@ -7,23 +7,20 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-
 interface IStakingManager {
-    address immutable public stAurora;
-    address immutable public auroraStaking;
-    address immutable public auroraToken;
+    address immutable stAurora;
+    address immutable auroraStaking;
+    address immutable auroraToken;
 }
 
 interface IAuroraStaking {
     function stake(uint256 amount) external;
 }
 
-
 contract Depositor {
+    address public immutable stakingManager;
 
-    address immutable public stakingManager;
-
-    modifier onlyManager {
+    modifier onlyManager() {
         require(msg.sender == stakingManager);
         _;
     }
@@ -36,8 +33,11 @@ contract Depositor {
     function stake(uint256 _assets) public onlyManager {
         IStakingManager manager = IStakingManager(stakingManager);
         address _stAurora = manager.stAurora();
-        SafeERC20.safeTransferFrom(IERC20(manager.auroraToken()), manager.stAurora(), address(this), _assets);
-
-
+        SafeERC20.safeTransferFrom(
+            IERC20(manager.auroraToken()),
+            manager.stAurora(),
+            address(this),
+            _assets
+        );
     }
 }

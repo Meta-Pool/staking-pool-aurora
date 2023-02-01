@@ -55,7 +55,7 @@ contract StakingManager {
         uint256 denominator = IAuroraStaking(stAurora).totalAuroraShares;
         if (denominator == 0) return 0;
         uint256 numerator = (depositorsAuroraShares *
-            IAuroraStaking(stAurora).getTotalAmountOfStakedAurora())
+            IAuroraStaking(stAurora).getTotalAmountOfStakedAurora());
         uint256 stakeValue = numerator / denominator;
         return stakeValue;
     }
