@@ -20,9 +20,9 @@ contract StAuroraToken is ERC4626, Ownable {
 
     address public stakingManager;
 
-    constructor(address asset_, string memory _name, string memory _symbol)
+    constructor(address asset_, string memory _stAuroraName, string memory _stAuroraSymbol)
         ERC4626(IERC20(asset_))
-        ERC20(_name, _symbol) {}
+        ERC20(_stAuroraName, _stAuroraSymbol) {}
 
     function updataStakingManager(address _stakingManager) public onlyOwner {
         require(_stakingManager != address(0));

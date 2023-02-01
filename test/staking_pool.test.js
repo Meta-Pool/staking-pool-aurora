@@ -27,8 +27,9 @@ describe("Staking Pool AURORA", function () {
   async function deployPoolFixture() {
     // Get the ContractFactory and Signers here.
     const AuroraToken = await ethers.getContractFactory("Token");
-    const AuroraPlus = await ethers.getContractFactory("AuroraPlus");
-    const Pool = await ethers.getContractFactory("MetaPoolAurora");
+    const AuroraStaking = await ethers.getContractFactory("AuroraStaking");
+    const StakingManager = await ethers.getContractFactory("StakingManager");
+    const Depositor = await ethers.getContractFactory("Depositor");
     const StAuroraToken = await ethers.getContractFactory("StAuroraToken");
     const [
       owner,
@@ -38,9 +39,6 @@ describe("Staking Pool AURORA", function () {
       bob
     ] = await ethers.getSigners();
 
-    // To deploy our contract, we just have to call Token.deploy() and await
-    // its deployed() method, which happens once its transaction has been
-    // mined.
     const decimals = ethers.BigNumber.from(10).pow(18);
     const initialSupply = ethers.BigNumber.from(10_000_000).mul(decimals);
     const auroraTokenContract = await AuroraToken.deploy(
@@ -51,33 +49,36 @@ describe("Staking Pool AURORA", function () {
     );
     await auroraTokenContract.deployed();
 
-    const stAuroraTokenContract = await StAuroraToken.deploy(
-      "Staked Aurora Token",
-      "stAURORA",
+    const auroraStakingContract = await AuroraStaking.deploy(
       auroraTokenContract.address
+    );
+    await auroraStakingContract.deployed();
+
+    const stAuroraTokenContract = await StAuroraToken.deploy(
+      auroraTokenContract.address,
+      "Staked Aurora Token",
+      "stAURORA"
     );
     await stAuroraTokenContract.deployed();
 
-    const auroraPlusContract = await AuroraPlus.deploy(
-      auroraTokenContract.address,
+    const stakingManagerContract = await StakingManager.deploy(
+      stAuroraTokenContract.address,
+      auroraStakingContract.address
     );
-    await auroraPlusContract.deployed();
+    await stakingManagerContract.deployed();
 
-    const poolContract = await Pool.deploy(
-      owner.address,
-      treasury.address,
-      operator.address,
-      auroraPlusContract.address,
-      stAuroraTokenContract.address
+    const depositorContract = await Depositor.deploy(
+      stakingManagerContract.address
     );
-    await poolContract.deployed();
+    await depositorContract.deployed();
 
     // Fixtures can return anything you consider useful for your tests
     return {
-      poolContract,
       auroraTokenContract,
-      auroraPlusContract,
+      auroraStakingContract,
       stAuroraTokenContract,
+      stakingManagerContract,
+      depositorContract,
       owner,
       treasury,
       operator,
