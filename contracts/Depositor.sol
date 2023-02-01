@@ -20,16 +20,30 @@ interface IAuroraStaking {
 }
 
 contract Depositor is Ownable {
+
     address public stakingManager;
+    address immutable public stAurora;
+    address immutable public auroraToken;
+    address immutable public auroraStaking;
 
     modifier onlyManager() {
         require(msg.sender == stakingManager);
         _;
     }
 
+    modifier onlyStAurora() {
+        require(msg.sender == stAurora);
+        _;
+    }
+
     constructor(address _stakingManager) {
         require(_stakingManager != address(0));
         stakingManager = _stakingManager;
+
+        IStakingManager manager = IStakingManager(stakingManager);
+        stAurora = manager.stAurora();
+        auroraToken = manager.auroraToken();
+        auroraStaking = manager.auroraStaking();
     }
 
     function updataStakingManager(address _stakingManager) public onlyOwner {
@@ -37,12 +51,10 @@ contract Depositor is Ownable {
         stakingManager = _stakingManager;
     }
 
-    function stake(uint256 _assets) public onlyManager {
-        IStakingManager manager = IStakingManager(stakingManager);
-        address _stAurora = manager.stAurora();
+    function stake(uint256 _assets) public onlyStAurora {
         SafeERC20.safeTransferFrom(
-            IERC20(manager.auroraToken()),
-            manager.stAurora(),
+            IERC20(auroraToken),
+            stAurora,
             address(this),
             _assets
         );

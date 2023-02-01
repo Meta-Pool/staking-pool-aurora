@@ -8,7 +8,12 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface IStakingManager {
+    function nextDepositor() external returns (address);
     function totalAssets() external returns (uint256);
+}
+
+interface IDepositor {
+    function stake(uint256 _assets) external;
 }
 
 contract StAuroraToken is ERC4626, Ownable {
@@ -55,14 +60,15 @@ contract StAuroraToken is ERC4626, Ownable {
      * @dev Deposit/mint common workflow.
      */
     function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal override {
-        // If _asset is ERC777, `transferFrom` can trigger a reenterancy BEFORE the transfer happens through the
-        // `tokensToSend` hook. On the other hand, the `tokenReceived` hook, that is triggered after the transfer,
-        // calls the vault, which is assumed not malicious.
-        //
-        // Conclusion: we need to do the transfer before we mint so that any reentrancy would happen before the
-        // assets are transferred and before the shares are minted, which is a valid state.
-        // slither-disable-next-line reentrancy-no-eth
-        SafeERC20.safeTransferFrom(IERC20(asset()), caller, address(this), assets);
+        IERC20 auroraToken = IERC20(asset());
+        IStakingManager manager = IStakingManager(stakingManager);
+
+        SafeERC20.safeTransferFrom(auroraToken, caller, address(this), assets);
+
+        address depositor = manager.nextDepositor();
+        SafeERC20.safeIncreaseAllowance(auroraToken, depositor, assets);
+        IDepositor(depositor).stake(assets);
+
         _mint(receiver, shares);
 
         emit Deposit(caller, receiver, assets, shares);

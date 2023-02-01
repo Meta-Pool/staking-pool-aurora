@@ -32,7 +32,9 @@ contract StakingManager {
     address immutable public stAurora;
     address immutable public auroraToken;
     address immutable public auroraStaking;
+
     address[] public depositors;
+    address public nextDepositor;
 
     uint256 public lpTotalAsset;
     uint256 public lpTotalShare;
@@ -44,7 +46,7 @@ contract StakingManager {
         auroraToken = IERC4626(stAurora).asset();
     }
 
-    function getTotalAssetsFromDepositors() public returns (uint256) {
+    function getTotalAssetsFromDepositors() public view returns (uint256) {
         uint256 arrayLength = depositors.length;
         uint256 depositorsAuroraShares = 0;
         IAuroraStaking auroraContract = IAuroraStaking(auroraStaking);
@@ -62,7 +64,7 @@ contract StakingManager {
         return stakeValue;
     }
 
-    function totalAssets() external returns (uint256) {
+    function totalAssets() external view returns (uint256) {
         return getTotalAssetsFromDepositors() + lpTotalAsset;
     }
 }
