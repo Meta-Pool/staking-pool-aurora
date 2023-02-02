@@ -39,9 +39,15 @@ contract StakingManager is AccessControl {
 
     address[] public depositors;
     address public nextDepositor;
+    mapping(address => uint256) depositorShares;
 
     uint256 public lpTotalAsset;
     uint256 public lpTotalShare;
+
+    modifier onlyStAurora() {
+        require(msg.sender == stAurora);
+        _;
+    }
 
     constructor(
         address _stAurora,
@@ -67,10 +73,43 @@ contract StakingManager is AccessControl {
 
     function insertDepositor(address _depositor) external onlyRole(DEPOSITORS_OWNER_ROLE) {
         depositors.push(_depositor);
+        nextDepositor = _depositor;
     }
 
     function depositorsLength() external view returns (uint256) {
         return depositors.length;
+    }
+
+    function getDepositorShares(address _depositor) external view returns (uint256) {
+        return depositorShares[_depositor];
+    }
+
+    function depositorExists(address _depositor) public view returns (bool) {
+        for (uint i = 0; i < depositors.length; i++) {
+            if (depositors[i] == _depositor) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function updateDepositorShares(address _depositor) public {
+        require(depositors.length > 0);
+        require(depositorExists(_depositor), "UNEXISTING_DEPOSITOR");
+        depositorShares[_depositor] = IAuroraStaking(auroraStaking).getUserShares(_depositor);
+    }
+
+    function setNextDepositor() public onlyStAurora {
+        require(depositors.length > 0);
+        updateDepositorShares(nextDepositor);
+        address _nextDepositor = depositors[0];
+        for (uint i = 0; i < depositors.length; i++) {
+            // Keeping a < instead of <= allows prioritizing the deposits in lower index depositors.
+            if (depositorShares[depositors[i]] < depositorShares[_nextDepositor] ) {
+                _nextDepositor = depositors[i];
+            }
+        }
+        nextDepositor = _nextDepositor;
     }
 
     function getTotalAssetsFromDepositors() public view returns (uint256) {
@@ -80,7 +119,7 @@ contract StakingManager is AccessControl {
 
         if (arrayLength == 0) return 0;
         for (uint i=0; i<arrayLength; i++) {
-            depositorsAuroraShares += auroraContract.getUserShares(depositors[i]);
+            depositorsAuroraShares += depositorShares[depositors[i]];
         }
         if (depositorsAuroraShares == 0) return 0;
         uint256 denominator = auroraContract.totalAuroraShares();

@@ -7,9 +7,12 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+import "hardhat/console.sol";
+
 interface IStakingManager {
     function nextDepositor() external view returns (address);
     function totalAssets() external view returns (uint256);
+    function setNextDepositor() external;
 }
 
 interface IDepositor {
@@ -64,12 +67,12 @@ contract StAuroraToken is ERC4626, Ownable {
     function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal override {
         IERC20 auroraToken = IERC20(asset());
         IStakingManager manager = IStakingManager(stakingManager);
-
         SafeERC20.safeTransferFrom(auroraToken, caller, address(this), assets);
 
         address depositor = manager.nextDepositor();
         SafeERC20.safeIncreaseAllowance(auroraToken, depositor, assets);
         IDepositor(depositor).stake(assets);
+        manager.setNextDepositor();
 
         _mint(receiver, shares);
 

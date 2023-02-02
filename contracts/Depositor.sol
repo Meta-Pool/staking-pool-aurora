@@ -2,10 +2,11 @@
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-// import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+import "hardhat/console.sol";
 
 interface IStakingManager {
 
@@ -52,13 +53,9 @@ contract Depositor is Ownable {
     }
 
     function stake(uint256 _assets) public onlyStAurora {
-        SafeERC20.safeTransferFrom(
-            IERC20(auroraToken),
-            stAurora,
-            address(this),
-            _assets
-        );
-
+        IERC20 aurora = IERC20(auroraToken);
+        SafeERC20.safeTransferFrom(aurora, stAurora, address(this), _assets);
+        SafeERC20.safeIncreaseAllowance(aurora, auroraStaking, _assets);
         IAuroraStaking(auroraStaking).stake(_assets);
     }
 }
