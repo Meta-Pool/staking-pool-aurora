@@ -9,16 +9,16 @@ contract AuroraStaking {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     address immutable auroraToken;
-    uint256 immutable deployTimestamp;
-    uint256 totalAmountOfStakedAurora;
+    uint256 public touchedAt;
+    uint256 public totalAmountOfStakedAurora;
+    uint256 public totalAuroraShares;
 
     mapping(address => uint256) deposits;
+    mapping(address => uint256) auroraShares;
 
     constructor(address _auroraToken) {
         auroraToken = _auroraToken;
-        deployTimestamp = block.timestamp;
-
-        totalAmountOfStakedAurora = 10_000 * (10 ** 18);
+        touchedAt = block.timestamp;
     }
 
     // /// @dev moves the reward for specific stream Id to pending rewards.
@@ -113,15 +113,30 @@ contract AuroraStaking {
     /// @param account the user address
     /// @return user shares
     function getUserShares(address account) external view returns (uint256) {
-        return deposits[account];
+        return auroraShares[account];
+    }
+
+    /// @dev calculates and gets the latest released rewards.
+    /// @param streamId stream index
+    /// @return rewards released since last update.
+    function getRewardsAmount(uint256 streamId, uint256 lastUpdate)
+        public
+        view
+        returns (uint256)
+    {
+        require(streamId == 0);
+        require(lastUpdate <= block.timestamp, "INVALID_LAST_UPDATE");
+        if (lastUpdate == block.timestamp) return 0; // No more rewards since last update
+
+        // 1 second == 0.01 Aurora reward
+        uint256 factor = (block.timestamp - lastUpdate) * (10 ** 16);
+        return factor;
     }
 
     /// @dev gets the total amount of staked aurora
     /// @return totalAmountOfStakedAurora + latest reward schedule
     function getTotalAmountOfStakedAurora() external view returns (uint256) {
-        // 1 second == 0.01 Aurora reward
-        uint256 factor = (block.timestamp - deployTimestamp) * (10 ** 16);
-        return totalAmountOfStakedAurora + factor;
+        return totalAmountOfStakedAurora + getRewardsAmount(0, touchedAt);
     }
 
     /// @dev a user stakes amount of AURORA tokens
@@ -129,15 +144,41 @@ contract AuroraStaking {
     /// contract in order to complete the stake.
     /// @param amount is the AURORA amount.
     function stake(uint256 amount) external {
+        _before();
+
+        uint256 _amountOfShares = 0;
+        if (totalAuroraShares == 0) {
+            // initialize the number of shares (_amountOfShares) owning 100% of the stake (amount)
+            _amountOfShares = amount;
+        } else {
+            uint256 numerator = amount * totalAuroraShares;
+            _amountOfShares = numerator / totalAmountOfStakedAurora;
+            // check that rounding is needed (result * denominator < numerator).
+            if (_amountOfShares * totalAmountOfStakedAurora < numerator) {
+                // Round up so users don't get less sharesValue than their staked amount
+                _amountOfShares += 1;
+            }
+        }
+
+        auroraShares[msg.sender] += _amountOfShares;
+        totalAuroraShares += _amountOfShares;
+        totalAmountOfStakedAurora += amount;
         deposits[msg.sender] += amount;
 
+        IERC20Upgradeable(auroraToken).safeTransferFrom(
+            msg.sender,
+            address(this),
+            amount
+        );
+    }
 
-        // _before();
-        // _stake(msg.sender, amount);
-        // IERC20Upgradeable(auroraToken).safeTransferFrom(
-        //     msg.sender,
-        //     address(treasury),
-        //     amount
-        // );
+    /// @dev called before touching the contract reserves (stake/unstake)
+    function _before() internal {
+        if (touchedAt == block.timestamp) return; // Already updated by previous tx in same block.
+        if (totalAuroraShares != 0) {
+            // Don't release rewards if there are no stakers.
+            totalAmountOfStakedAurora += getRewardsAmount(0, touchedAt);
+        }
+        touchedAt = block.timestamp;
     }
 }

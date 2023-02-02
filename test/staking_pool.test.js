@@ -37,11 +37,12 @@ describe("Staking Pool AURORA", function () {
       treasury,
       operator,
       alice,
-      bob
+      bob,
+      carl
     ] = await ethers.getSigners();
 
     const decimals = ethers.BigNumber.from(10).pow(18);
-    const initialSupply = ethers.BigNumber.from(10_000_000).mul(decimals);
+    const initialSupply = ethers.BigNumber.from(9_000_000).mul(decimals);
     const auroraTokenContract = await AuroraToken.deploy(
       initialSupply,
       "Aurora Token",
@@ -49,6 +50,11 @@ describe("Staking Pool AURORA", function () {
       alice.address
     );
     await auroraTokenContract.deployed();
+
+    // Sharing total suply with Bob and Carl.
+    const splitSupply = ethers.BigNumber.from(3_000_000).mul(decimals);
+    await auroraTokenContract.connect(alice).transfer(bob.address, splitSupply);
+    await auroraTokenContract.connect(alice).transfer(carl.address, splitSupply);
 
     const auroraStakingContract = await AuroraStaking.deploy(
       auroraTokenContract.address
@@ -82,8 +88,8 @@ describe("Staking Pool AURORA", function () {
     );
     await depositor01Contract.deployed();
 
-    stakingManagerContract.connect(depositors_owner).insertDepositor(depositor00Contract.address);
-    stakingManagerContract.connect(depositors_owner).insertDepositor(depositor01Contract.address);
+    await stakingManagerContract.connect(depositors_owner).insertDepositor(depositor00Contract.address);
+    await stakingManagerContract.connect(depositors_owner).insertDepositor(depositor01Contract.address);
     stakingManagerContract.connect(owner);
 
     // Fixtures can return anything you consider useful for your tests
@@ -100,6 +106,7 @@ describe("Staking Pool AURORA", function () {
       operator,
       alice,
       bob,
+      carl,
       decimals
     };
   }
@@ -121,9 +128,7 @@ describe("Staking Pool AURORA", function () {
         depositor00Contract,
         depositor01Contract,
         owner,
-        depositors_owner,
-        treasury,
-        operator
+        depositors_owner
       } = await loadFixture(deployPoolFixture);
 
       expect(await stAuroraTokenContract.owner()).to.equal(owner.address);
@@ -152,10 +157,12 @@ describe("Staking Pool AURORA", function () {
       expect(await depositor01Contract.auroraStaking()).to.equal(auroraStakingContract.address);
     });
 
-    it("Should assign the total supply of Aurora tokens to Alice", async function () {
-      const { auroraTokenContract, alice } = await loadFixture(deployPoolFixture);
-      const ownerBalance = await auroraTokenContract.balanceOf(alice.address);
-      expect(await auroraTokenContract.totalSupply()).to.equal(ownerBalance);
+    it("Should assign the total supply of Aurora tokens to Alice, Bob and Carl", async function () {
+      const { auroraTokenContract, alice, bob, carl } = await loadFixture(deployPoolFixture);
+      const aliceBalance = await auroraTokenContract.balanceOf(alice.address);
+      const bobBalance = await auroraTokenContract.balanceOf(bob.address);
+      const carlBalance = await auroraTokenContract.balanceOf(carl.address);
+      expect(await auroraTokenContract.totalSupply()).to.equal(aliceBalance.add(bobBalance).add(carlBalance));
     });
   });
 
