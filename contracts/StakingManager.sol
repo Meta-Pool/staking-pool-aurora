@@ -8,6 +8,8 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
+import "@openzeppelin/contracts/access/AccessControl.sol";
+
 interface IAuroraStaking {
 
     // struct User {
@@ -27,7 +29,9 @@ interface IAuroraStaking {
 }
 
 
-contract StakingManager {
+contract StakingManager is AccessControl {
+
+    bytes32 public constant DEPOSITORS_OWNER_ROLE = keccak256("DEPOSITORS_OWNER_ROLE");
 
     address immutable public stAurora;
     address immutable public auroraToken;
@@ -39,11 +43,34 @@ contract StakingManager {
     uint256 public lpTotalAsset;
     uint256 public lpTotalShare;
 
-    constructor(address _stAurora, address _auroraStaking) {
-        require(_stAurora != address(0) && _auroraStaking != address(0));
+    constructor(
+        address _stAurora,
+        address _auroraStaking,
+        address _depositor_owner
+    ) {
+        require(_stAurora != address(0) && _auroraStaking != address(0) && _depositor_owner != address(0));
         stAurora = _stAurora;
         auroraStaking = _auroraStaking;
         auroraToken = IERC4626(stAurora).asset();
+
+        _grantRole(DEPOSITORS_OWNER_ROLE, _depositor_owner);
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+    }
+
+    function isAdmin(address _address) public view returns (bool) {
+        return hasRole(DEFAULT_ADMIN_ROLE, _address);
+    }
+
+    function isDepositorsOwner(address _address) public view returns (bool) {
+        return hasRole(DEPOSITORS_OWNER_ROLE, _address);
+    }
+
+    function insertDepositor(address _depositor) external onlyRole(DEPOSITORS_OWNER_ROLE) {
+        depositors.push(_depositor);
+    }
+
+    function depositorsLength() external view returns (uint256) {
+        return depositors.length;
     }
 
     function getTotalAssetsFromDepositors() public view returns (uint256) {

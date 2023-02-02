@@ -33,6 +33,7 @@ describe("Staking Pool AURORA", function () {
     const StAuroraToken = await ethers.getContractFactory("StAuroraToken");
     const [
       owner,
+      depositors_owner,
       treasury,
       operator,
       alice,
@@ -63,14 +64,27 @@ describe("Staking Pool AURORA", function () {
 
     const stakingManagerContract = await StakingManager.deploy(
       stAuroraTokenContract.address,
-      auroraStakingContract.address
+      auroraStakingContract.address,
+      depositors_owner.address
     );
     await stakingManagerContract.deployed();
 
-    const depositorContract = await Depositor.deploy(
+    // Insert/update the staking manager in the ERC-4626
+    await stAuroraTokenContract.updataStakingManager(stakingManagerContract.address);
+
+    const depositor00Contract = await Depositor.connect(depositors_owner).deploy(
       stakingManagerContract.address
     );
-    await depositorContract.deployed();
+    await depositor00Contract.deployed();
+
+    const depositor01Contract = await Depositor.connect(depositors_owner).deploy(
+      stakingManagerContract.address
+    );
+    await depositor01Contract.deployed();
+
+    stakingManagerContract.connect(depositors_owner).insertDepositor(depositor00Contract.address);
+    stakingManagerContract.connect(depositors_owner).insertDepositor(depositor01Contract.address);
+    stakingManagerContract.connect(owner);
 
     // Fixtures can return anything you consider useful for your tests
     return {
@@ -78,8 +92,10 @@ describe("Staking Pool AURORA", function () {
       auroraStakingContract,
       stAuroraTokenContract,
       stakingManagerContract,
-      depositorContract,
+      depositor00Contract,
+      depositor01Contract,
       owner,
+      depositors_owner,
       treasury,
       operator,
       alice,
@@ -94,35 +110,53 @@ describe("Staking Pool AURORA", function () {
     // of your tests. It receives the test name, and a callback function.
     //
     // If the callback function is async, Mocha will `await` it.
-    it("Should set the right owner, treasury, operator and Aurora token", async function () {
+    it("Should be correct for all contracts initial parameters.", async function () {
       // We use loadFixture to setup our environment, and then assert that
       // things went well
       const {
-        poolContract,
         auroraTokenContract,
-        auroraPlusContract,
+        auroraStakingContract,
         stAuroraTokenContract,
+        stakingManagerContract,
+        depositor00Contract,
+        depositor01Contract,
         owner,
+        depositors_owner,
         treasury,
         operator
       } = await loadFixture(deployPoolFixture);
 
-      expect(await poolContract.owner()).to.equal(owner.address);
-      // expect(await stAuroraTokenContract.owner()).to.equal(poolContract.address);
+      expect(await stAuroraTokenContract.owner()).to.equal(owner.address);
+      expect(await stAuroraTokenContract.stakingManager()).to.equal(stakingManagerContract.address);
+      expect(await stAuroraTokenContract.asset()).to.equal(auroraTokenContract.address);
+      expect(await stAuroraTokenContract.totalAssets()).to.equal(0);
 
-      // expect(await poolContract.treasury()).to.equal(treasury.address);
-      // expect(await poolContract.operator()).to.equal(operator.address);
+      expect(await stakingManagerContract.isAdmin(owner.address)).to.be.true;
+      expect(await stakingManagerContract.isDepositorsOwner(depositors_owner.address)).to.be.true;
+      expect(await stakingManagerContract.stAurora()).to.equal(stAuroraTokenContract.address);
+      expect(await stakingManagerContract.auroraToken()).to.equal(auroraTokenContract.address);
+      expect(await stakingManagerContract.auroraStaking()).to.equal(auroraStakingContract.address);
+      expect(await stakingManagerContract.depositorsLength()).to.equal(2);
+      expect(await stakingManagerContract.totalAssets()).to.equal(0);
 
-      // expect(await poolContract.auroraPlus()).to.equal(auroraPlusContract.address);
-      // expect(await poolContract.auroraToken()).to.equal(auroraTokenContract.address);
-      // expect(await poolContract.stAuroraToken()).to.equal(stAuroraTokenContract.address);
+      expect(await depositor00Contract.owner()).to.equal(depositors_owner.address);
+      expect(await depositor00Contract.stakingManager()).to.equal(stakingManagerContract.address);
+      expect(await depositor00Contract.stAurora()).to.equal(stAuroraTokenContract.address);
+      expect(await depositor00Contract.auroraToken()).to.equal(auroraTokenContract.address);
+      expect(await depositor00Contract.auroraStaking()).to.equal(auroraStakingContract.address);
+
+      expect(await depositor01Contract.owner()).to.equal(depositors_owner.address);
+      expect(await depositor01Contract.stakingManager()).to.equal(stakingManagerContract.address);
+      expect(await depositor01Contract.stAurora()).to.equal(stAuroraTokenContract.address);
+      expect(await depositor01Contract.auroraToken()).to.equal(auroraTokenContract.address);
+      expect(await depositor01Contract.auroraStaking()).to.equal(auroraStakingContract.address);
     });
 
-    // it("Should assign the total supply of Aurora tokens to Alice", async function () {
-    //   const { auroraTokenContract, alice } = await loadFixture(deployPoolFixture);
-    //   const ownerBalance = await auroraTokenContract.balanceOf(alice.address);
-    //   expect(await auroraTokenContract.totalSupply()).to.equal(ownerBalance);
-    // });
+    it("Should assign the total supply of Aurora tokens to Alice", async function () {
+      const { auroraTokenContract, alice } = await loadFixture(deployPoolFixture);
+      const ownerBalance = await auroraTokenContract.balanceOf(alice.address);
+      expect(await auroraTokenContract.totalSupply()).to.equal(ownerBalance);
+    });
   });
 
   // describe("Staking Aurora tokens", function () {
