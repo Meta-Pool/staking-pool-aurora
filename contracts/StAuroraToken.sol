@@ -22,14 +22,26 @@ interface IDepositor {
 contract StAuroraToken is ERC4626, Ownable {
 
     address public stakingManager;
+    uint256 public minDepositAmount;
 
-    constructor(address asset_, string memory _stAuroraName, string memory _stAuroraSymbol)
-        ERC4626(IERC20(asset_))
-        ERC20(_stAuroraName, _stAuroraSymbol) {}
+    constructor(
+        address _asset,
+        string memory _stAuroraName,
+        string memory _stAuroraSymbol,
+        uint256 _minDepositAmount
+    )
+        ERC4626(IERC20(_asset))
+        ERC20(_stAuroraName, _stAuroraSymbol) {
+        minDepositAmount = _minDepositAmount;
+    }
 
-    function updataStakingManager(address _stakingManager) public onlyOwner {
+    function updataStakingManager(address _stakingManager) external onlyOwner {
         require(_stakingManager != address(0));
         stakingManager = _stakingManager;
+    }
+
+    function updateMinDepositAmount(uint256 _amount) external onlyOwner {
+        minDepositAmount = _amount;
     }
 
     function totalAssets() public view override returns (uint256) {
@@ -40,6 +52,7 @@ contract StAuroraToken is ERC4626, Ownable {
     /** @dev See {IERC4626-deposit}. */
     function deposit(uint256 assets, address receiver) public override returns (uint256) {
         require(assets <= maxDeposit(receiver), "ERC4626: deposit more than max");
+        require(assets >= minDepositAmount, "LESS_THAN_MIN_DEPOSIT_AMOUNT");
 
         uint256 shares = previewDeposit(assets);
         _deposit(_msgSender(), receiver, assets, shares);
@@ -56,10 +69,7 @@ contract StAuroraToken is ERC4626, Ownable {
         require(shares <= maxMint(receiver), "ERC4626: mint more than max");
 
         uint256 assets = previewMint(shares);
-
-        console.log("shares: %s <<<<<<<<<", shares);
-        console.log("assets: %s <<<<<<<<<", assets);
-
+        require(assets >= minDepositAmount, "LESS_THAN_MIN_DEPOSIT_AMOUNT");
         _deposit(_msgSender(), receiver, assets, shares);
 
         return assets;
