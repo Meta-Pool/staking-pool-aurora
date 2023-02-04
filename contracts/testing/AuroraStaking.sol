@@ -16,6 +16,12 @@ contract AuroraStaking {
     mapping(address => uint256) deposits;
     mapping(address => uint256) auroraShares;
 
+    modifier onlyValidSharesAmount() {
+        require(totalAuroraShares != 0, "ZERO_TOTAL_AURORA_SHARES");
+        require(auroraShares[msg.sender] != 0, "ZERO_USER_SHARES");
+        _;
+    }
+
     constructor(address _auroraToken) {
         auroraToken = _auroraToken;
         touchedAt = block.timestamp;
@@ -146,6 +152,82 @@ contract AuroraStaking {
     function stake(uint256 amount) external {
         _before();
 
+
+        _stake(msg.sender, amount);
+        IERC20Upgradeable(auroraToken).safeTransferFrom(
+            msg.sender,
+            address(this),
+            amount
+        );
+    }
+
+    /// @dev unstake amount from user shares value. The rest is re-staked
+    /// @param amount to unstake
+    function unstake(uint256 amount)
+        external
+        onlyValidSharesAmount
+    {
+        _before();
+        uint256 stakeValue = (totalAmountOfStakedAurora *
+            auroraShares[msg.sender]) / totalAuroraShares;
+        _unstake(amount, stakeValue);
+    }
+
+    /// @dev unstake all the user's shares
+    function unstakeAll() external onlyValidSharesAmount {
+        _before();
+        uint256 stakeValue = (totalAmountOfStakedAurora *
+            auroraShares[msg.sender]) / totalAuroraShares;
+        _unstake(stakeValue, stakeValue);
+    }
+
+    /// @dev called before touching the contract reserves (stake/unstake)
+    function _before() internal {
+        if (touchedAt == block.timestamp) return; // Already updated by previous tx in same block.
+        if (totalAuroraShares != 0) {
+            // Don't release rewards if there are no stakers.
+            totalAmountOfStakedAurora += getRewardsAmount(0, touchedAt);
+        }
+        touchedAt = block.timestamp;
+    }
+
+    /// WARNING: rewards are not claimed during unstake.
+    /// The UI must make sure to claim rewards before unstaking.
+    /// Unclaimed rewards will be lost.
+    /// `_before()` must be called before `_unstake` to update streams rps
+    function _unstake(uint256 amount, uint256 stakeValue) internal {
+        require(amount != 0, "ZERO_AMOUNT");
+        require(amount <= stakeValue, "NOT_ENOUGH_STAKE_BALANCE");
+        // User storage userAccount = users[msg.sender];
+        // move rewards to pending
+        // remove the shares from everywhere
+        totalAuroraShares -= auroraShares[msg.sender];
+        // totalStreamShares -= streamShares[msg.sender];
+        auroraShares[msg.sender] = 0;
+        // userAccount.streamShares = 0;
+        // update the total Aurora staked and deposits
+        totalAmountOfStakedAurora -= stakeValue;
+        userAccount.deposit = 0;
+        // move unstaked AURORA to pending.
+        userAccount.pendings[0] += amount;
+        userAccount.releaseTime[0] = block.timestamp + streams[0].tau;
+        emit Pending(0, msg.sender, userAccount.pendings[0]);
+        emit Unstaked(msg.sender, amount);
+        // restake the rest
+        uint256 amountToRestake = stakeValue - amount;
+        if (amountToRestake > 0) {
+            _stake(msg.sender, amountToRestake);
+        }
+    }
+
+    /// @dev calculate the shares for a user per AURORA stream and other streams
+    /// @param amount the staked amount
+    /// WARNING: rewards are not claimed during stake.
+    /// The UI must make sure to claim rewards before adding more stake.
+    /// Unclaimed rewards will be lost.
+    /// `_before()` must be called before `_stake` to update streams rps
+    /// compounded AURORA rewards.
+    function _stake(address account, uint256 amount) internal {
         uint256 _amountOfShares = 0;
         if (totalAuroraShares == 0) {
             // initialize the number of shares (_amountOfShares) owning 100% of the stake (amount)
@@ -160,25 +242,9 @@ contract AuroraStaking {
             }
         }
 
-        auroraShares[msg.sender] += _amountOfShares;
+        auroraShares[account] += _amountOfShares;
         totalAuroraShares += _amountOfShares;
         totalAmountOfStakedAurora += amount;
-        deposits[msg.sender] += amount;
-
-        IERC20Upgradeable(auroraToken).safeTransferFrom(
-            msg.sender,
-            address(this),
-            amount
-        );
-    }
-
-    /// @dev called before touching the contract reserves (stake/unstake)
-    function _before() internal {
-        if (touchedAt == block.timestamp) return; // Already updated by previous tx in same block.
-        if (totalAuroraShares != 0) {
-            // Don't release rewards if there are no stakers.
-            totalAmountOfStakedAurora += getRewardsAmount(0, touchedAt);
-        }
-        touchedAt = block.timestamp;
+        deposits[account] += amount;
     }
 }

@@ -157,6 +157,9 @@ describe("Staking Pool AURORA", function () {
       expect(await depositor01Contract.stAurora()).to.equal(stAuroraTokenContract.address);
       expect(await depositor01Contract.auroraToken()).to.equal(auroraTokenContract.address);
       expect(await depositor01Contract.auroraStaking()).to.equal(auroraStakingContract.address);
+
+      expect(await auroraTokenContract.decimals()).to.equal(
+        await stAuroraTokenContract.decimals());
     });
 
     it("Should assign the total supply of Aurora tokens to Alice, Bob and Carl.", async function () {
@@ -247,7 +250,7 @@ describe("Staking Pool AURORA", function () {
 
       const aliceMint = ethers.BigNumber.from(1).mul(decimals);
       await auroraTokenContract.connect(alice).approve(stAuroraTokenContract.address,
-        await stAuroraTokenContract.previewMint(aliceMint + extraToken));
+        await stAuroraTokenContract.previewMint(aliceMint.add(extraToken)));
       await stAuroraTokenContract.connect(alice).mint(aliceMint, alice.address);
       expect(await stAuroraTokenContract.balanceOf(alice.address)).to.equal(aliceMint);
       // First deposit is equal to the deposited asset.
@@ -261,7 +264,7 @@ describe("Staking Pool AURORA", function () {
 
       const bobMint = ethers.BigNumber.from(4).mul(decimals);
       await auroraTokenContract.connect(bob).approve(stAuroraTokenContract.address,
-        await stAuroraTokenContract.previewMint(bobMint + extraToken));
+        await stAuroraTokenContract.previewMint(bobMint.add(extraToken)));
       await stAuroraTokenContract.connect(bob).mint(bobMint, bob.address);
       expect(await stAuroraTokenContract.balanceOf(bob.address)).to.equal(bobMint);
       expect(await stAuroraTokenContract.balanceOf(bob.address)).to.be.equal(bobMint);
@@ -274,7 +277,7 @@ describe("Staking Pool AURORA", function () {
 
       const carlDeposit = ethers.BigNumber.from(60).mul(decimals);
       await auroraTokenContract.connect(carl).approve(stAuroraTokenContract.address,
-        await stAuroraTokenContract.previewMint(carlDeposit + extraToken));
+        await stAuroraTokenContract.previewMint(carlDeposit.add(extraToken)));
       await stAuroraTokenContract.connect(carl).mint(carlDeposit, carl.address);
       expect(await stAuroraTokenContract.balanceOf(carl.address)).to.equal(carlDeposit);
       expect(await stAuroraTokenContract.balanceOf(carl.address)).to.be.equal(carlDeposit);
