@@ -56,6 +56,10 @@ contract StAuroraToken is ERC4626, Ownable {
         require(shares <= maxMint(receiver), "ERC4626: mint more than max");
 
         uint256 assets = previewMint(shares);
+
+        console.log("shares: %s <<<<<<<<<", shares);
+        console.log("assets: %s <<<<<<<<<", assets);
+
         _deposit(_msgSender(), receiver, assets, shares);
 
         return assets;

@@ -225,6 +225,70 @@ describe("Staking Pool AURORA", function () {
       );
     });
 
+    it("Should allow mints from multiple users.", async function () {
+      const {
+        auroraTokenContract,
+        auroraStakingContract,
+        stAuroraTokenContract,
+        stakingManagerContract,
+        depositor00Contract,
+        depositor01Contract,
+        alice,
+        bob,
+        carl,
+        decimals
+      } = await loadFixture(deployPoolFixture);
+
+      const aliceMint = ethers.BigNumber.from(1).mul(decimals);
+      await auroraTokenContract.connect(alice).approve(stAuroraTokenContract.address,
+        await stAuroraTokenContract.previewMint(aliceMint));
+      await stAuroraTokenContract.connect(alice).mint(aliceMint, alice.address);
+      expect(await stAuroraTokenContract.balanceOf(alice.address)).to.equal(aliceMint);
+      // First deposit is equal to the deposited asset.
+      expect(await stAuroraTokenContract.balanceOf(alice.address)).to.equal(aliceMint);
+      expect(await stakingManagerContract.getDepositorShares(depositor00Contract.address)).to.equal(
+        await auroraStakingContract.getUserShares(depositor00Contract.address)
+      );
+      expect(await stakingManagerContract.getDepositorShares(depositor01Contract.address)).to.equal(
+        await auroraStakingContract.getUserShares(depositor01Contract.address)
+      );
+
+      const bobMint = ethers.BigNumber.from(4).mul(decimals);
+
+      console.log("shares: %s", bobMint);
+      console.log("assets: %s", await stAuroraTokenContract.previewMint(bobMint));
+
+      await auroraTokenContract.connect(bob).approve(stAuroraTokenContract.address,
+        await stAuroraTokenContract.previewMint(bobMint));
+      await stAuroraTokenContract.connect(bob).mint(bobMint, bob.address);
+      // expect(await stAuroraTokenContract.balanceOf(bob.address)).to.equal(
+      //   bobMint
+      //   // await stAuroraTokenContract.previewDeposit(bobMint)
+      // );
+      // expect(await stAuroraTokenContract.balanceOf(bob.address)).to.be.lessThan(bobMint);
+      // expect(await stakingManagerContract.getDepositorShares(depositor00Contract.address)).to.equal(
+      //   await auroraStakingContract.getUserShares(depositor00Contract.address)
+      // );
+      // expect(await stakingManagerContract.getDepositorShares(depositor01Contract.address)).to.equal(
+      //   await auroraStakingContract.getUserShares(depositor01Contract.address)
+      // );
+
+      // const carlDeposit = ethers.BigNumber.from(60).mul(decimals);
+      // await auroraTokenContract.connect(carl).approve(stAuroraTokenContract.address,
+      //   await stAuroraTokenContract.previewMint(carlDeposit));
+      // await stAuroraTokenContract.connect(carl).mint(carlDeposit, carl.address);
+      // expect(await stAuroraTokenContract.balanceOf(carl.address)).to.equal(
+      //   carlDeposit
+      //   // await stAuroraTokenContract.previewDeposit(carlDeposit)
+      // );
+      // expect(await stAuroraTokenContract.balanceOf(carl.address)).to.be.lessThan(carlDeposit);
+      // expect(await stakingManagerContract.getDepositorShares(depositor00Contract.address)).to.equal(
+      //   await auroraStakingContract.getUserShares(depositor00Contract.address)
+      // );
+      // expect(await stakingManagerContract.getDepositorShares(depositor01Contract.address)).to.equal(
+      //   await auroraStakingContract.getUserShares(depositor01Contract.address)
+      // );
+    });
   //   it("Should not allow less than min deposit amount", async function () {
   //     const {
   //         poolContract,
