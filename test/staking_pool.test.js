@@ -73,7 +73,8 @@ describe("Staking Pool AURORA", function () {
     const stakingManagerContract = await StakingManager.deploy(
       stAuroraTokenContract.address,
       auroraStakingContract.address,
-      depositors_owner.address
+      depositors_owner.address,
+      10
     );
     await stakingManagerContract.deployed();
 

@@ -28,6 +28,11 @@ interface IAuroraStaking {
     function getTotalAmountOfStakedAurora() external view returns (uint256);
 }
 
+interface IStAuroraToken {
+    function previewWithdraw(uint256 assets) external returns (uint256);
+    function previewRedeem(uint256 shares) external returns (uint256);
+    function burn(address owner, uint256 shares) external;
+}
 
 contract StakingManager is AccessControl {
 
@@ -41,8 +46,18 @@ contract StakingManager is AccessControl {
     address public nextDepositor;
     mapping(address => uint256) depositorShares;
 
+    mapping(address => uint256) availableAssets;
+
+    withdrawOrder[] withdrawOrders;
+    uint256 maxWithdrawOrders;
+
     uint256 public lpTotalAsset;
     uint256 public lpTotalShare;
+
+    struct withdrawOrder {
+        uint256 assets;
+        address receiver;
+    }
 
     modifier onlyStAurora() {
         require(msg.sender == stAurora);
@@ -52,14 +67,20 @@ contract StakingManager is AccessControl {
     constructor(
         address _stAurora,
         address _auroraStaking,
-        address _depositor_owner
+        address _depositorOwner,
+        uint256 _maxWithdrawOrders
     ) {
-        require(_stAurora != address(0) && _auroraStaking != address(0) && _depositor_owner != address(0));
+        require(
+            _stAurora != address(0)
+            && _auroraStaking != address(0)
+            && _depositorOwner != address(0)
+        );
         stAurora = _stAurora;
         auroraStaking = _auroraStaking;
         auroraToken = IERC4626(stAurora).asset();
+        maxWithdrawOrders = _maxWithdrawOrders;
 
-        _grantRole(DEPOSITORS_OWNER_ROLE, _depositor_owner);
+        _grantRole(DEPOSITORS_OWNER_ROLE, _depositorOwner);
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
@@ -133,4 +154,83 @@ contract StakingManager is AccessControl {
     function totalAssets() external view returns (uint256) {
         return getTotalAssetsFromDepositors() + lpTotalAsset;
     }
+
+    function availableToWithdraw(
+        uint256 assets,
+        address owner
+    ) public view returns (bool) {
+        return availableAssets[owner] >= assets;
+    }
+
+    function transferAurora(
+        address receiver,
+        address owner,
+        uint256 assets
+    ) external onlyStAurora {
+        require(availableToWithdraw(assets, owner), "NOT_ENOUGH_AVAILABLE_ASSETS");
+        availableAssets[owner] -= assets;
+        SafeERC20.safeTransferFrom(IERC20(auroraToken), address(this), receiver, assets);
+    }
+
+    /// UNSTAKING FLOW
+
+    // /** ROBOT 🤖 */
+    // function claimDepositorPending(uint256 depositorId) {
+
+    // }
+
+    function createWithdrawOrder(uint256 assets, address receiver) private {
+        require(withdrawOrders.length <= maxWithdrawOrders, "TOO_MANY_WITHDRAW_ORDERS");
+        withdrawOrders.push(
+            withdrawOrder(assets, receiver)
+        );
+    }
+
+    /**
+     * @dev The unstake function triggers the delayed withdraw.
+     */
+    function unstakeAssets(uint256 assets, address receiver) public {
+        IStAuroraToken stAuroraToken = IStAuroraToken(stAurora);
+        uint256 shares = stAuroraToken.previewWithdraw(assets);
+        stAuroraToken.burn(msg.sender, shares);
+        createWithdrawOrder(assets, receiver);
+    }
+
+    function unstakeShares(uint256 shares, address receiver) public {
+        IStAuroraToken stAuroraToken = IStAuroraToken(stAurora);
+        uint256 assets = stAuroraToken.previewRedeem(shares);
+        stAuroraToken.burn(msg.sender, shares);
+        createWithdrawOrder(assets, receiver);
+    }
+
+    /** @dev See {IERC4626-withdraw}. */
+    function liquidWithdraw(
+        uint256 assets,
+        address receiver,
+        address owner
+    ) public returns (uint256) {
+        // require(false, "inimplemented");
+        // require(assets <= maxWithdraw(owner), "ERC4626: withdraw more than max");
+
+        // uint256 shares = previewWithdraw(assets);
+        // _withdraw(_msgSender(), receiver, owner, assets, shares);
+
+        // return shares;
+    }
+
+    /** @dev See {IERC4626-redeem}. */
+    function liquidRedeem(
+        uint256 shares,
+        address receiver,
+        address owner
+    ) public returns (uint256) {
+        // require(false, "inimplemented");
+        // require(shares <= maxRedeem(owner), "ERC4626: redeem more than max");
+
+        // uint256 assets = previewRedeem(shares);
+        // _withdraw(_msgSender(), receiver, owner, assets, shares);
+
+        // return assets;
+    }
+
 }

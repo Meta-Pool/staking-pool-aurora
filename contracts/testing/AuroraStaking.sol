@@ -12,9 +12,13 @@ contract AuroraStaking {
     uint256 public touchedAt;
     uint256 public totalAmountOfStakedAurora;
     uint256 public totalAuroraShares;
+    uint256 public tauAuroraStream;
+
 
     mapping(address => uint256) deposits;
     mapping(address => uint256) auroraShares;
+    mapping(address => mapping(uint256 => uint256)) pendings;
+    mapping(address => mapping(uint256 => uint256)) releaseTime;
 
     modifier onlyValidSharesAmount() {
         require(totalAuroraShares != 0, "ZERO_TOTAL_AURORA_SHARES");
@@ -25,6 +29,7 @@ contract AuroraStaking {
     constructor(address _auroraToken) {
         auroraToken = _auroraToken;
         touchedAt = block.timestamp;
+        tauAuroraStream = 2 * 24 * 60 * 60; // 2 days in seconds.
     }
 
     // /// @dev moves the reward for specific stream Id to pending rewards.
@@ -207,12 +212,14 @@ contract AuroraStaking {
         // userAccount.streamShares = 0;
         // update the total Aurora staked and deposits
         totalAmountOfStakedAurora -= stakeValue;
-        userAccount.deposit = 0;
+        deposits[msg.sender] = 0;
         // move unstaked AURORA to pending.
-        userAccount.pendings[0] += amount;
-        userAccount.releaseTime[0] = block.timestamp + streams[0].tau;
-        emit Pending(0, msg.sender, userAccount.pendings[0]);
-        emit Unstaked(msg.sender, amount);
+        pendings[msg.sender][0] += amount;
+        // userAccount.pendings[0] += amount;
+        releaseTime[msg.sender][0] += block.timestamp + tauAuroraStream;
+        // userAccount.releaseTime[0] = block.timestamp + streams[0].tau;
+        // emit Pending(0, msg.sender, userAccount.pendings[0]);
+        // emit Unstaked(msg.sender, amount);
         // restake the rest
         uint256 amountToRestake = stakeValue - amount;
         if (amountToRestake > 0) {

@@ -25,6 +25,11 @@ contract StAuroraToken is ERC4626, Ownable {
     address public stakingManager;
     uint256 public minDepositAmount;
 
+    modifier onlyManager() {
+        msg.sender == stakingManager;
+        _;
+    }
+
     constructor(
         address _asset,
         string memory _stAuroraName,
@@ -140,10 +145,17 @@ contract StAuroraToken is ERC4626, Ownable {
         if (caller != owner) {
             _spendAllowance(owner, caller, shares);
         }
-        _burn(owner, shares);
+
+        // IMPORTANT!!! IF this withdraw only works with delayed unstake, then
+        // the burn is already made by the staking manager.
+        // _burn(owner, shares);
 
         IStakingManager(stakingManager).transferAurora(receiver, owner, assets);
 
         emit Withdraw(caller, receiver, owner, assets, shares);
+    }
+
+    function burn(address owner, uint256 shares) external onlyManager {
+        _burn(owner, shares);
     }
 }
