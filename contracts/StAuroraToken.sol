@@ -13,6 +13,7 @@ interface IStakingManager {
     function nextDepositor() external view returns (address);
     function totalAssets() external view returns (uint256);
     function setNextDepositor() external;
+    function transferAurora(address receiver, address owner, uint256 assets) external;
 }
 
 interface IDepositor {
@@ -23,8 +24,6 @@ contract StAuroraToken is ERC4626, Ownable {
 
     address public stakingManager;
     uint256 public minDepositAmount;
-
-    mapping(address => uint256) availableAssets;
 
     constructor(
         address _asset,
@@ -77,22 +76,6 @@ contract StAuroraToken is ERC4626, Ownable {
         return assets;
     }
 
-    function startDelayedWithdraw(
-        uint256 assets,
-        address receiver,
-        address owner
-    ) public returns (uint256) {
-
-    }
-
-    function startDelayedRedeem(
-        uint256 shares,
-        address receiver,
-        address owner
-    ) public returns (uint256) {
-
-    }
-
     /** @dev See {IERC4626-withdraw}. */
     function withdraw(
         uint256 assets,
@@ -100,7 +83,6 @@ contract StAuroraToken is ERC4626, Ownable {
         address owner
     ) public override returns (uint256) {
         require(assets <= maxWithdraw(owner), "ERC4626: withdraw more than max");
-        require(assets <= availableAssets[owner], "NOT_ENOUGH_AVAILABLE_ASSETS");
 
         uint256 shares = previewWithdraw(assets);
         _withdraw(_msgSender(), receiver, owner, assets, shares);
@@ -117,40 +99,10 @@ contract StAuroraToken is ERC4626, Ownable {
         require(shares <= maxRedeem(owner), "ERC4626: redeem more than max");
 
         uint256 assets = previewRedeem(shares);
-        require(assets <= availableAssets[owner], "NOT_ENOUGH_AVAILABLE_ASSETS");
         _withdraw(_msgSender(), receiver, owner, assets, shares);
 
         return assets;
     }
-
-    /** @dev See {IERC4626-withdraw}. */
-    function liquidWithdraw(
-        uint256 assets,
-        address receiver,
-        address owner
-    ) public returns (uint256) {
-        require(assets <= maxWithdraw(owner), "ERC4626: withdraw more than max");
-
-        uint256 shares = previewWithdraw(assets);
-        _withdraw(_msgSender(), receiver, owner, assets, shares);
-
-        return shares;
-    }
-
-    /** @dev See {IERC4626-redeem}. */
-    function liquidRedeem(
-        uint256 shares,
-        address receiver,
-        address owner
-    ) public returns (uint256) {
-        require(shares <= maxRedeem(owner), "ERC4626: redeem more than max");
-
-        uint256 assets = previewRedeem(shares);
-        _withdraw(_msgSender(), receiver, owner, assets, shares);
-
-        return assets;
-    }
-
 
     /**
      * @dev Deposit/mint common workflow.
@@ -188,9 +140,9 @@ contract StAuroraToken is ERC4626, Ownable {
         if (caller != owner) {
             _spendAllowance(owner, caller, shares);
         }
-        IERC20 auroraToken = IERC20(asset());
         _burn(owner, shares);
-        SafeERC20.safeTransfer(auroraToken, receiver, assets);
+
+        IStakingManager(stakingManager).transferAurora(receiver, owner, assets);
 
         emit Withdraw(caller, receiver, owner, assets, shares);
     }
