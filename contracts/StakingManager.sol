@@ -23,9 +23,32 @@ interface IAuroraStaking {
     
     // mapping(address => User) public users;
 
+    enum StreamStatus {
+        INACTIVE,
+        PROPOSED,
+        ACTIVE
+    }
+
     function totalAuroraShares() external view returns (uint256);
     function getUserShares(address account) external view returns (uint256);
     function getTotalAmountOfStakedAurora() external view returns (uint256);
+
+    function getStream(uint256 streamId)
+        external
+        view
+        returns (
+            address streamOwner,
+            address rewardToken,
+            uint256 auroraDepositAmount,
+            uint256 auroraClaimedAmount,
+            uint256 rewardDepositAmount,
+            uint256 rewardClaimedAmount,
+            uint256 maxDepositAmount,
+            uint256 lastTimeOwnerClaimed,
+            uint256 rps,
+            uint256 tau,
+            StreamStatus status
+        );
 }
 
 interface IStAuroraToken {
@@ -37,10 +60,14 @@ interface IStAuroraToken {
 contract StakingManager is AccessControl {
 
     bytes32 public constant DEPOSITORS_OWNER_ROLE = keccak256("DEPOSITORS_OWNER_ROLE");
+    bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
 
     address immutable public stAurora;
     address immutable public auroraToken;
     address immutable public auroraStaking;
+
+    uint256 public tauAuroraStream;
+    uint256 public nextCleanOrderQueue;
 
     address[] public depositors;
     address public nextDepositor;
@@ -72,16 +99,29 @@ contract StakingManager is AccessControl {
     ) {
         require(
             _stAurora != address(0)
-            && _auroraStaking != address(0)
-            && _depositorOwner != address(0)
+                && _auroraStaking != address(0)
+                && _depositorOwner != address(0)
         );
         stAurora = _stAurora;
         auroraStaking = _auroraStaking;
         auroraToken = IERC4626(stAurora).asset();
         maxWithdrawOrders = _maxWithdrawOrders;
+        nextCleanOrderQueue = block.timestamp;
+
+        _internalUpdateTau();
 
         _grantRole(DEPOSITORS_OWNER_ROLE, _depositorOwner);
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(OPERATOR_ROLE, msg.sender);
+    }
+
+    function _internalUpdateTau() private {
+        (,,,,,,,,,uint256 tau,) = IAuroraStaking(auroraStaking).getStream(0);
+        tauAuroraStream = tau;
+    }
+
+    function updateTauAuroraStream() public onlyRole(OPERATOR_ROLE) {
+        _internalUpdateTau();
     }
 
     function isAdmin(address _address) public view returns (bool) {
@@ -133,13 +173,29 @@ contract StakingManager is AccessControl {
         nextDepositor = _nextDepositor;
     }
 
+    function getTotalAssetsFromDepositor(address depositor) public view returns (uint256) {
+        uint256 arrayLength = depositors.length;
+        uint256 depositorAuroraShares = 0;
+        IAuroraStaking auroraContract = IAuroraStaking(auroraStaking);
+
+        if (arrayLength == 0) return 0;
+        depositorAuroraShares += depositorShares[depositor];
+        if (depositorAuroraShares == 0) return 0;
+        uint256 denominator = auroraContract.totalAuroraShares();
+        if (denominator == 0) return 0;
+        uint256 numerator = (depositorAuroraShares *
+            auroraContract.getTotalAmountOfStakedAurora());
+        uint256 stakeValue = numerator / denominator;
+        return stakeValue;
+    }
+
     function getTotalAssetsFromDepositors() public view returns (uint256) {
         uint256 arrayLength = depositors.length;
         uint256 depositorsAuroraShares = 0;
         IAuroraStaking auroraContract = IAuroraStaking(auroraStaking);
 
         if (arrayLength == 0) return 0;
-        for (uint i=0; i<arrayLength; i++) {
+        for (uint i = 0; i < arrayLength; i++) {
             depositorsAuroraShares += depositorShares[depositors[i]];
         }
         if (depositorsAuroraShares == 0) return 0;
@@ -152,7 +208,7 @@ contract StakingManager is AccessControl {
     }
 
     function totalAssets() external view returns (uint256) {
-        return getTotalAssetsFromDepositors() + lpTotalAsset;
+        return getTotalAssetsFromDepositors();
     }
 
     function availableToWithdraw(
@@ -172,18 +228,31 @@ contract StakingManager is AccessControl {
         SafeERC20.safeTransferFrom(IERC20(auroraToken), address(this), receiver, assets);
     }
 
+    function getTotalWithdrawInQueue() public view returns (uint256) {
+        uint256 result = 0;
+        for (uint i = 0; i < withdrawOrders.length; i++) {
+            withdrawOrder memory order = withdrawOrders[i];
+            result += order.assets;
+        }
+        return result;
+    }
+
     /// UNSTAKING FLOW
 
-    // /** ROBOT 🤖 */
-    // function claimDepositorPending(uint256 depositorId) {
-
+    /** ROBOT 🤖 */
+    // function cleanOrdersQueue() public {
+    //     require(depositors.length > 0);
+    //     require(nextCleanOrderQueue <= block.timestamp);
+    //     uint256 totalWithdraw = getTotalWithdrawInQueue();
+    //     for (uint i = depositors.length; i > 0; i--) {
+    //         address depositor = depositors[i-1];
+    //         uint256 assets = getTotalAssetsFromDepositor(depositor);
+    //     }
     // }
 
     function createWithdrawOrder(uint256 assets, address receiver) private {
         require(withdrawOrders.length <= maxWithdrawOrders, "TOO_MANY_WITHDRAW_ORDERS");
-        withdrawOrders.push(
-            withdrawOrder(assets, receiver)
-        );
+        withdrawOrders.push(withdrawOrder(assets, receiver));
     }
 
     /**

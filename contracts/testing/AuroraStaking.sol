@@ -14,11 +14,16 @@ contract AuroraStaking {
     uint256 public totalAuroraShares;
     uint256 public tauAuroraStream;
 
-
     mapping(address => uint256) deposits;
     mapping(address => uint256) auroraShares;
     mapping(address => mapping(uint256 => uint256)) pendings;
     mapping(address => mapping(uint256 => uint256)) releaseTime;
+
+    enum StreamStatus {
+        INACTIVE,
+        PROPOSED,
+        ACTIVE
+    }
 
     modifier onlyValidSharesAmount() {
         require(totalAuroraShares != 0, "ZERO_TOTAL_AURORA_SHARES");
@@ -32,82 +37,42 @@ contract AuroraStaking {
         tauAuroraStream = 2 * 24 * 60 * 60; // 2 days in seconds.
     }
 
-    // /// @dev moves the reward for specific stream Id to pending rewards.
-    // /// It will require a waiting time untill it get released. Users call
-    // /// this in function in order to claim rewards.
-    // /// @param streamId stream index
-    // function moveRewardsToPending(uint256 streamId) external {
-    //     _before();
-    //     _moveRewardsToPending(msg.sender, streamId);
-    // }
-
-    //     /// @dev moves all the user rewards to pending reward.
-    // function moveAllRewardsToPending() external {
-    //     _before();
-    //     // Claim all streams while skipping inactive streams.
-    //     _moveAllRewardsToPending(msg.sender);
-    // }
-
-    // /// @dev moves a set of stream Id rewards to pending.
-    // /// Allows user to select stream ids to claim from UI.
-    // /// @param streamIds stream indexes
-    // function batchMoveRewardsToPending(uint256[] calldata streamIds)
-    //     external
-    // {
-    //     _before();
-    //     _batchClaimRewards(msg.sender, streamIds);
-    // }
-
-    // /// @dev a user stakes amount of AURORA tokens
-    // /// The user should approve these tokens to the treasury
-    // /// contract in order to complete the stake.
-    // /// @param amount is the AURORA amount.
-    // function stake(uint256 amount) external {
-    //     IERC20(auroraToken).transferFrom(msg.sender, address(this), amount);
-    //     balances[msg.sender] += amount;
-    // }
-
-    // /// @dev withdraw amount in the pending pool. User should wait for
-    // /// pending time (tau constant) in order to be able to withdraw.
-    // /// @param streamId stream index
-    // function withdraw(uint256 streamId) external {
-    //     require(
-    //         block.timestamp > users[msg.sender].releaseTime[streamId],
-    //         "INVALID_RELEASE_TIME"
-    //     );
-    //     _withdraw(streamId);
-    // }
-
-    // /// @dev withdraw all claimed balances which have passed pending periode.
-    // /// This function will reach gas limit with too many streams,
-    // /// so the frontend will allow individual stream withdrawals and disable withdrawAll.
-    // function withdrawAll() external {
-    //     User storage userAccount = users[msg.sender];
-    //     uint256 streamsLength = streams.length;
-    //     for (uint256 i = 0; i < streamsLength; i++) {
-    //         if (
-    //             userAccount.pendings[i] != 0 &&
-    //             block.timestamp > userAccount.releaseTime[i]
-    //         ) {
-    //             _withdraw(i);
-    //         }
-    //     }
-    // }
-
-    // /// @dev withdraw a set of stream Ids.
-    // /// Allows user to select stream ids to withdraw from UI.
-    // /// @param streamIds to withdraw.
-    // function batchWithdraw(uint256[] calldata streamIds) external {
-    //     User storage userAccount = users[msg.sender];
-    //     for (uint256 i = 0; i < streamIds.length; i++) {
-    //         if (
-    //             userAccount.pendings[streamIds[i]] != 0 &&
-    //             block.timestamp > userAccount.releaseTime[streamIds[i]]
-    //         ) {
-    //             _withdraw(streamIds[i]);
-    //         }
-    //     }
-    // }
+    /// @dev get the stream data
+    /// @notice this function doesn't return the stream
+    /// schedule due to some stake slots limitations. To
+    /// get the stream schedule, refer to getStreamSchedule
+    /// @param streamId the stream index
+    function getStream(uint256 streamId)
+        external
+        view
+        returns (
+            address streamOwner,
+            address rewardToken,
+            uint256 auroraDepositAmount,
+            uint256 auroraClaimedAmount,
+            uint256 rewardDepositAmount,
+            uint256 rewardClaimedAmount,
+            uint256 maxDepositAmount,
+            uint256 lastTimeOwnerClaimed,
+            uint256 rps,
+            uint256 tau,
+            StreamStatus status
+        )
+    {
+        return (
+            address(0),
+            address(0),
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            tauAuroraStream,
+            StreamStatus.ACTIVE
+        );
+    }
 
     /// @dev gets the total user deposit
     /// @param account the user address
