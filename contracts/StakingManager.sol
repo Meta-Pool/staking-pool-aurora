@@ -12,17 +12,6 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 
 interface IAuroraStaking {
 
-    // struct User {
-    //     uint256 deposit;
-    //     uint256 auroraShares;
-    //     uint256 streamShares;
-    //     mapping(uint256 => uint256) pendings; // The amount of tokens pending release for user per stream
-    //     mapping(uint256 => uint256) releaseTime; // The release moment per stream
-    //     mapping(uint256 => uint256) rpsDuringLastClaim; // RPS or reward per share during the previous rewards claim
-    // }
-    
-    // mapping(address => User) public users;
-
     enum StreamStatus {
         INACTIVE,
         PROPOSED,
@@ -49,6 +38,11 @@ interface IAuroraStaking {
             uint256 tau,
             StreamStatus status
         );
+}
+
+interface IDepositor {
+    function unstake(uint256 _assets) external;
+    function unstakeAll() external;
 }
 
 interface IStAuroraToken {
@@ -240,15 +234,26 @@ contract StakingManager is AccessControl {
     /// UNSTAKING FLOW
 
     /** ROBOT 🤖 */
-    // function cleanOrdersQueue() public {
-    //     require(depositors.length > 0);
-    //     require(nextCleanOrderQueue <= block.timestamp);
-    //     uint256 totalWithdraw = getTotalWithdrawInQueue();
-    //     for (uint i = depositors.length; i > 0; i--) {
-    //         address depositor = depositors[i-1];
-    //         uint256 assets = getTotalAssetsFromDepositor(depositor);
-    //     }
-    // }
+    function cleanOrdersQueue() public {
+
+        /// FIRST DO THE WITHDRAW;
+
+        require(depositors.length > 0);
+        require(nextCleanOrderQueue <= block.timestamp);
+        uint256 totalWithdraw = getTotalWithdrawInQueue();
+        uint256 accum = 0;
+        for (uint i = depositors.length; i > 0; i--) {
+            address depositor = depositors[i-1];
+            uint256 assets = getTotalAssetsFromDepositor(depositor);
+            if (assets >= (totalWithdraw + accum)) {
+                IDepositor(depositor).unstake(totalWithdraw);
+            } else {
+                IDepositor(depositor).unstakeAll();
+                accum += assets;
+            }
+            updateDepositorShares(depositor);
+        }
+    }
 
     function createWithdrawOrder(uint256 assets, address receiver) private {
         require(withdrawOrders.length <= maxWithdrawOrders, "TOO_MANY_WITHDRAW_ORDERS");

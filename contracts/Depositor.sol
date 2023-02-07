@@ -18,6 +18,9 @@ interface IStakingManager {
 
 interface IAuroraStaking {
     function stake(uint256 amount) external;
+
+    function unstake(uint256 amount) external;
+    function unstakeAll() external;
 }
 
 contract Depositor is Ownable {
@@ -57,5 +60,13 @@ contract Depositor is Ownable {
         SafeERC20.safeTransferFrom(aurora, stAurora, address(this), _assets);
         SafeERC20.safeIncreaseAllowance(aurora, auroraStaking, _assets);
         IAuroraStaking(auroraStaking).stake(_assets);
+    }
+
+    function unstake(uint256 _assets) public onlyManager {
+        IAuroraStaking(auroraStaking).unstake(_assets);
+    }
+
+    function unstakeAll() public onlyManager {
+        IAuroraStaking(auroraStaking).unstakeAll();
     }
 }
