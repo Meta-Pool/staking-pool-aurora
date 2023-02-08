@@ -7,6 +7,7 @@
 const { expect } = require("chai");
 
 const { ethers } = require("hardhat");
+const { helpers } = require("@nomicfoundation/hardhat-network-helpers");
 
 // We use `loadFixture` to share common setups (or fixtures) between tests.
 // Using this simplifies your tests and makes them run faster, by taking
@@ -362,7 +363,7 @@ describe("Staking Pool AURORA", function () {
   });
 
   describe("Unstake and Withdraw Aurora tokens", function () {
-    it("Should allow deposits from multiple users.", async function () {
+    it("Should allow unstake and withdraw from multiple users.", async function () {
       const {
         auroraTokenContract,
         auroraStakingContract,
@@ -379,6 +380,10 @@ describe("Staking Pool AURORA", function () {
       console.log("Alice stAURORA: %s", await stAuroraTokenContract.balanceOf(alice.address));
       console.log("Bob stAURORA: %s", await stAuroraTokenContract.balanceOf(bob.address));
       console.log("Carl stAURORA: %s", await stAuroraTokenContract.balanceOf(carl.address));
+      // advance time by one hour and mine a new block
+      console.log("time: %s", helpers.time);
+      await time.increase(3600);
+      console.log("time: %s", ethers.block.timestamp);
     });
   });
 });
