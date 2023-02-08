@@ -7,12 +7,11 @@
 const { expect } = require("chai");
 
 const { ethers } = require("hardhat");
-const { helpers } = require("@nomicfoundation/hardhat-network-helpers");
 
 // We use `loadFixture` to share common setups (or fixtures) between tests.
 // Using this simplifies your tests and makes them run faster, by taking
 // advantage of Hardhat Network's snapshot functionality.
-const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
+const { loadFixture, time } = require("@nomicfoundation/hardhat-network-helpers");
 
 // `describe` is a Mocha function that allows you to organize your tests.
 // Having your tests organized makes debugging them easier. All Mocha
@@ -381,9 +380,9 @@ describe("Staking Pool AURORA", function () {
       console.log("Bob stAURORA: %s", await stAuroraTokenContract.balanceOf(bob.address));
       console.log("Carl stAURORA: %s", await stAuroraTokenContract.balanceOf(carl.address));
       // advance time by one hour and mine a new block
-      console.log("time: %s", helpers.time);
+      console.log("time JOSE: %s", await time.latest());
       await time.increase(3600);
-      console.log("time: %s", ethers.block.timestamp);
+      console.log("time: %s", await time.latest());
     });
   });
 });
