@@ -62,7 +62,7 @@ contract AuroraStaking {
         return (
             address(0),
             address(0),
-            0,
+            streamId,
             0,
             0,
             0,
@@ -115,14 +115,23 @@ contract AuroraStaking {
         return totalAmountOfStakedAurora + getRewardsAmount(0, touchedAt);
     }
 
+    /// @dev withdraw amount in the pending pool. User should wait for
+    /// pending time (tau constant) in order to be able to withdraw.
+    /// @param streamId stream index
+    function withdraw(uint256 streamId) external {
+        require(
+            block.timestamp > releaseTime[msg.sender][streamId],
+            "INVALID_RELEASE_TIME"
+        );
+        _withdraw(streamId);
+    }
+
     /// @dev a user stakes amount of AURORA tokens
     /// The user should approve these tokens to the treasury
     /// contract in order to complete the stake.
     /// @param amount is the AURORA amount.
     function stake(uint256 amount) external {
         _before();
-
-
         _stake(msg.sender, amount);
         IERC20Upgradeable(auroraToken).safeTransferFrom(
             msg.sender,
@@ -149,6 +158,18 @@ contract AuroraStaking {
         uint256 stakeValue = (totalAmountOfStakedAurora *
             auroraShares[msg.sender]) / totalAuroraShares;
         _unstake(stakeValue, stakeValue);
+    }
+
+    /// @dev gets the user's stream pending reward
+    /// @param streamId stream index
+    /// @param account user account
+    /// @return user.pendings[streamId]
+    function getPending(uint256 streamId, address account)
+        external
+        view
+        returns (uint256)
+    {
+        return pendings[account][streamId];
     }
 
     /// @dev called before touching the contract reserves (stake/unstake)
@@ -218,5 +239,13 @@ contract AuroraStaking {
         totalAuroraShares += _amountOfShares;
         totalAmountOfStakedAurora += amount;
         deposits[account] += amount;
+    }
+
+    /// @dev withdraw stream rewards after the release time.
+    /// @param streamId the stream index
+    function _withdraw(uint256 streamId) internal {
+        uint256 pendingAmount = pendings[msg.sender][streamId];
+        pendings[msg.sender][streamId] = 0;
+        IERC20Upgradeable(auroraToken).safeTransfer(msg.sender, pendingAmount);
     }
 }

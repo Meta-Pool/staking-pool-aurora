@@ -43,6 +43,13 @@ interface IAuroraStaking {
 interface IDepositor {
     function unstake(uint256 _assets) external;
     function unstakeAll() external;
+
+    function withdraw() external;
+
+    function getPending(address account)
+        external
+        view
+        returns (uint256);
 }
 
 interface IStAuroraToken {
@@ -67,9 +74,11 @@ contract StakingManager is AccessControl {
     address public nextDepositor;
     mapping(address => uint256) depositorShares;
 
+    // mapping(address => uint256) pendingAssets;
     mapping(address => uint256) availableAssets;
 
     withdrawOrder[] withdrawOrders;
+    withdrawOrder[] pendingOrders;
     uint256 maxWithdrawOrders;
 
     uint256 public lpTotalAsset;
@@ -205,7 +214,7 @@ contract StakingManager is AccessControl {
         return getTotalAssetsFromDepositors();
     }
 
-    function availableToWithdraw(
+    function isAvailableToWithdraw(
         uint256 assets,
         address owner
     ) public view returns (bool) {
@@ -217,7 +226,7 @@ contract StakingManager is AccessControl {
         address owner,
         uint256 assets
     ) external onlyStAurora {
-        require(availableToWithdraw(assets, owner), "NOT_ENOUGH_AVAILABLE_ASSETS");
+        require(isAvailableToWithdraw(assets, owner), "NOT_ENOUGH_AVAILABLE_ASSETS");
         availableAssets[owner] -= assets;
         SafeERC20.safeTransferFrom(IERC20(auroraToken), address(this), receiver, assets);
     }
@@ -233,26 +242,24 @@ contract StakingManager is AccessControl {
 
     /// UNSTAKING FLOW
 
-    /** ROBOT 🤖 */
+    /** ROBOT 🤖
+     * 1. Withdraw from depositor.
+     * 2. Move pending to Available.
+     * 3. Unstake withdraw orders.
+     * 4. Move withdraw orders to Pending.
+     * 5. Remove withdraw orders.
+    */
     function cleanOrdersQueue() public {
-
-        /// FIRST DO THE WITHDRAW;
-
         require(depositors.length > 0);
         require(nextCleanOrderQueue <= block.timestamp);
-        uint256 totalWithdraw = getTotalWithdrawInQueue();
-        uint256 accum = 0;
-        for (uint i = depositors.length; i > 0; i--) {
-            address depositor = depositors[i-1];
-            uint256 assets = getTotalAssetsFromDepositor(depositor);
-            if (assets >= (totalWithdraw + accum)) {
-                IDepositor(depositor).unstake(totalWithdraw);
-            } else {
-                IDepositor(depositor).unstakeAll();
-                accum += assets;
-            }
-            updateDepositorShares(depositor);
-        }
+
+        _withdrawFromDepositor();   // Step 1.
+        _movePendingToAvailable();  // Step 2.
+        _unstakeWithdrawOrders();    // Step 3.
+
+        // Step 4 & 5. TODO: We need help from Batman 🦇.
+        pendingOrders = withdrawOrders;
+        delete withdrawOrders;
     }
 
     function createWithdrawOrder(uint256 assets, address receiver) private {
@@ -307,4 +314,38 @@ contract StakingManager is AccessControl {
         // return assets;
     }
 
+    function _withdrawFromDepositor() private {
+        for (uint i = 0; i < depositors.length; i++) {
+            address depositor = depositors[i-1];
+            uint256 pendingAmount = IDepositor(depositor).getPending(depositors[i]);
+            if (pendingAmount > 0) {
+                IDepositor(depositor).withdraw();
+            }
+        }
+    }
+
+    function _movePendingToAvailable() private {
+        for (uint i = 0; i < pendingOrders.length; i++) {
+            withdrawOrder memory order = pendingOrders[i];
+            availableAssets[order.receiver] += order.assets;
+        }
+        delete pendingOrders;
+    }
+
+    function _unstakeWithdrawOrders() private {
+        uint256 totalWithdraw = getTotalWithdrawInQueue();
+        uint256 accum = 0;
+
+        for (uint i = depositors.length; i > 0; i--) {
+            address depositor = depositors[i-1];
+            uint256 assets = getTotalAssetsFromDepositor(depositor);
+            if (assets >= (totalWithdraw + accum)) {
+                IDepositor(depositor).unstake(totalWithdraw);
+            } else {
+                IDepositor(depositor).unstakeAll();
+                accum += assets;
+            }
+            updateDepositorShares(depositor);
+        }
+    }
 }

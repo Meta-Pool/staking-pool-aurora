@@ -114,6 +114,54 @@ describe("Staking Pool AURORA", function () {
     };
   }
 
+  async function depositPoolFixture() {
+    const {
+      auroraTokenContract,
+      auroraStakingContract,
+      stAuroraTokenContract,
+      stakingManagerContract,
+      depositor00Contract,
+      depositor01Contract,
+      owner,
+      depositors_owner,
+      treasury,
+      operator,
+      alice,
+      bob,
+      carl,
+      decimals
+    } = await loadFixture(deployPoolFixture);
+
+    const aliceDeposit = ethers.BigNumber.from(100_000).mul(decimals);
+    await auroraTokenContract.connect(alice).approve(stAuroraTokenContract.address, aliceDeposit);
+    await stAuroraTokenContract.connect(alice).deposit(aliceDeposit, alice.address);
+
+    const bobDeposit = ethers.BigNumber.from(6_000).mul(decimals);
+    await auroraTokenContract.connect(bob).approve(stAuroraTokenContract.address, bobDeposit);
+    await stAuroraTokenContract.connect(bob).deposit(bobDeposit, bob.address);
+
+    const carlDeposit = ethers.BigNumber.from(24_000).mul(decimals);
+    await auroraTokenContract.connect(carl).approve(stAuroraTokenContract.address, carlDeposit);
+    await stAuroraTokenContract.connect(carl).deposit(carlDeposit, carl.address);
+
+    return {
+      auroraTokenContract,
+      auroraStakingContract,
+      stAuroraTokenContract,
+      stakingManagerContract,
+      depositor00Contract,
+      depositor01Contract,
+      owner,
+      depositors_owner,
+      treasury,
+      operator,
+      alice,
+      bob,
+      carl,
+      decimals
+    };
+  }
+
   // You can nest describe calls to create subsections.
   describe("Deployment", function () {
     // `it` is another Mocha function. This is the one you use to define each
@@ -313,61 +361,24 @@ describe("Staking Pool AURORA", function () {
     });
   });
 
-//   describe("Transactions", function () {
-//     it("Should transfer tokens between accounts", async function () {
-//       const { hardhatToken, owner, addr1, addr2 } = await loadFixture(
-//         deployPoolFixture
-//       );
+  describe("Unstake and Withdraw Aurora tokens", function () {
+    it("Should allow deposits from multiple users.", async function () {
+      const {
+        auroraTokenContract,
+        auroraStakingContract,
+        stAuroraTokenContract,
+        stakingManagerContract,
+        depositor00Contract,
+        depositor01Contract,
+        alice,
+        bob,
+        carl,
+        decimals
+      } = await loadFixture(depositPoolFixture);
 
-//       // console.log('owner balance: %s', await hardhatToken.balanceOf(owner.address));
-//       // console.log('addr1 balance: %s', await hardhatToken.balanceOf(addr1.address));
-//       // console.log('addr2 balance: %s', await hardhatToken.balanceOf(addr2.address));
-
-//       // Transfer 50 tokens from owner to addr1
-//       await expect(
-//         hardhatToken.transfer(addr1.address, 50)
-//       ).to.changeTokenBalances(hardhatToken, [owner, addr1], [-50, 50]);
-
-//       // Transfer 50 tokens from addr1 to addr2
-//       // We use .connect(signer) to send a transaction from another account
-//       await expect(
-//         hardhatToken.connect(addr1).transfer(addr2.address, 50)
-//       ).to.changeTokenBalances(hardhatToken, [addr1, addr2], [-50, 50]);
-//     });
-
-//     it("should emit Transfer events", async function () {
-//       const { hardhatToken, owner, addr1, addr2 } = await loadFixture(
-//         deployPoolFixture
-//       );
-
-//       // Transfer 50 tokens from owner to addr1
-//       await expect(hardhatToken.transfer(addr1.address, 50))
-//         .to.emit(hardhatToken, "Transfer")
-//         .withArgs(owner.address, addr1.address, 50);
-
-//       // Transfer 50 tokens from addr1 to addr2
-//       // We use .connect(signer) to send a transaction from another account
-//       await expect(hardhatToken.connect(addr1).transfer(addr2.address, 50))
-//         .to.emit(hardhatToken, "Transfer")
-//         .withArgs(addr1.address, addr2.address, 50);
-//     });
-
-//     it("Should fail if sender doesn't have enough tokens", async function () {
-//       const { hardhatToken, owner, addr1 } = await loadFixture(
-//         deployPoolFixture
-//       );
-//       const initialOwnerBalance = await hardhatToken.balanceOf(owner.address);
-
-//       // Try to send 1 token from addr1 (0 tokens) to owner.
-//       // `require` will evaluate false and revert the transaction.
-//       await expect(
-//         hardhatToken.connect(addr1).transfer(owner.address, 1)
-//       ).to.be.revertedWith("ERC20: transfer amount exceeds balance");
-
-//       // Owner balance shouldn't have changed.
-//       expect(await hardhatToken.balanceOf(owner.address)).to.equal(
-//         initialOwnerBalance
-//       );
-//     });
-//   });
+      console.log("Alice stAURORA: %s", await stAuroraTokenContract.balanceOf(alice.address));
+      console.log("Bob stAURORA: %s", await stAuroraTokenContract.balanceOf(bob.address));
+      console.log("Carl stAURORA: %s", await stAuroraTokenContract.balanceOf(carl.address));
+    });
+  });
 });

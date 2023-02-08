@@ -21,6 +21,13 @@ interface IAuroraStaking {
 
     function unstake(uint256 amount) external;
     function unstakeAll() external;
+
+    function withdraw(uint256 streamId) external;
+
+    function getPending(uint256 streamId, address account)
+        external
+        view
+        returns (uint256);
 }
 
 contract Depositor is Ownable {
@@ -68,5 +75,17 @@ contract Depositor is Ownable {
 
     function unstakeAll() public onlyManager {
         IAuroraStaking(auroraStaking).unstakeAll();
+    }
+
+    function withdraw() public onlyManager {
+        IAuroraStaking(auroraStaking).withdraw(0);
+    }
+
+    function getPending(address account)
+        external
+        view
+        returns (uint256)
+    {
+        return IAuroraStaking(auroraStaking).getPending(0, account);
     }
 }
