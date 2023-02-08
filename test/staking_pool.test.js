@@ -362,7 +362,7 @@ describe("Staking Pool AURORA", function () {
   });
 
   describe("Unstake and Withdraw Aurora tokens", function () {
-    it("Should allow unstake and withdraw from multiple users.", async function () {
+    it("Should allow TOTAL unstake and withdraw assets from multiple users.", async function () {
       const {
         auroraTokenContract,
         auroraStakingContract,
@@ -376,13 +376,43 @@ describe("Staking Pool AURORA", function () {
         decimals
       } = await loadFixture(depositPoolFixture);
 
-      console.log("Alice stAURORA: %s", await stAuroraTokenContract.balanceOf(alice.address));
-      console.log("Bob stAURORA: %s", await stAuroraTokenContract.balanceOf(bob.address));
-      console.log("Carl stAURORA: %s", await stAuroraTokenContract.balanceOf(carl.address));
-      // advance time by one hour and mine a new block
-      console.log("time JOSE: %s", await time.latest());
-      await time.increase(3600);
-      console.log("time: %s", await time.latest());
+      const aliceShares = await stAuroraTokenContract.balanceOf(alice.address);
+      expect(await stAuroraTokenContract.balanceOf(alice.address)).to.be.greaterThan(0);
+      const aliceLessAssets = await stAuroraTokenContract.previewRedeem(aliceShares);
+      await stakingManagerContract.connect(alice).unstakeAll(alice.address);
+      expect(await stAuroraTokenContract.balanceOf(alice.address)).to.equal(0);
+      // CONSIDER: Alice assets in the withdraw-order are greater than last call
+      // due to the fast (every second) price increase.
+      expect(
+        await stakingManagerContract.getWithdrawOrderAssets(alice.address)
+      ).to.be.greaterThanOrEqual(aliceLessAssets);
+
+      const bobShares = await stAuroraTokenContract.balanceOf(bob.address);
+      expect(await stAuroraTokenContract.balanceOf(bob.address)).to.be.greaterThan(0);
+      const bobLessAssets = await stAuroraTokenContract.previewRedeem(bobShares);
+      await stakingManagerContract.connect(bob).unstakeAll(bob.address);
+      expect(await stAuroraTokenContract.balanceOf(bob.address)).to.equal(0);
+      expect(
+        await stakingManagerContract.getWithdrawOrderAssets(bob.address)
+      ).to.be.greaterThanOrEqual(bobLessAssets);
+
+      const carlShares = await stAuroraTokenContract.balanceOf(carl.address);
+      expect(await stAuroraTokenContract.balanceOf(carl.address)).to.be.greaterThan(0);
+      const carlLessAssets = await stAuroraTokenContract.previewRedeem(carlShares);
+      await stakingManagerContract.connect(carl).unstakeAll(carl.address);
+      expect(await stAuroraTokenContract.balanceOf(carl.address)).to.equal(0);
+      expect(
+        await stakingManagerContract.getWithdrawOrderAssets(carl.address)
+      ).to.be.greaterThanOrEqual(carlLessAssets);
+
+      // expect(await stakingManagerContract.totalAssets()).to.equal(0);
+      expect(await stakingManagerContract.getTotalWithdrawInQueue()).to.equal(
+        (await stakingManagerContract.getWithdrawOrderAssets(alice.address)).add(
+          await stakingManagerContract.getWithdrawOrderAssets(bob.address)
+        ).add(
+          await stakingManagerContract.getWithdrawOrderAssets(carl.address)
+        )
+      );
     });
   });
 });

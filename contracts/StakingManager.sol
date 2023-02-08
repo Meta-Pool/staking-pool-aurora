@@ -53,9 +53,10 @@ interface IDepositor {
 }
 
 interface IStAuroraToken {
-    function previewWithdraw(uint256 assets) external returns (uint256);
-    function previewRedeem(uint256 shares) external returns (uint256);
+    function previewWithdraw(uint256 assets) external view returns (uint256);
+    function previewRedeem(uint256 shares) external view returns (uint256);
     function burn(address owner, uint256 shares) external;
+    function balanceOf(address account) external view returns (uint256);
 }
 
 contract StakingManager is AccessControl {
@@ -116,6 +117,18 @@ contract StakingManager is AccessControl {
         _grantRole(DEPOSITORS_OWNER_ROLE, _depositorOwner);
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(OPERATOR_ROLE, msg.sender);
+    }
+
+    /**
+     * VIEW FUNCTIONS
+     */
+    function getWithdrawOrderAssets(address account) public view returns (uint256) {
+        for (uint i = 0; i < withdrawOrders.length; i++) {
+            if (withdrawOrders[i].receiver == account) {
+                return withdrawOrders[i].assets;
+            }
+        }
+        return 0;
     }
 
     function _internalUpdateTau() private {
@@ -264,6 +277,13 @@ contract StakingManager is AccessControl {
 
     function createWithdrawOrder(uint256 assets, address receiver) private {
         require(withdrawOrders.length <= maxWithdrawOrders, "TOO_MANY_WITHDRAW_ORDERS");
+        for (uint i = 0; i < withdrawOrders.length; i++) {
+            if (withdrawOrders[i].receiver == receiver) {
+                withdrawOrder storage oldOrder = withdrawOrders[i];
+                oldOrder.assets += assets;
+                return;
+            }
+        }
         withdrawOrders.push(withdrawOrder(assets, receiver));
     }
 
@@ -284,35 +304,31 @@ contract StakingManager is AccessControl {
         createWithdrawOrder(assets, receiver);
     }
 
-    /** @dev See {IERC4626-withdraw}. */
-    function liquidWithdraw(
-        uint256 assets,
-        address receiver,
-        address owner
-    ) public returns (uint256) {
-        // require(false, "inimplemented");
-        // require(assets <= maxWithdraw(owner), "ERC4626: withdraw more than max");
-
-        // uint256 shares = previewWithdraw(assets);
-        // _withdraw(_msgSender(), receiver, owner, assets, shares);
-
-        // return shares;
+    function unstakeAll(address receiver) public {
+        IStAuroraToken stAuroraToken = IStAuroraToken(stAurora);
+        uint256 shares = stAuroraToken.balanceOf(msg.sender);
+        uint256 assets = stAuroraToken.previewRedeem(shares);
+        stAuroraToken.burn(msg.sender, shares);
+        createWithdrawOrder(assets, receiver);
     }
 
-    /** @dev See {IERC4626-redeem}. */
-    function liquidRedeem(
-        uint256 shares,
-        address receiver,
-        address owner
-    ) public returns (uint256) {
-        // require(false, "inimplemented");
-        // require(shares <= maxRedeem(owner), "ERC4626: redeem more than max");
+    // /** @dev See {IERC4626-withdraw}. */
+    // function liquidWithdraw(
+    //     uint256 assets,
+    //     address receiver,
+    //     address owner
+    // ) public returns (uint256) {
+    //     require(false, "unimplemented");
+    // }
 
-        // uint256 assets = previewRedeem(shares);
-        // _withdraw(_msgSender(), receiver, owner, assets, shares);
-
-        // return assets;
-    }
+    // /** @dev See {IERC4626-redeem}. */
+    // function liquidRedeem(
+    //     uint256 shares,
+    //     address receiver,
+    //     address owner
+    // ) public returns (uint256) {
+    //     require(false, "unimplemented");
+    // }
 
     function _withdrawFromDepositor() private {
         for (uint i = 0; i < depositors.length; i++) {
