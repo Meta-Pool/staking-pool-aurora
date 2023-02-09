@@ -10,6 +10,8 @@ import "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
+import "hardhat/console.sol";
+
 interface IAuroraStaking {
 
     enum StreamStatus {
@@ -75,7 +77,6 @@ contract StakingManager is AccessControl {
     address public nextDepositor;
     mapping(address => uint256) depositorShares;
 
-    // mapping(address => uint256) pendingAssets;
     mapping(address => uint256) availableAssets;
 
     withdrawOrder[] withdrawOrders;
@@ -264,15 +265,16 @@ contract StakingManager is AccessControl {
     */
     function cleanOrdersQueue() public {
         require(depositors.length > 0);
-        require(nextCleanOrderQueue <= block.timestamp);
+        require(nextCleanOrderQueue <= block.timestamp, "WAIT_FOR_NEXT_CLEAN_ORDER");
 
         _withdrawFromDepositor();   // Step 1.
         _movePendingToAvailable();  // Step 2.
-        _unstakeWithdrawOrders();    // Step 3.
+        _unstakeWithdrawOrders();   // Step 3.
 
         // Step 4 & 5. TODO: We need help from Batman 🦇.
         pendingOrders = withdrawOrders;
         delete withdrawOrders;
+        nextCleanOrderQueue += tauAuroraStream;
     }
 
     function createWithdrawOrder(uint256 assets, address receiver) private {
@@ -332,7 +334,7 @@ contract StakingManager is AccessControl {
 
     function _withdrawFromDepositor() private {
         for (uint i = 0; i < depositors.length; i++) {
-            address depositor = depositors[i-1];
+            address depositor = depositors[i];
             uint256 pendingAmount = IDepositor(depositor).getPending(depositors[i]);
             if (pendingAmount > 0) {
                 IDepositor(depositor).withdraw();
@@ -352,16 +354,18 @@ contract StakingManager is AccessControl {
         uint256 totalWithdraw = getTotalWithdrawInQueue();
         uint256 accum = 0;
 
-        for (uint i = depositors.length; i > 0; i--) {
-            address depositor = depositors[i-1];
-            uint256 assets = getTotalAssetsFromDepositor(depositor);
-            if (assets >= (totalWithdraw + accum)) {
-                IDepositor(depositor).unstake(totalWithdraw);
-            } else {
-                IDepositor(depositor).unstakeAll();
-                accum += assets;
+        if (totalWithdraw > 0) {
+            for (uint i = depositors.length; i > 0; i--) {
+                address depositor = depositors[i-1];
+                uint256 assets = getTotalAssetsFromDepositor(depositor);
+                if (assets >= (totalWithdraw + accum)) {
+                    IDepositor(depositor).unstake(totalWithdraw);
+                } else {
+                    IDepositor(depositor).unstakeAll();
+                    accum += assets;
+                }
+                updateDepositorShares(depositor);
             }
-            updateDepositorShares(depositor);
         }
     }
 }

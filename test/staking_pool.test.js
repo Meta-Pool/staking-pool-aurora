@@ -144,6 +144,8 @@ describe("Staking Pool AURORA", function () {
     await auroraTokenContract.connect(carl).approve(stAuroraTokenContract.address, carlDeposit);
     await stAuroraTokenContract.connect(carl).deposit(carlDeposit, carl.address);
 
+    await stakingManagerContract.cleanOrdersQueue();
+
     return {
       auroraTokenContract,
       auroraStakingContract,
@@ -405,14 +407,23 @@ describe("Staking Pool AURORA", function () {
         await stakingManagerContract.getWithdrawOrderAssets(carl.address)
       ).to.be.greaterThanOrEqual(carlLessAssets);
 
-      // expect(await stakingManagerContract.totalAssets()).to.equal(0);
       expect(await stakingManagerContract.getTotalWithdrawInQueue()).to.equal(
-        (await stakingManagerContract.getWithdrawOrderAssets(alice.address)).add(
+        (
+          await stakingManagerContract.getWithdrawOrderAssets(alice.address)
+        ).add(
           await stakingManagerContract.getWithdrawOrderAssets(bob.address)
         ).add(
           await stakingManagerContract.getWithdrawOrderAssets(carl.address)
         )
       );
+
+      await expect(
+        stakingManagerContract.cleanOrdersQueue()
+      ).to.be.revertedWith("WAIT_FOR_NEXT_CLEAN_ORDER");
+
+      await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
+      await stakingManagerContract.cleanOrdersQueue();
+      expect(await stakingManagerContract.totalAssets()).to.equal(0);
     });
   });
 });

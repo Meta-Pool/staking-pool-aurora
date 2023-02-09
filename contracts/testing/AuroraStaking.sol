@@ -34,7 +34,8 @@ contract AuroraStaking {
     constructor(address _auroraToken) {
         auroraToken = _auroraToken;
         touchedAt = block.timestamp;
-        tauAuroraStream = 2 * 24 * 60 * 60; // 2 days in seconds.
+        // tauAuroraStream = 2 * 24 * 60 * 60; // 2 days in seconds.
+        tauAuroraStream = 1 * 60 * 60; // 1 hour in seconds.
     }
 
     /// @dev get the stream data
