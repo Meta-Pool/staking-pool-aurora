@@ -50,7 +50,7 @@ interface IDepositor {
         returns (uint256);
 }
 
-interface IStAuroraToken {
+interface IStakedAuroraVault {
     function previewWithdraw(uint256 assets) external view returns (uint256);
     function previewRedeem(uint256 shares) external view returns (uint256);
     function burn(address owner, uint256 shares) external;
@@ -298,26 +298,25 @@ contract StakingManager is AccessControl {
      * @dev The unstake function triggers the delayed withdraw.
      */
     function unstakeAssets(uint256 assets, address receiver) public {
-        IStAuroraToken stAuroraToken = IStAuroraToken(stAurora);
-        uint256 shares = stAuroraToken.previewWithdraw(assets);
-        stAuroraToken.burn(msg.sender, shares);
+        IStakedAuroraVault stakedAuroraVault = IStakedAuroraVault(stAurora);
+        uint256 shares = stakedAuroraVault.previewWithdraw(assets);
+        stakedAuroraVault.burn(msg.sender, shares);
         createWithdrawOrder(assets, receiver);
     }
 
     function unstakeShares(uint256 shares, address receiver) public {
-        IStAuroraToken stAuroraToken = IStAuroraToken(stAurora);
-        uint256 assets = stAuroraToken.previewRedeem(shares);
-        stAuroraToken.burn(msg.sender, shares);
+        IStakedAuroraVault stakedAuroraVault = IStakedAuroraVault(stAurora);
+        uint256 assets = stakedAuroraVault.previewRedeem(shares);
+        stakedAuroraVault.burn(msg.sender, shares);
         createWithdrawOrder(assets, receiver);
     }
 
-    function unstakeAll(address receiver) public returns (uint256) {
-        IStAuroraToken stAuroraToken = IStAuroraToken(stAurora);
-        uint256 shares = stAuroraToken.balanceOf(msg.sender);
-        uint256 assets = stAuroraToken.previewRedeem(shares);
-        stAuroraToken.burn(msg.sender, shares);
+    function unstakeAll(address receiver) public {
+        IStakedAuroraVault stakedAuroraVault = IStakedAuroraVault(stAurora);
+        uint256 shares = stakedAuroraVault.balanceOf(msg.sender);
+        uint256 assets = stakedAuroraVault.previewRedeem(shares);
+        stakedAuroraVault.burn(msg.sender, shares);
         createWithdrawOrder(assets, receiver);
-        return assets;
     }
 
     // /** @dev See {IERC4626-withdraw}. */

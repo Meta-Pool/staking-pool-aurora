@@ -17,7 +17,7 @@ interface IDepositor {
     function stake(uint256 _assets) external;
 }
 
-contract StAuroraToken is ERC4626, Ownable {
+contract StakedAuroraVault is ERC4626, Ownable {
 
     address public stakingManager;
     uint256 public minDepositAmount;
@@ -38,7 +38,7 @@ contract StAuroraToken is ERC4626, Ownable {
         minDepositAmount = _minDepositAmount;
     }
 
-    function updataStakingManager(address _stakingManager) external onlyOwner {
+    function updateStakingManager(address _stakingManager) external onlyOwner {
         require(_stakingManager != address(0));
         stakingManager = _stakingManager;
     }

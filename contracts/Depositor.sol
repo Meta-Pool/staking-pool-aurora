@@ -55,7 +55,7 @@ contract Depositor is Ownable {
         auroraStaking = manager.auroraStaking();
     }
 
-    function updataStakingManager(address _stakingManager) public onlyOwner {
+    function updateStakingManager(address _stakingManager) public onlyOwner {
         require(_stakingManager != address(0));
         stakingManager = _stakingManager;
     }

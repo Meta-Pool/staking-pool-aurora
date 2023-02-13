@@ -26,7 +26,7 @@
 //   // Network to that snapshot in every test.
 //   async function deployTokenFixture() {
 //     // Get the ContractFactory and Signers here.
-//     const Token = await ethers.getContractFactory("StAuroraToken");
+//     const Token = await ethers.getContractFactory("StakedAuroraVault");
 //     const [owner, addr1, addr2] = await ethers.getSigners();
 
 //     // To deploy our contract, we just have to call Token.deploy() and await
