@@ -381,13 +381,12 @@ describe("Staking Pool AURORA", function () {
       const aliceShares = await stAuroraTokenContract.balanceOf(alice.address);
       expect(await stAuroraTokenContract.balanceOf(alice.address)).to.be.greaterThan(0);
       const aliceLessAssets = await stAuroraTokenContract.previewRedeem(aliceShares);
-      await stakingManagerContract.connect(alice).unstakeAll(alice.address);
+      const aliceWithdrawOrderAssets = await stakingManagerContract
+        .connect(alice).unstakeAll(alice.address);
       expect(await stAuroraTokenContract.balanceOf(alice.address)).to.equal(0);
       // CONSIDER: Alice assets in the withdraw-order are greater than last call
       // due to the fast (every second) price increase.
-      expect(
-        await stakingManagerContract.getWithdrawOrderAssets(alice.address)
-      ).to.be.greaterThanOrEqual(aliceLessAssets);
+      expect(aliceWithdrawOrderAssets).to.be.greaterThanOrEqual(aliceLessAssets);
 
       const bobShares = await stAuroraTokenContract.balanceOf(bob.address);
       expect(await stAuroraTokenContract.balanceOf(bob.address)).to.be.greaterThan(0);
@@ -420,10 +419,26 @@ describe("Staking Pool AURORA", function () {
       await expect(
         stakingManagerContract.cleanOrdersQueue()
       ).to.be.revertedWith("WAIT_FOR_NEXT_CLEAN_ORDER");
+      expect(await stakingManagerContract.getPendingOrderAssets(alice.address)).to.equal(0);
+      expect(await stakingManagerContract.getPendingOrderAssets(bob.address)).to.equal(0);
+      expect(await stakingManagerContract.getPendingOrderAssets(carl.address)).to.equal(0);
+
+    //   await expect(
+    //     stakingManagerContract.cleanOrdersQueue()
+    //   ).to.be.revertedWith("WAIT_FOR_NEXT_CLEAN_ORDER");
+
+    //   function withdraw(
+    //     uint256 assets,
+    //     address receiver,
+    //     address owner
+    // )
 
       await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
       await stakingManagerContract.cleanOrdersQueue();
       expect(await stakingManagerContract.totalAssets()).to.equal(0);
+      expect(await stakingManagerContract.getPendingOrderAssets(alice.address)).to.be.greaterThan(0);
+      expect(await stakingManagerContract.getPendingOrderAssets(bob.address)).to.be.greaterThan(0);
+      expect(await stakingManagerContract.getPendingOrderAssets(carl.address)).to.be.greaterThan(0);
     });
   });
 });

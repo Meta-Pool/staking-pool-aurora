@@ -1,16 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-// import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/interfaces/IERC4626.sol";
-
 import "@openzeppelin/contracts/access/AccessControl.sol";
-
-import "hardhat/console.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/interfaces/IERC4626.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
 interface IAuroraStaking {
 
@@ -127,6 +123,15 @@ contract StakingManager is AccessControl {
         for (uint i = 0; i < withdrawOrders.length; i++) {
             if (withdrawOrders[i].receiver == account) {
                 return withdrawOrders[i].assets;
+            }
+        }
+        return 0;
+    }
+
+    function getPendingOrderAssets(address account) public view returns (uint256) {
+        for (uint i = 0; i < pendingOrders.length; i++) {
+            if (pendingOrders[i].receiver == account) {
+                return pendingOrders[i].assets;
             }
         }
         return 0;
@@ -306,12 +311,13 @@ contract StakingManager is AccessControl {
         createWithdrawOrder(assets, receiver);
     }
 
-    function unstakeAll(address receiver) public {
+    function unstakeAll(address receiver) public returns (uint256) {
         IStAuroraToken stAuroraToken = IStAuroraToken(stAurora);
         uint256 shares = stAuroraToken.balanceOf(msg.sender);
         uint256 assets = stAuroraToken.previewRedeem(shares);
         stAuroraToken.burn(msg.sender, shares);
         createWithdrawOrder(assets, receiver);
+        return assets;
     }
 
     // /** @dev See {IERC4626-withdraw}. */
