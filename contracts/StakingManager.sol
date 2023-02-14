@@ -2,11 +2,9 @@
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/interfaces/IERC4626.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 interface IAuroraStaking {
 
@@ -58,6 +56,7 @@ interface IStakedAuroraVault {
 }
 
 contract StakingManager is AccessControl {
+    using SafeERC20 for IERC20;
 
     bytes32 public constant DEPOSITORS_OWNER_ROLE = keccak256("DEPOSITORS_OWNER_ROLE");
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
@@ -66,7 +65,6 @@ contract StakingManager is AccessControl {
     address immutable public auroraToken;
     address immutable public auroraStaking;
 
-    uint256 public tauAuroraStream;
     uint256 public nextCleanOrderQueue;
 
     address[] public depositors;
@@ -105,7 +103,7 @@ contract StakingManager is AccessControl {
         );
         stAurora = _stAurora;
         auroraStaking = _auroraStaking;
-        auroraToken = IERC4626(stAurora).asset();
+        auroraToken = IERC4626(_stAurora).asset();
         maxWithdrawOrders = _maxWithdrawOrders;
         nextCleanOrderQueue = block.timestamp;
 
@@ -135,15 +133,6 @@ contract StakingManager is AccessControl {
             }
         }
         return 0;
-    }
-
-    function _internalUpdateTau() private {
-        (,,,,,,,,,uint256 tau,) = IAuroraStaking(auroraStaking).getStream(0);
-        tauAuroraStream = tau;
-    }
-
-    function updateTauAuroraStream() public onlyRole(OPERATOR_ROLE) {
-        _internalUpdateTau();
     }
 
     function isAdmin(address _address) public view returns (bool) {
@@ -247,7 +236,7 @@ contract StakingManager is AccessControl {
     ) external onlyStAurora {
         require(isAvailableToWithdraw(assets, owner), "NOT_ENOUGH_AVAILABLE_ASSETS");
         availableAssets[owner] -= assets;
-        SafeERC20.safeTransferFrom(IERC20(auroraToken), address(this), receiver, assets);
+        IERC20(auroraToken).safeTransferFrom(address(this), receiver, assets);
     }
 
     function getTotalWithdrawInQueue() public view returns (uint256) {
@@ -278,8 +267,10 @@ contract StakingManager is AccessControl {
 
         // Step 4 & 5. TODO: We need help from Batman 🦇.
         pendingOrders = withdrawOrders;
-        delete withdrawOrders;
-        nextCleanOrderQueue += tauAuroraStream;
+        // delete withdrawOrders;
+        withdrawOrders = new withdrawOrder[](0);
+        (,,,,,,,,,uint256 tau,) = IAuroraStaking(auroraStaking).getStream(0);
+        nextCleanOrderQueue += tau;
     }
 
     function createWithdrawOrder(uint256 assets, address receiver) private {

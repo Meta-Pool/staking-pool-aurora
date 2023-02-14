@@ -29,6 +29,7 @@ interface IAuroraStaking {
 }
 
 contract Depositor is Ownable {
+    using SafeERC20 for IERC20;
 
     address public stakingManager;
     address immutable public stAurora;
@@ -62,8 +63,8 @@ contract Depositor is Ownable {
 
     function stake(uint256 _assets) public onlyStAurora {
         IERC20 aurora = IERC20(auroraToken);
-        SafeERC20.safeTransferFrom(aurora, stAurora, address(this), _assets);
-        SafeERC20.safeIncreaseAllowance(aurora, auroraStaking, _assets);
+        aurora.safeTransferFrom(stAurora, address(this), _assets);
+        aurora.safeIncreaseAllowance(auroraStaking, _assets);
         IAuroraStaking(auroraStaking).stake(_assets);
     }
 
