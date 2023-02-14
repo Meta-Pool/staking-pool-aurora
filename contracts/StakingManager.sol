@@ -241,8 +241,8 @@ contract StakingManager is AccessControl {
     /// UNSTAKING FLOW
 
     /** ROBOT 🤖
-     * 1. Withdraw from depositor.
-     * 2. Move pending to Available.
+     * 1. Withdraw pending Aurora from depositors.
+     * 2. Move previous pending amount to Available.
      * 3. Unstake withdraw orders.
      * 4. Move withdraw orders to Pending.
      * 5. Remove withdraw orders.
@@ -333,6 +333,7 @@ contract StakingManager is AccessControl {
             withdrawOrder memory order = pendingOrders[i];
             availableAssets[order.receiver] += order.assets;
         }
+        // TODO: Problem!!
         delete pendingOrders;
     }
 
