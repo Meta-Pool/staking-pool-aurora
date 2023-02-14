@@ -173,7 +173,6 @@ contract StakingManager is AccessControl {
     }
 
     function setNextDepositor() public onlyStAurora {
-        require(depositors.length > 0);
         updateDepositorShares(nextDepositor);
         address _nextDepositor = depositors[0];
         for (uint i = 0; i < depositors.length; i++) {
@@ -185,38 +184,28 @@ contract StakingManager is AccessControl {
         nextDepositor = _nextDepositor;
     }
 
-    function getTotalAssetsFromDepositor(address depositor) public view returns (uint256) {
-        uint256 arrayLength = depositors.length;
-        uint256 depositorAuroraShares = 0;
-        IAuroraStaking auroraContract = IAuroraStaking(auroraStaking);
-
-        if (arrayLength == 0) return 0;
-        depositorAuroraShares += depositorShares[depositor];
-        if (depositorAuroraShares == 0) return 0;
-        uint256 denominator = auroraContract.totalAuroraShares();
+    function _calculateStakeValue(uint256 _shares) private view returns (uint256) {
+        IAuroraStaking aurora = IAuroraStaking(auroraStaking);
+        uint256 denominator = aurora.totalAuroraShares();
         if (denominator == 0) return 0;
-        uint256 numerator = (depositorAuroraShares *
-            auroraContract.getTotalAmountOfStakedAurora());
+        uint256 numerator = _shares * aurora.getTotalAmountOfStakedAurora();
         uint256 stakeValue = numerator / denominator;
         return stakeValue;
     }
 
-    function getTotalAssetsFromDepositors() public view returns (uint256) {
-        uint256 arrayLength = depositors.length;
-        uint256 depositorsAuroraShares = 0;
-        IAuroraStaking auroraContract = IAuroraStaking(auroraStaking);
+    function getTotalAssetsFromDepositor(address depositor) public view returns (uint256) {
+        uint256 depositorAuroraShares = depositorShares[depositor];
+        if (depositorAuroraShares == 0) return 0;
+        return _calculateStakeValue(depositorAuroraShares);
+    }
 
-        if (arrayLength == 0) return 0;
-        for (uint i = 0; i < arrayLength; i++) {
+    function getTotalAssetsFromDepositors() public view returns (uint256) {
+        uint256 depositorsAuroraShares = 0;
+        for (uint i = 0; i < depositors.length; i++) {
             depositorsAuroraShares += depositorShares[depositors[i]];
         }
         if (depositorsAuroraShares == 0) return 0;
-        uint256 denominator = auroraContract.totalAuroraShares();
-        if (denominator == 0) return 0;
-        uint256 numerator = (depositorsAuroraShares *
-            auroraContract.getTotalAmountOfStakedAurora());
-        uint256 stakeValue = numerator / denominator;
-        return stakeValue;
+        return _calculateStakeValue(depositorsAuroraShares);
     }
 
     function totalAssets() external view returns (uint256) {
