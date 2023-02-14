@@ -42,17 +42,17 @@ interface IDepositor {
 
     function withdraw() external;
 
-    function getPending(address account)
+    function getPending(address _account)
         external
         view
         returns (uint256);
 }
 
 interface IStakedAuroraVault {
-    function previewWithdraw(uint256 assets) external view returns (uint256);
-    function previewRedeem(uint256 shares) external view returns (uint256);
-    function burn(address owner, uint256 shares) external;
-    function balanceOf(address account) external view returns (uint256);
+    function previewWithdraw(uint256 _assets) external view returns (uint256);
+    function previewRedeem(uint256 _shares) external view returns (uint256);
+    function burn(address _owner, uint256 _shares) external;
+    function balanceOf(address _account) external view returns (uint256);
 }
 
 contract StakingManager is AccessControl {
@@ -119,18 +119,18 @@ contract StakingManager is AccessControl {
     /**
      * VIEW FUNCTIONS
      */
-    function getWithdrawOrderAssets(address account) public view returns (uint256) {
+    function getWithdrawOrderAssets(address _account) public view returns (uint256) {
         for (uint i = 0; i < withdrawOrders.length; i++) {
-            if (withdrawOrders[i].receiver == account) {
+            if (withdrawOrders[i].receiver == _account) {
                 return withdrawOrders[i].assets;
             }
         }
         return 0;
     }
 
-    function getPendingOrderAssets(address account) public view returns (uint256) {
+    function getPendingOrderAssets(address _account) public view returns (uint256) {
         for (uint i = 0; i < pendingOrders.length; i++) {
-            if (pendingOrders[i].receiver == account) {
+            if (pendingOrders[i].receiver == _account) {
                 return pendingOrders[i].assets;
             }
         }
@@ -193,8 +193,8 @@ contract StakingManager is AccessControl {
         return stakeValue;
     }
 
-    function getTotalAssetsFromDepositor(address depositor) public view returns (uint256) {
-        uint256 depositorAuroraShares = depositorShares[depositor];
+    function getTotalAssetsFromDepositor(address _depositor) public view returns (uint256) {
+        uint256 depositorAuroraShares = depositorShares[_depositor];
         if (depositorAuroraShares == 0) return 0;
         return _calculateStakeValue(depositorAuroraShares);
     }
@@ -213,20 +213,20 @@ contract StakingManager is AccessControl {
     }
 
     function isAvailableToWithdraw(
-        uint256 assets,
-        address owner
+        uint256 _assets,
+        address _owner
     ) public view returns (bool) {
-        return availableAssets[owner] >= assets;
+        return availableAssets[_owner] >= _assets;
     }
 
     function transferAurora(
-        address receiver,
-        address owner,
-        uint256 assets
+        address _receiver,
+        address _owner,
+        uint256 _assets
     ) external onlyStAurora {
-        require(isAvailableToWithdraw(assets, owner), "NOT_ENOUGH_AVAILABLE_ASSETS");
-        availableAssets[owner] -= assets;
-        IERC20(auroraToken).safeTransferFrom(address(this), receiver, assets);
+        require(isAvailableToWithdraw(_assets, _owner), "NOT_ENOUGH_AVAILABLE_ASSETS");
+        availableAssets[_owner] -= _assets;
+        IERC20(auroraToken).safeTransferFrom(address(this), _receiver, _assets);
     }
 
     function getTotalWithdrawInQueue() public view returns (uint256) {
@@ -263,41 +263,41 @@ contract StakingManager is AccessControl {
         nextCleanOrderQueue = block.timestamp + tau;
     }
 
-    function createWithdrawOrder(uint256 assets, address receiver) private {
+    function createWithdrawOrder(uint256 _assets, address _receiver) private {
         require(withdrawOrders.length <= maxWithdrawOrders, "TOO_MANY_WITHDRAW_ORDERS");
         for (uint i = 0; i < withdrawOrders.length; i++) {
-            if (withdrawOrders[i].receiver == receiver) {
+            if (withdrawOrders[i].receiver == _receiver) {
                 withdrawOrder storage oldOrder = withdrawOrders[i];
-                oldOrder.assets += assets;
+                oldOrder.assets += _assets;
                 return;
             }
         }
-        withdrawOrders.push(withdrawOrder(assets, receiver));
+        withdrawOrders.push(withdrawOrder(_assets, _receiver));
     }
 
     /**
      * @dev The unstake function triggers the delayed withdraw.
      */
-    function unstakeAssets(uint256 assets, address receiver) public {
+    function unstakeAssets(uint256 _assets, address _receiver) public {
         IStakedAuroraVault stakedAuroraVault = IStakedAuroraVault(stAurora);
-        uint256 shares = stakedAuroraVault.previewWithdraw(assets);
+        uint256 shares = stakedAuroraVault.previewWithdraw(_assets);
         stakedAuroraVault.burn(msg.sender, shares);
-        createWithdrawOrder(assets, receiver);
+        createWithdrawOrder(_assets, _receiver);
     }
 
-    function unstakeShares(uint256 shares, address receiver) public {
+    function unstakeShares(uint256 _shares, address _receiver) public {
         IStakedAuroraVault stakedAuroraVault = IStakedAuroraVault(stAurora);
-        uint256 assets = stakedAuroraVault.previewRedeem(shares);
-        stakedAuroraVault.burn(msg.sender, shares);
-        createWithdrawOrder(assets, receiver);
+        uint256 assets = stakedAuroraVault.previewRedeem(_shares);
+        stakedAuroraVault.burn(msg.sender, _shares);
+        createWithdrawOrder(assets, _receiver);
     }
 
-    function unstakeAll(address receiver) public {
+    function unstakeAll(address _receiver) public {
         IStakedAuroraVault stakedAuroraVault = IStakedAuroraVault(stAurora);
         uint256 shares = stakedAuroraVault.balanceOf(msg.sender);
         uint256 assets = stakedAuroraVault.previewRedeem(shares);
         stakedAuroraVault.burn(msg.sender, shares);
-        createWithdrawOrder(assets, receiver);
+        createWithdrawOrder(assets, _receiver);
     }
 
     // /** @dev See {IERC4626-withdraw}. */
