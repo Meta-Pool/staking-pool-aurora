@@ -10,7 +10,7 @@ interface IStakingManager {
     function nextDepositor() external view returns (address);
     function totalAssets() external view returns (uint256);
     function setNextDepositor() external;
-    function transferAurora(address receiver, address owner, uint256 assets) external;
+    function transferAurora(address _receiver, address _owner, uint256 _assets) external;
 }
 
 interface IDepositor {
