@@ -75,6 +75,10 @@ contract StakingManager is AccessControl {
 
     withdrawOrder[] withdrawOrders;
     withdrawOrder[] pendingOrders;
+
+    // TODO: Not sure if this should become immutable.
+    // What if you use a fixed size array?
+    // ... or use the mapping trick? 🤷
     uint256 maxWithdrawOrders;
 
     uint256 public lpTotalAsset;
@@ -106,8 +110,6 @@ contract StakingManager is AccessControl {
         auroraToken = IERC4626(_stAurora).asset();
         maxWithdrawOrders = _maxWithdrawOrders;
         nextCleanOrderQueue = block.timestamp;
-
-        _internalUpdateTau();
 
         _grantRole(DEPOSITORS_OWNER_ROLE, _depositorOwner);
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -166,7 +168,6 @@ contract StakingManager is AccessControl {
     }
 
     function updateDepositorShares(address _depositor) public {
-        require(depositors.length > 0);
         require(depositorExists(_depositor), "UNEXISTING_DEPOSITOR");
         depositorShares[_depositor] = IAuroraStaking(auroraStaking).getUserShares(_depositor);
     }
@@ -267,10 +268,10 @@ contract StakingManager is AccessControl {
 
         // Step 4 & 5. TODO: We need help from Batman 🦇.
         pendingOrders = withdrawOrders;
-        // delete withdrawOrders;
-        withdrawOrders = new withdrawOrder[](0);
+        delete withdrawOrders;
+        // withdrawOrders = new withdrawOrder[](0);
         (,,,,,,,,,uint256 tau,) = IAuroraStaking(auroraStaking).getStream(0);
-        nextCleanOrderQueue += tau;
+        nextCleanOrderQueue = block.timestamp + tau;
     }
 
     function createWithdrawOrder(uint256 assets, address receiver) private {
