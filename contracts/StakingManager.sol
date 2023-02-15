@@ -76,6 +76,8 @@ contract StakingManager is AccessControl {
     withdrawOrder[] withdrawOrders;
     withdrawOrder[] pendingOrders;
 
+    uint256 totalWithdrawInQueue;
+
     // TODO: Not sure if this should become immutable.
     // What if you use a fixed size array?
     // ... or use the mapping trick? 🤷
@@ -230,12 +232,7 @@ contract StakingManager is AccessControl {
     }
 
     function getTotalWithdrawInQueue() public view returns (uint256) {
-        uint256 result = 0;
-        for (uint i = 0; i < withdrawOrders.length; i++) {
-            withdrawOrder memory order = withdrawOrders[i];
-            result += order.assets;
-        }
-        return result;
+        return totalWithdrawInQueue;
     }
 
     /// UNSTAKING FLOW
@@ -256,15 +253,19 @@ contract StakingManager is AccessControl {
         _unstakeWithdrawOrders();   // Step 3.
 
         // Step 4 & 5. TODO: We need help from Batman 🦇.
-        pendingOrders = withdrawOrders;
+        pendingOrders = withdrawOrders; // TODO: Copy array ⚠️
         delete withdrawOrders;
         // withdrawOrders = new withdrawOrder[](0);
         (,,,,,,,,,uint256 tau,) = IAuroraStaking(auroraStaking).getStream(0);
         nextCleanOrderQueue = block.timestamp + tau;
+        totalWithdrawInQueue = 0;
     }
 
     function createWithdrawOrder(uint256 _assets, address _receiver) private {
         require(withdrawOrders.length <= maxWithdrawOrders, "TOO_MANY_WITHDRAW_ORDERS");
+        totalWithdrawInQueue += _assets;
+
+        // TODO: Multiple storage access. It will fail. ⚠️
         for (uint i = 0; i < withdrawOrders.length; i++) {
             if (withdrawOrders[i].receiver == _receiver) {
                 withdrawOrder storage oldOrder = withdrawOrders[i];
@@ -279,25 +280,18 @@ contract StakingManager is AccessControl {
      * @dev The unstake function triggers the delayed withdraw.
      */
     function unstakeAssets(uint256 _assets, address _receiver) public {
-        IStakedAuroraVault stakedAuroraVault = IStakedAuroraVault(stAurora);
-        uint256 shares = stakedAuroraVault.previewWithdraw(_assets);
-        stakedAuroraVault.burn(msg.sender, shares);
-        createWithdrawOrder(_assets, _receiver);
+        uint256 shares = IStakedAuroraVault(stAurora).previewWithdraw(_assets);
+        _unstake(_assets, shares, _receiver);
     }
 
     function unstakeShares(uint256 _shares, address _receiver) public {
-        IStakedAuroraVault stakedAuroraVault = IStakedAuroraVault(stAurora);
-        uint256 assets = stakedAuroraVault.previewRedeem(_shares);
-        stakedAuroraVault.burn(msg.sender, _shares);
-        createWithdrawOrder(assets, _receiver);
+        uint256 assets = IStakedAuroraVault(stAurora).previewRedeem(_shares);
+        _unstake(assets, _shares, _receiver);
     }
 
     function unstakeAll(address _receiver) public {
-        IStakedAuroraVault stakedAuroraVault = IStakedAuroraVault(stAurora);
-        uint256 shares = stakedAuroraVault.balanceOf(msg.sender);
-        uint256 assets = stakedAuroraVault.previewRedeem(shares);
-        stakedAuroraVault.burn(msg.sender, shares);
-        createWithdrawOrder(assets, _receiver);
+        uint256 shares = IStakedAuroraVault(stAurora).balanceOf(msg.sender);
+        unstakeShares(shares, _receiver);
     }
 
     // /** @dev See {IERC4626-withdraw}. */
@@ -317,6 +311,11 @@ contract StakingManager is AccessControl {
     // ) public returns (uint256) {
     //     require(false, "unimplemented");
     // }
+
+    function _unstake(uint256 assets, uint256 shares, address receiver) private {
+        IStakedAuroraVault(stAurora).burn(msg.sender, shares);
+        createWithdrawOrder(assets, receiver);
+    }
 
     function _withdrawFromDepositor() private {
         for (uint i = 0; i < depositors.length; i++) {
