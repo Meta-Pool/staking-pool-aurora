@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+import "hardhat/console.sol";
+
 interface IAuroraStaking {
 
     enum StreamStatus {
@@ -248,12 +250,21 @@ contract StakingManager is AccessControl {
         require(depositors.length > 0);
         require(nextCleanOrderQueue <= block.timestamp, "WAIT_FOR_NEXT_CLEAN_ORDER");
 
+        console.log("__START Depositor 00: %s", getTotalAssetsFromDepositor(depositors[0]));
+        console.log("__START Depositor 01: %s", getTotalAssetsFromDepositor(depositors[1]));
+
         _withdrawFromDepositor();   // Step 1.
+        console.log("__   01 Depositor 00: %s", getTotalAssetsFromDepositor(depositors[0]));
+        console.log("__   01 Depositor 01: %s", getTotalAssetsFromDepositor(depositors[1]));
         _movePendingToAvailable();  // Step 2.
+        console.log("__   02 Depositor 00: %s", getTotalAssetsFromDepositor(depositors[0]));
+        console.log("__   02 Depositor 01: %s", getTotalAssetsFromDepositor(depositors[1]));
         _unstakeWithdrawOrders();   // Step 3.
+        console.log("__   03 Depositor 00: %s", getTotalAssetsFromDepositor(depositors[0]));
+        console.log("__   03 Depositor 01: %s", getTotalAssetsFromDepositor(depositors[1]));
 
         // Step 4 & 5. TODO: We need help from Batman 🦇.
-        pendingOrders = withdrawOrders; // TODO: Copy array ⚠️
+        pendingOrders = withdrawOrders; // TODO: Problems! try not to copy the array ⚠️
         delete withdrawOrders;
         // withdrawOrders = new withdrawOrder[](0);
         (,,,,,,,,,uint256 tau,) = IAuroraStaking(auroraStaking).getStream(0);
@@ -265,7 +276,7 @@ contract StakingManager is AccessControl {
         require(withdrawOrders.length <= maxWithdrawOrders, "TOO_MANY_WITHDRAW_ORDERS");
         totalWithdrawInQueue += _assets;
 
-        // TODO: Multiple storage access. It will fail. ⚠️
+        // TODO: Multiple storage access. It might fail. ⚠️
         for (uint i = 0; i < withdrawOrders.length; i++) {
             if (withdrawOrders[i].receiver == _receiver) {
                 withdrawOrder storage oldOrder = withdrawOrders[i];
@@ -321,6 +332,7 @@ contract StakingManager is AccessControl {
         for (uint i = 0; i < depositors.length; i++) {
             address depositor = depositors[i];
             uint256 pendingAmount = IDepositor(depositor).getPending(depositors[i]);
+            // console.log("PENDING AMOUNT DEP %s: %s", i, pendingAmount);
             if (pendingAmount > 0) {
                 IDepositor(depositor).withdraw();
             }
@@ -332,25 +344,31 @@ contract StakingManager is AccessControl {
             withdrawOrder memory order = pendingOrders[i];
             availableAssets[order.receiver] += order.assets;
         }
-        // TODO: Problem!!
+        // TODO: Problems!!
         delete pendingOrders;
     }
 
     function _unstakeWithdrawOrders() private {
         uint256 totalWithdraw = getTotalWithdrawInQueue();
-        uint256 accum = 0;
+        uint256 alreadyWithdraw = 0;
 
+        // TODO: CAUTION ⛔ keep an eye on this logic.
         if (totalWithdraw > 0) {
             for (uint i = depositors.length; i > 0; i--) {
                 address depositor = depositors[i-1];
                 uint256 assets = getTotalAssetsFromDepositor(depositor);
-                if (assets >= (totalWithdraw + accum)) {
-                    IDepositor(depositor).unstake(totalWithdraw);
+                console.log("DEP %s Assets: %s", i-1, assets);
+                uint256 nextWithdraw = totalWithdraw - alreadyWithdraw;
+
+                if (assets >= nextWithdraw) {
+                    IDepositor(depositor).unstake(nextWithdraw);
+                    alreadyWithdraw += nextWithdraw;
                 } else {
                     IDepositor(depositor).unstakeAll();
-                    accum += assets;
+                    alreadyWithdraw += assets;
                 }
                 updateDepositorShares(depositor);
+                if (alreadyWithdraw == totalWithdraw) return;
             }
         }
     }
