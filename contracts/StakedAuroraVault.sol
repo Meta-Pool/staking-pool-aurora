@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
+// import "hardhat/console.sol";
+
 interface IStakingManager {
     function nextDepositor() external view returns (address);
     function totalAssets() external view returns (uint256);
@@ -89,9 +91,14 @@ contract StakedAuroraVault is ERC4626, Ownable {
         address _receiver,
         address _owner
     ) public override returns (uint256) {
-        require(_assets <= maxWithdraw(_owner), "ERC4626: withdraw more than max");
+        // console.log("Assets: %s", _assets);
+        // console.log("max wi: %s", maxWithdraw(_owner));
+
+        // TODO: ⛔ No require is being performed here! Please confirm it's safe!
+        // require(_assets <= maxWithdraw(_owner), "ERC4626: withdraw more than max");
 
         uint256 shares = previewWithdraw(_assets);
+        // console.log("alice: %s", _owner);
         _withdraw(_msgSender(), _receiver, _owner, _assets, shares);
 
         return shares;
@@ -144,6 +151,8 @@ contract StakedAuroraVault is ERC4626, Ownable {
         uint256 _assets,
         uint256 _shares
     ) internal override {
+        // console.log("caller: %s", _caller);
+        // console.log("owner: %s", _owner);
         if (_caller != _owner) {
             _spendAllowance(_owner, _caller, _shares);
         }

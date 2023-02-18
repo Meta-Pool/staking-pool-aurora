@@ -76,8 +76,9 @@ contract Depositor is Ownable {
         IAuroraStaking(auroraStaking).unstakeAll();
     }
 
-    function withdraw() public onlyManager {
+    function withdraw(uint256 _assets) public onlyManager {
         IAuroraStaking(auroraStaking).withdraw(0);
+        IERC20(auroraToken).safeTransfer(stakingManager, _assets);
     }
 
     function getPending(address _account)

@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 interface IAuroraStaking {
 
@@ -42,7 +42,7 @@ interface IDepositor {
     function unstake(uint256 _assets) external;
     function unstakeAll() external;
 
-    function withdraw() external;
+    function withdraw(uint _assets) external;
 
     function getPending(address _account)
         external
@@ -220,6 +220,8 @@ contract StakingManager is AccessControl {
         uint256 _assets,
         address _owner
     ) public view returns (bool) {
+        // console.log("available assets: %s", availableAssets[_owner]);
+        // console.log("total     assets: %s", _assets);
         return availableAssets[_owner] >= _assets;
     }
 
@@ -228,9 +230,13 @@ contract StakingManager is AccessControl {
         address _owner,
         uint256 _assets
     ) external onlyStAurora {
+        // console.log("WE ARE HERE");
         require(isAvailableToWithdraw(_assets, _owner), "NOT_ENOUGH_AVAILABLE_ASSETS");
+        // console.log("ASSESTS ARE ENOUGH");
         availableAssets[_owner] -= _assets;
-        IERC20(auroraToken).safeTransferFrom(address(this), _receiver, _assets);
+        IERC20 token = IERC20(auroraToken);
+        // console.log("Pay the allowance here! 0000000000");
+        token.safeTransfer(_receiver, _assets);
     }
 
     function getTotalWithdrawInQueue() public view returns (uint256) {
@@ -250,18 +256,18 @@ contract StakingManager is AccessControl {
         require(depositors.length > 0);
         require(nextCleanOrderQueue <= block.timestamp, "WAIT_FOR_NEXT_CLEAN_ORDER");
 
-        console.log("__START Depositor 00: %s", getTotalAssetsFromDepositor(depositors[0]));
-        console.log("__START Depositor 01: %s", getTotalAssetsFromDepositor(depositors[1]));
+        // console.log("__START Depositor 00: %s", getTotalAssetsFromDepositor(depositors[0]));
+        // console.log("__START Depositor 01: %s", getTotalAssetsFromDepositor(depositors[1]));
 
         _withdrawFromDepositor();   // Step 1.
-        console.log("__   01 Depositor 00: %s", getTotalAssetsFromDepositor(depositors[0]));
-        console.log("__   01 Depositor 01: %s", getTotalAssetsFromDepositor(depositors[1]));
+        // console.log("__   01 Depositor 00: %s", getTotalAssetsFromDepositor(depositors[0]));
+        // console.log("__   01 Depositor 01: %s", getTotalAssetsFromDepositor(depositors[1]));
         _movePendingToAvailable();  // Step 2.
-        console.log("__   02 Depositor 00: %s", getTotalAssetsFromDepositor(depositors[0]));
-        console.log("__   02 Depositor 01: %s", getTotalAssetsFromDepositor(depositors[1]));
+        // console.log("__   02 Depositor 00: %s", getTotalAssetsFromDepositor(depositors[0]));
+        // console.log("__   02 Depositor 01: %s", getTotalAssetsFromDepositor(depositors[1]));
         _unstakeWithdrawOrders();   // Step 3.
-        console.log("__   03 Depositor 00: %s", getTotalAssetsFromDepositor(depositors[0]));
-        console.log("__   03 Depositor 01: %s", getTotalAssetsFromDepositor(depositors[1]));
+        // console.log("__   03 Depositor 00: %s", getTotalAssetsFromDepositor(depositors[0]));
+        // console.log("__   03 Depositor 01: %s", getTotalAssetsFromDepositor(depositors[1]));
 
         // Step 4 & 5. TODO: We need help from Batman 🦇.
         pendingOrders = withdrawOrders; // TODO: Problems! try not to copy the array ⚠️
@@ -334,7 +340,7 @@ contract StakingManager is AccessControl {
             uint256 pendingAmount = IDepositor(depositor).getPending(depositors[i]);
             // console.log("PENDING AMOUNT DEP %s: %s", i, pendingAmount);
             if (pendingAmount > 0) {
-                IDepositor(depositor).withdraw();
+                IDepositor(depositor).withdraw(pendingAmount);
             }
         }
     }
@@ -357,7 +363,7 @@ contract StakingManager is AccessControl {
             for (uint i = depositors.length; i > 0; i--) {
                 address depositor = depositors[i-1];
                 uint256 assets = getTotalAssetsFromDepositor(depositor);
-                console.log("DEP %s Assets: %s", i-1, assets);
+                // console.log("DEP %s Assets: %s", i-1, assets);
                 uint256 nextWithdraw = totalWithdraw - alreadyWithdraw;
 
                 if (assets >= nextWithdraw) {
