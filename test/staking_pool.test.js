@@ -595,91 +595,84 @@ describe("Staking Pool AURORA", function () {
       expect(await auroraTokenContract.balanceOf(alice.address)).to.equal(aliceAurora.add(alicePendingAssets));
     });
 
-    // it("Should allow Carl to deplete Dep 01 and unstake from Dep 00.", async function () {
-    //   const {
-    //     auroraTokenContract,
-    //     auroraStakingContract,
-    //     stakedAuroraVaultContract,
-    //     stakingManagerContract,
-    //     depositor00Contract,
-    //     depositor01Contract,
-    //     alice,
-    //     bob,
-    //     carl,
-    //     decimals
-    //   } = await loadFixture(depositPoolFixture);
+    it("Should allow Bob to deplete Dep 01 and unstake from Dep 00.", async function () {
+      const {
+        auroraTokenContract,
+        auroraStakingContract,
+        stakedAuroraVaultContract,
+        stakingManagerContract,
+        depositor00Contract,
+        depositor01Contract,
+        alice,
+        bob,
+        carl,
+        decimals
+      } = await loadFixture(depositPoolFixture);
 
-    //   // CONSIDER: at this point, the Depositor 01 will receive the first withdraw. But,
-    //   // it does not have enough to pay back, so it will be depleted.
+      // CONSIDER: at this point, the Depositor 01 will receive the first withdraw. But,
+      // it does not have enough to pay back, so it will be depleted.
+      // The rest of the funds to pay Carl will be taken from Depositor 00.
+      // console.log("Depositor 00 shares: %s", await auroraStakingContract.getUserShares(depositor00Contract.address));
+      // console.log("Depositor 01 shares: %s", await auroraStakingContract.getUserShares(depositor01Contract.address));
+      const preBobShares = await stakedAuroraVaultContract.balanceOf(bob.address);
+      // console.log("pre Bob shares: %s", preBobShares);
+      const preBobDep00 = await stakingManagerContract.getTotalAssetsFromDepositor(depositor00Contract.address);
+      const preBobDep01 = await stakingManagerContract.getTotalAssetsFromDepositor(depositor01Contract.address);
+      // console.log("pre 00: %s", preBobDep00);
+      // console.log("pre 01: %s", preBobDep01);
+      await stakingManagerContract.connect(bob).unstakeAll(bob.address);
+      expect(await stakingManagerContract.getPendingOrderAssets(bob.address)).to.equal(0);
 
-    //   const preAliceAssets = await stakedAuroraVaultContract.balanceOf(alice.address);
-    //   console.log("pre alice assets: %s", preAliceAssets);
-    //   const preAliceDep00 = await stakingManagerContract.getTotalAssetsFromDepositor(depositor00Contract.address);
-    //   console.log("pre 00: %s", preAliceDep00);
-    //   const preAliceDep01 = await stakingManagerContract.getTotalAssetsFromDepositor(depositor01Contract.address);
-    //   console.log("pre 01: %s", preAliceDep01);
-    //   await stakingManagerContract.connect(alice).unstakeAll(alice.address);
-    //   expect(await stakingManagerContract.getPendingOrderAssets(alice.address)).to.equal(0);
-    //   await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
-    //   console.log("------------------------------ CLEAN STARTS HERE");
-    //   await stakingManagerContract.cleanOrdersQueue();
-    //   expect(await stakingManagerContract.getPendingOrderAssets(alice.address)).to.be.greaterThan(0);
-    //   const posAliceDep00 = await stakingManagerContract.getTotalAssetsFromDepositor(depositor00Contract.address);
-    //   console.log("pos 00: %s", posAliceDep00);
-    //   const posAliceDep01 = await stakingManagerContract.getTotalAssetsFromDepositor(depositor01Contract.address);
-    //   console.log("pos 01: %s", posAliceDep01);
+      // Move forward: From withdraw to pending.
+      await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
+      await stakingManagerContract.cleanOrdersQueue();
+      expect(await stakingManagerContract.getPendingOrderAssets(bob.address)).to.be.greaterThan(0);
+      const posBobDep00 = await stakingManagerContract.getTotalAssetsFromDepositor(depositor00Contract.address);
+      const posBobDep01 = await stakingManagerContract.getTotalAssetsFromDepositor(depositor01Contract.address);
+      // console.log("pos 00: %s", posBobDep00);
+      // console.log("pos 01: %s", posBobDep01);
 
+      // Depositor 01 must be depleted and Dep 00 should have enough to cover for Alice and Carl.
+      expect(posBobDep01).to.equal(0);
+      expect(posBobDep00).to.be.greaterThan(preBobDep01);
 
-      
-    //   // expect(preAliceDep01).to.be.greaterThan(0);
-    //   // expect(posAliceDep01).to.equal(0);
-    //   // expect(preAliceDep00).to.be.greaterThan(posAliceDep00);
-    //   // expect(await stakedAuroraVaultContract.balanceOf(alice.address)).to.equal(0);
+      // Next deposit should go to the Depositor 01.
+      const carlDeposit = ethers.BigNumber.from(1_000).mul(decimals);
+      await auroraTokenContract.connect(carl).approve(stakedAuroraVaultContract.address, carlDeposit);
+      await stakedAuroraVaultContract.connect(carl).deposit(carlDeposit, carl.address);
 
+      const posCarlDep01 = await stakingManagerContract.getTotalAssetsFromDepositor(depositor01Contract.address);
+      expect(posCarlDep01).to.equal(carlDeposit);
+      // console.log("pos 00: %s", await stakingManagerContract.getTotalAssetsFromDepositor(depositor00Contract.address));
+      // console.log("pos 01: %s", posCarlDep01);
 
+      // Alice withdraw should deplete Depositor 01 again.
+      await stakingManagerContract.connect(alice).unstakeAll(alice.address);
+      expect(await stakingManagerContract.getPendingOrderAssets(alice.address)).to.equal(0);
 
-    //   // const bobShares = await stakedAuroraVaultContract.balanceOf(bob.address);
-    //   // expect(bobShares).to.be.greaterThan(0);
-    //   // const bobLessAssets = await stakedAuroraVaultContract.previewRedeem(bobShares);
-    //   // await stakingManagerContract.connect(bob).unstakeAll(bob.address);
-    //   // expect(await stakedAuroraVaultContract.balanceOf(bob.address)).to.equal(0);
-    //   // expect(
-    //   //   await stakingManagerContract.getWithdrawOrderAssets(bob.address)
-    //   // ).to.be.greaterThanOrEqual(bobLessAssets);
+      // Move forward: From withdraw to pending. Bob assets are available now!
+      await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
+      await stakingManagerContract.cleanOrdersQueue();
+      expect(await stakingManagerContract.getPendingOrderAssets(alice.address)).to.be.greaterThan(0);
+      const posAliceDep00 = await stakingManagerContract.getTotalAssetsFromDepositor(depositor00Contract.address);
+      const posAliceDep01 = await stakingManagerContract.getTotalAssetsFromDepositor(depositor01Contract.address);
+      // console.log("pos 00: %s", posAliceDep00);
+      // console.log("pos 01: %s", posAliceDep01);
 
-    //   // const carlShares = await stakedAuroraVaultContract.balanceOf(carl.address);
-    //   // expect(await stakedAuroraVaultContract.balanceOf(carl.address)).to.be.greaterThan(0);
-    //   // const carlLessAssets = await stakedAuroraVaultContract.previewRedeem(carlShares);
-    //   // await stakingManagerContract.connect(carl).unstakeAll(carl.address);
-    //   // expect(await stakedAuroraVaultContract.balanceOf(carl.address)).to.equal(0);
-    //   // expect(
-    //   //   await stakingManagerContract.getWithdrawOrderAssets(carl.address)
-    //   // ).to.be.greaterThanOrEqual(carlLessAssets);
+      // Depositor 01 must be depleted and Dep 00 should have enough to cover for Carl.
+      expect(posAliceDep01).to.equal(0);
 
-    //   // expect(await stakingManagerContract.getTotalWithdrawInQueue()).to.equal(
-    //   //   (
-    //   //     await stakingManagerContract.getWithdrawOrderAssets(alice.address)
-    //   //   ).add(
-    //   //     await stakingManagerContract.getWithdrawOrderAssets(bob.address)
-    //   //   ).add(
-    //   //     await stakingManagerContract.getWithdrawOrderAssets(carl.address)
-    //   //   )
-    //   // );
+      const carlShares = await stakedAuroraVaultContract.balanceOf(carl.address);
+      expect(carlShares).to.be.greaterThan(0);
+      expect(posAliceDep00).to.be.equal(
+        await stakedAuroraVaultContract.previewRedeem(carlShares)
+      );
 
-    //   // await expect(
-    //   //   stakingManagerContract.cleanOrdersQueue()
-    //   // ).to.be.revertedWith("WAIT_FOR_NEXT_CLEAN_ORDER");
-    //   // expect(await stakingManagerContract.getPendingOrderAssets(alice.address)).to.equal(0);
-    //   // expect(await stakingManagerContract.getPendingOrderAssets(bob.address)).to.equal(0);
-    //   // expect(await stakingManagerContract.getPendingOrderAssets(carl.address)).to.equal(0);
-
-    //   // await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
-    //   // await stakingManagerContract.cleanOrdersQueue();
-    //   // expect(await stakingManagerContract.totalAssets()).to.equal(0);
-    //   // expect(await stakingManagerContract.getPendingOrderAssets(alice.address)).to.be.greaterThan(0);
-    //   // expect(await stakingManagerContract.getPendingOrderAssets(bob.address)).to.be.greaterThan(0);
-    //   // expect(await stakingManagerContract.getPendingOrderAssets(carl.address)).to.be.greaterThan(0);
-    // });
+      const bobAurora = await auroraTokenContract.balanceOf(bob.address);
+      const bobAvailableAssets = await stakingManagerContract.getAvailableAssets(bob.address);
+      await stakedAuroraVaultContract.connect(bob).withdraw(bobAvailableAssets, bob.address, bob.address)
+      expect(await auroraTokenContract.balanceOf(bob.address)).to.equal(bobAurora.add(bobAvailableAssets));
+    });
 
     // it("Should allow TOTAL unstake in different time periods. ⌚", async function () {
     //   const {
