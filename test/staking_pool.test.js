@@ -557,43 +557,43 @@ describe("Staking Pool AURORA", function () {
       expect(await auroraTokenContract.balanceOf(carl.address)).to.equal(carlBalance.add(carlPending));
     });
 
-    // it("Should allow Alice unstake from Depositor 01.", async function () {
-    //   const {
-    //     auroraTokenContract,
-    //     stakedAuroraVaultContract,
-    //     stakingManagerContract,
-    //     depositor00Contract,
-    //     depositor01Contract,
-    //     alice
-    //   } = await loadFixture(depositPoolFixture);
+    it("Should allow Alice unstake from Depositor 01.", async function () {
+      const {
+        auroraTokenContract,
+        stakedAuroraVaultContract,
+        stakingManagerContract,
+        depositor00Contract,
+        depositor01Contract,
+        alice
+      } = await loadFixture(depositPoolFixture);
 
-    //   const preAliceAssets = await stakedAuroraVaultContract.balanceOf(alice.address);
-    //   const preAliceDep00 = await stakingManagerContract.getTotalAssetsFromDepositor(depositor00Contract.address);
-    //   const preAliceDep01 = await stakingManagerContract.getTotalAssetsFromDepositor(depositor01Contract.address);
-    //   await stakingManagerContract.connect(alice).unstakeAll(alice.address);
-    //   expect(await stakingManagerContract.getPendingOrderAssets(alice.address)).to.equal(0);
+      const preAliceAssets = await stakedAuroraVaultContract.balanceOf(alice.address);
+      const preAliceDep00 = await stakingManagerContract.getTotalAssetsFromDepositor(depositor00Contract.address);
+      const preAliceDep01 = await stakingManagerContract.getTotalAssetsFromDepositor(depositor01Contract.address);
+      await stakingManagerContract.connect(alice).unstakeAll(alice.address);
+      expect(await stakingManagerContract.getPendingOrderAssets(alice.address)).to.equal(0);
 
-    //   // Move forward: From withdraw to pending.
-    //   await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
-    //   await stakingManagerContract.cleanOrdersQueue();
-    //   const alicePendingAssets = await stakingManagerContract.getPendingOrderAssets(alice.address);
-    //   expect(alicePendingAssets).to.be.greaterThan(0);
-    //   const posAliceDep00 = await stakingManagerContract.getTotalAssetsFromDepositor(depositor00Contract.address);
-    //   const posAliceDep01 = await stakingManagerContract.getTotalAssetsFromDepositor(depositor01Contract.address);
-    //   expect(preAliceDep00).to.be.lessThan(posAliceDep00);
-    //   expect(preAliceDep01).to.be.lessThan(posAliceDep01.add(alicePendingAssets));
-    //   expect(alicePendingAssets).to.be.greaterThan(preAliceAssets);
-    //   await expect(
-    //     stakedAuroraVaultContract.connect(alice).withdraw(alicePendingAssets, alice.address, alice.address)
-    //   ).to.be.revertedWith("NOT_ENOUGH_AVAILABLE_ASSETS");
+      // Move forward: From withdraw to pending.
+      await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
+      await stakingManagerContract.cleanOrdersQueue();
+      const alicePendingAssets = await stakingManagerContract.getPendingOrderAssets(alice.address);
+      expect(alicePendingAssets).to.be.greaterThan(0);
+      const posAliceDep00 = await stakingManagerContract.getTotalAssetsFromDepositor(depositor00Contract.address);
+      const posAliceDep01 = await stakingManagerContract.getTotalAssetsFromDepositor(depositor01Contract.address);
+      expect(preAliceDep00).to.be.lessThan(posAliceDep00);
+      expect(preAliceDep01).to.be.lessThan(posAliceDep01.add(alicePendingAssets));
+      expect(alicePendingAssets).to.be.greaterThan(preAliceAssets);
+      await expect(
+        stakedAuroraVaultContract.connect(alice).withdraw(alicePendingAssets, alice.address, alice.address)
+      ).to.be.revertedWith("NOT_ENOUGH_AVAILABLE_ASSETS");
 
-    //   // Move forward: From pending to available.
-    //   await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
-    //   await stakingManagerContract.cleanOrdersQueue();
-    //   const aliceAurora = await auroraTokenContract.balanceOf(alice.address);
-    //   await stakedAuroraVaultContract.connect(alice).withdraw(alicePendingAssets, alice.address, alice.address)
-    //   expect(await auroraTokenContract.balanceOf(alice.address)).to.equal(aliceAurora.add(alicePendingAssets));
-    // });
+      // Move forward: From pending to available.
+      await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
+      await stakingManagerContract.cleanOrdersQueue();
+      const aliceAurora = await auroraTokenContract.balanceOf(alice.address);
+      await stakedAuroraVaultContract.connect(alice).withdraw(alicePendingAssets, alice.address, alice.address)
+      expect(await auroraTokenContract.balanceOf(alice.address)).to.equal(aliceAurora.add(alicePendingAssets));
+    });
 
     // it("Should allow Carl to deplete Dep 01 and unstake from Dep 00.", async function () {
     //   const {
