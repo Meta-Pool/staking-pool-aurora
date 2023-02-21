@@ -105,8 +105,8 @@ contract AuroraStaking {
         require(lastUpdate <= block.timestamp, "INVALID_LAST_UPDATE");
         if (lastUpdate == block.timestamp) return 0; // No more rewards since last update
 
-        // 1 second == 0.01 Aurora reward
-        uint256 factor = (block.timestamp - lastUpdate) * (10 ** 16);
+        // 1 second == 0.0001 Aurora reward
+        uint256 factor = (block.timestamp - lastUpdate) * (10 ** 14);
         return factor;
     }
 

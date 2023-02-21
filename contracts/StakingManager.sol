@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-// import "hardhat/console.sol";
+import "hardhat/console.sol";
 
 interface IAuroraStaking {
 
@@ -141,6 +141,10 @@ contract StakingManager is AccessControl {
         return 0;
     }
 
+    function getAvailableAssets(address _account) public view returns (uint256) {
+        return availableAssets[_account];
+    }
+
     function isAdmin(address _address) public view returns (bool) {
         return hasRole(DEFAULT_ADMIN_ROLE, _address);
     }
@@ -213,7 +217,7 @@ contract StakingManager is AccessControl {
     }
 
     function totalAssets() external view returns (uint256) {
-        return getTotalAssetsFromDepositors();
+        return getTotalAssetsFromDepositors() - totalWithdrawInQueue;
     }
 
     function isAvailableToWithdraw(
@@ -281,6 +285,8 @@ contract StakingManager is AccessControl {
     function createWithdrawOrder(uint256 _assets, address _receiver) private {
         require(withdrawOrders.length <= maxWithdrawOrders, "TOO_MANY_WITHDRAW_ORDERS");
         totalWithdrawInQueue += _assets;
+
+        // console.log("ASSETS >>>>>>>> %s", _assets);
 
         // TODO: Multiple storage access. It might fail. ⚠️
         for (uint i = 0; i < withdrawOrders.length; i++) {
@@ -366,6 +372,7 @@ contract StakingManager is AccessControl {
                 // console.log("DEP %s Assets: %s", i-1, assets);
                 uint256 nextWithdraw = totalWithdraw - alreadyWithdraw;
 
+                // console.log("BEFORE UNSTAKE DEPOSITOR %s Assets: %s", i-1, IAuroraStaking(auroraStaking).getUserShares(depositor));
                 if (assets >= nextWithdraw) {
                     IDepositor(depositor).unstake(nextWithdraw);
                     alreadyWithdraw += nextWithdraw;
@@ -373,6 +380,7 @@ contract StakingManager is AccessControl {
                     IDepositor(depositor).unstakeAll();
                     alreadyWithdraw += assets;
                 }
+                // console.log("AFTER  UNSTAKE DEPOSITOR %s Assets: %s", i-1, IAuroraStaking(auroraStaking).getUserShares(depositor));
                 updateDepositorShares(depositor);
                 if (alreadyWithdraw == totalWithdraw) return;
             }
