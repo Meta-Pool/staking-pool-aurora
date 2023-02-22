@@ -5,6 +5,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
+import "hardhat/console.sol"; // This is a testing contract.
+
 contract AuroraStaking {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
@@ -120,6 +122,10 @@ contract AuroraStaking {
     /// pending time (tau constant) in order to be able to withdraw.
     /// @param streamId stream index
     function withdraw(uint256 streamId) external {
+
+        // console.log("now greater: %s", block.timestamp);
+        // console.log("releseTime : %s", releaseTime[msg.sender][streamId]);
+
         require(
             block.timestamp > releaseTime[msg.sender][streamId],
             "INVALID_RELEASE_TIME"
@@ -203,7 +209,7 @@ contract AuroraStaking {
         // move unstaked AURORA to pending.
         pendings[msg.sender][0] += amount;
         // userAccount.pendings[0] += amount;
-        releaseTime[msg.sender][0] += block.timestamp + tauAuroraStream;
+        releaseTime[msg.sender][0] = block.timestamp + tauAuroraStream;
         // userAccount.releaseTime[0] = block.timestamp + streams[0].tau;
         // emit Pending(0, msg.sender, userAccount.pendings[0]);
         // emit Unstaked(msg.sender, amount);

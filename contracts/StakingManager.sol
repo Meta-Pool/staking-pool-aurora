@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 interface IAuroraStaking {
 
@@ -263,13 +263,17 @@ contract StakingManager is AccessControl {
         // console.log("__START Depositor 00: %s", getTotalAssetsFromDepositor(depositors[0]));
         // console.log("__START Depositor 01: %s", getTotalAssetsFromDepositor(depositors[1]));
 
+        // console.log("I will assume we are failing here!");
         _withdrawFromDepositor();   // Step 1.
+        // console.log("FINALE I will assume we are failing here!");
         // console.log("__   01 Depositor 00: %s", getTotalAssetsFromDepositor(depositors[0]));
         // console.log("__   01 Depositor 01: %s", getTotalAssetsFromDepositor(depositors[1]));
         _movePendingToAvailable();  // Step 2.
         // console.log("__   02 Depositor 00: %s", getTotalAssetsFromDepositor(depositors[0]));
         // console.log("__   02 Depositor 01: %s", getTotalAssetsFromDepositor(depositors[1]));
+        // console.log("I will assume we are failing here!");
         _unstakeWithdrawOrders();   // Step 3.
+        // console.log("FINALE I will assume we are failing here!");
         // console.log("__   03 Depositor 00: %s", getTotalAssetsFromDepositor(depositors[0]));
         // console.log("__   03 Depositor 01: %s", getTotalAssetsFromDepositor(depositors[1]));
 
@@ -341,6 +345,7 @@ contract StakingManager is AccessControl {
     }
 
     function _withdrawFromDepositor() private {
+        // console.log("*******");
         for (uint i = 0; i < depositors.length; i++) {
             address depositor = depositors[i];
             uint256 pendingAmount = IDepositor(depositor).getPending(depositors[i]);
@@ -349,6 +354,7 @@ contract StakingManager is AccessControl {
                 IDepositor(depositor).withdraw(pendingAmount);
             }
         }
+        // console.log("*******");
     }
 
     function _movePendingToAvailable() private {
@@ -369,6 +375,7 @@ contract StakingManager is AccessControl {
             for (uint i = depositors.length; i > 0; i--) {
                 address depositor = depositors[i-1];
                 uint256 assets = getTotalAssetsFromDepositor(depositor);
+                if (assets == 0) continue;
                 // console.log("DEP %s Assets: %s", i-1, assets);
                 uint256 nextWithdraw = totalWithdraw - alreadyWithdraw;
 
