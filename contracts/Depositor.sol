@@ -7,11 +7,9 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
 interface IStakingManager {
-
     function stAurora() external view returns (address);
     function auroraStaking() external view returns (address);
     function auroraToken() external view returns (address);
-
 }
 
 interface IAuroraStaking {

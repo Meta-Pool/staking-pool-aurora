@@ -13,6 +13,7 @@ interface IStakingManager {
     function totalAssets() external view returns (uint256);
     function setNextDepositor() external;
     function transferAurora(address _receiver, address _owner, uint256 _assets) external;
+    function unstakeShares(uint256 _assets, uint256 _shares, address _receiver, address _owner) external;
 }
 
 interface IDepositor {
@@ -91,6 +92,9 @@ contract StakedAuroraVault is ERC4626, Ownable {
         address _receiver,
         address _owner
     ) public override returns (uint256) {
+        // TODO: ⛔ This flow is untested for withdraw and redeem. Test allowance.
+        if (_owner != _msgSender()) require(false, "UNTESTED_ALLOWANCE_FOR_WITHDRAW");
+
         // console.log("Assets: %s", _assets);
         // console.log("max wi: %s", maxWithdraw(_owner));
 
@@ -110,10 +114,18 @@ contract StakedAuroraVault is ERC4626, Ownable {
         address _receiver,
         address _owner
     ) public override returns (uint256) {
-        require(_shares <= maxRedeem(_owner), "ERC4626: redeem more than max");
+        // TODO: ⛔ This flow is untested for withdraw and redeem.
+        if (_owner != _msgSender()) require(false, "UNTESTED_ALLOWANCE_FOR_REDEEM");
+
+        // TODO: ⛔ This might be a solution for the allowance. But please test it.
+        if (_msgSender() != _owner) {
+            _spendAllowance(_owner, _msgSender(), _shares);
+        }
+
+        // require(_shares <= maxRedeem(_owner), "ERC4626: redeem more than max");
 
         uint256 assets = previewRedeem(_shares);
-        _withdraw(_msgSender(), _receiver, _owner, assets, _shares);
+        IStakingManager(stakingManager).unstakeShares(assets, _shares, _receiver, _owner);
 
         return assets;
     }

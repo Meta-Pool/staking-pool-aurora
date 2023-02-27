@@ -120,6 +120,11 @@ contract StakingManager is AccessControl {
         _grantRole(OPERATOR_ROLE, msg.sender);
     }
 
+    function insertDepositor(address _depositor) external onlyRole(DEPOSITORS_OWNER_ROLE) {
+        depositors.push(_depositor);
+        nextDepositor = _depositor;
+    }
+
     /**
      * VIEW FUNCTIONS
      */
@@ -151,11 +156,6 @@ contract StakingManager is AccessControl {
 
     function isDepositorsOwner(address _address) public view returns (bool) {
         return hasRole(DEPOSITORS_OWNER_ROLE, _address);
-    }
-
-    function insertDepositor(address _depositor) external onlyRole(DEPOSITORS_OWNER_ROLE) {
-        depositors.push(_depositor);
-        nextDepositor = _depositor;
     }
 
     function depositorsLength() external view returns (uint256) {
@@ -303,23 +303,28 @@ contract StakingManager is AccessControl {
         withdrawOrders.push(withdrawOrder(_assets, _receiver));
     }
 
-    /**
-     * @dev The unstake function triggers the delayed withdraw.
-     */
-    function unstakeAssets(uint256 _assets, address _receiver) public {
-        uint256 shares = IStakedAuroraVault(stAurora).previewWithdraw(_assets);
-        _unstake(_assets, shares, _receiver);
+    // IMPORTANT ⚠️ unstakeAssets might not make a lot of sense. Always go with unstakeShares / redeem.
+    // function unstakeAssets(uint256 _assets, address _receiver) public {
+    //     uint256 shares = IStakedAuroraVault(stAurora).previewWithdraw(_assets);
+    //     _unstake(_assets, shares, _receiver);
+    // }
+
+    function unstakeShares(
+        uint256 _assets,
+        uint256 _shares,
+        address _receiver,
+        address _owner
+    ) external onlyStAurora {
+        _unstake(_assets, _shares, _receiver, _owner);
     }
 
-    function unstakeShares(uint256 _shares, address _receiver) public {
-        uint256 assets = IStakedAuroraVault(stAurora).previewRedeem(_shares);
-        _unstake(assets, _shares, _receiver);
-    }
-
-    function unstakeAll(address _receiver) public {
-        uint256 shares = IStakedAuroraVault(stAurora).balanceOf(msg.sender);
-        unstakeShares(shares, _receiver);
-    }
+    // /**
+    //  * @dev The unstakeAll function triggers the delayed withdraw.
+    //  */
+    // function unstakeAll(address _receiver) public {
+    //     uint256 shares = IStakedAuroraVault(stAurora).balanceOf(_msgSender());
+    //     unstakeShares(shares, _receiver);
+    // }
 
     // /** @dev See {IERC4626-withdraw}. */
     // function liquidWithdraw(
@@ -339,9 +344,9 @@ contract StakingManager is AccessControl {
     //     require(false, "unimplemented");
     // }
 
-    function _unstake(uint256 assets, uint256 shares, address receiver) private {
-        IStakedAuroraVault(stAurora).burn(msg.sender, shares);
-        createWithdrawOrder(assets, receiver);
+    function _unstake(uint256 _assets, uint256 _shares, address _receiver, address _owner) private {
+        IStakedAuroraVault(stAurora).burn(_owner, _shares);
+        createWithdrawOrder(_assets, _receiver);
     }
 
     function _withdrawFromDepositor() private {
