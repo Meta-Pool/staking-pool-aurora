@@ -93,7 +93,8 @@ contract StakedAuroraVault is ERC4626, Ownable {
         address _owner
     ) public override returns (uint256) {
         // TODO: ⛔ This flow is untested for withdraw and redeem. Test allowance.
-        if (_owner != _msgSender()) require(false, "UNTESTED_ALLOWANCE_FOR_WITHDRAW");
+        // By commenting out, we are running the test for 3rd party withdraw.
+        // if (_owner != _msgSender()) require(false, "UNTESTED_ALLOWANCE_FOR_WITHDRAW");
 
         // console.log("Assets: %s", _assets);
         // console.log("max wi: %s", maxWithdraw(_owner));
@@ -118,7 +119,8 @@ contract StakedAuroraVault is ERC4626, Ownable {
         address _owner
     ) public override returns (uint256) {
         // TODO: ⛔ This flow is untested for withdraw and redeem.
-        if (_owner != _msgSender()) require(false, "UNTESTED_ALLOWANCE_FOR_REDEEM");
+        // By commenting out, we are running the test for 3rd party redeem.
+        // if (_owner != _msgSender()) require(false, "UNTESTED_ALLOWANCE_FOR_REDEEM");
 
         // TODO: ⛔ This might be a solution for the allowance. But please test it.
         if (_msgSender() != _owner) {
