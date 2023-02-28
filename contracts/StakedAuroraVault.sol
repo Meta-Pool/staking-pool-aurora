@@ -101,9 +101,12 @@ contract StakedAuroraVault is ERC4626, Ownable {
         // TODO: ⛔ No require is being performed here! Please confirm it's safe!
         // require(_assets <= maxWithdraw(_owner), "ERC4626: withdraw more than max");
 
+        // console.log("1. assets %s <> %s", _assets, 0);
         uint256 shares = previewWithdraw(_assets);
+        // console.log("2. shares %s <> %s", shares, 0);
         // console.log("alice: %s", _owner);
         _withdraw(_msgSender(), _receiver, _owner, _assets, shares);
+        // console.log("3. assets and shares %s <> %s", shares, 0);
 
         return shares;
     }
@@ -169,11 +172,13 @@ contract StakedAuroraVault is ERC4626, Ownable {
             _spendAllowance(_owner, _caller, _shares);
         }
 
+        // console.log("2.5. ASSets:%s <> %s", _assets, 0);
         // IMPORTANT!!! IF this withdraw will only works with delayed unstake, then
         // the burn is already made by the staking manager.
         // _burn(owner, shares);
 
         IStakingManager(stakingManager).transferAurora(_receiver, _owner, _assets);
+        // console.log("2.6. assets and shares %s <> %s", _shares, 0);
 
         emit Withdraw(_caller, _receiver, _owner, _assets, _shares);
     }

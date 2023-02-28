@@ -235,6 +235,8 @@ contract StakingManager is AccessControl {
         uint256 _assets
     ) external onlyStAurora {
         // console.log("WE ARE HERE");
+        // console.log("Assets  : %s", _assets);
+        // console.log("Availab : %s", availableAssets[_owner]);
         require(isAvailableToWithdraw(_assets, _owner), "NOT_ENOUGH_AVAILABLE_ASSETS");
         // console.log("ASSESTS ARE ENOUGH");
         availableAssets[_owner] -= _assets;
