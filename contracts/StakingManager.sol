@@ -320,14 +320,6 @@ contract StakingManager is AccessControl {
         _unstake(_assets, _shares, _receiver, _owner);
     }
 
-    // /**
-    //  * @dev The unstakeAll function triggers the delayed withdraw.
-    //  */
-    // function unstakeAll(address _receiver) public {
-    //     uint256 shares = IStakedAuroraVault(stAurora).balanceOf(_msgSender());
-    //     unstakeShares(shares, _receiver);
-    // }
-
     // /** @dev See {IERC4626-withdraw}. */
     // function liquidWithdraw(
     //     uint256 assets,

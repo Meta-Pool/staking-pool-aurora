@@ -255,4 +255,9 @@ contract AuroraStaking {
         pendings[msg.sender][streamId] = 0;
         IERC20Upgradeable(auroraToken).safeTransfer(msg.sender, pendingAmount);
     }
+
+    function moveRewardsToPending(uint256 streamId) external {
+        // _before();
+        // _moveRewardsToPending(msg.sender, streamId);
+    }
 }

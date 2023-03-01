@@ -72,7 +72,7 @@ describe("Staking Pool AURORA", function () {
     const stakedAuroraVaultContract = await StakedAuroraVault.deploy(
       auroraTokenContract.address,
       "Staked Aurora Token",
-      "stAURORA",
+      "stAUR",
       minDepositAmount
     );
     await stakedAuroraVaultContract.deployed();
@@ -948,7 +948,6 @@ describe("Staking Pool AURORA", function () {
 
       // const carlDeposit = ethers.BigNumber.from(24_000).mul(decimals); // Original deposit
       const carlAllowAllice = ethers.BigNumber.from(10_000).mul(decimals);
-
       expect(await stakingManagerContract.getPendingOrderAssets(alice.address)).to.equal(0);
       expect(await stakingManagerContract.getPendingOrderAssets(carl.address)).to.equal(0);
 
