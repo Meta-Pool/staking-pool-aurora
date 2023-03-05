@@ -18,6 +18,36 @@ Using the Aurora SDK, after the liquidity pool is developed, the stAUR token cou
 
 ![Architecture](media/stakingAurora.png)
 
+Address for the Staking Pool in Aurora Mainnet.
+
+```js
+  const TokenAddress = "0x8BEc47865aDe3B172A928df8f990Bc7f2A3b9f79";
+  const AuroraStakingAddress = "0xccc2b1aD21666A5847A804a73a41F904C4a4A0Ec";
+  const StakingManagerAddress = "0xd239cd3A5Dec2d2cb12fB8eC512Fe3790FA2cD0e";
+  const Depositor00Address = "0x6fA37581EBA252C08240c85f30fA8A5e3462c09d";
+  const Depositor01Address = "0x31e0752Deb99f1fCE9701Dc5611A1652189dEdC3";
+  const StakedAuroraVaultAddress = "0xA68118a4A067354A73C657300337d08E9753fB3D";
+```
+
+Try me in Aurora Mainnet:
+
+We started with 100 Aurora tokens. 20 were sent to Alice and 40 to Bob. Alice deposited 20 Aurora and received 20 stAUR, since this was the first deposit the ratio is 1-by-1. The next deposit is for 35 Auroras and Bob received `34.999`.
+
+```sh
+npx hardhat run scripts/check_status.js --network aurora_mainnet
+# Contract status: =================================
+# alice stAUR: 20000000000000000000
+# alice AUROR: 0
+# bob stAUR: 34999923905739695523
+# bob AUROR: 5000000000000000000
+```
+
+
+
+
+
+# Deployment in Goerli
+
 First, the contracts will be deployed in ETH Goerli, using the two `testing/` contracts for the Aurora Staking service and the Aurora token.
 
 

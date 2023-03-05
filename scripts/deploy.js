@@ -59,6 +59,9 @@ async function main() {
   await depositor01Contract.deployed();
   console.log("       ...2 contracts deployed!");
 
+  console.log(" - Depositor 00:      %s", depositor00Contract.address);
+  console.log(" - Depositor 01:      %s", depositor01Contract.address);
+
   await stakingManagerContract.connect(bob).insertDepositor(depositor00Contract.address);
   await stakingManagerContract.connect(bob).insertDepositor(depositor01Contract.address);
 
