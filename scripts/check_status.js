@@ -18,12 +18,18 @@ async function main() {
   
     const StakedAuroraVault = await ethers.getContractFactory("StakedAuroraVault");
     const stakedAuroraVaultContract = await StakedAuroraVault.attach(StakedAuroraVaultAddress);
+
     const AuroraToken = await ethers.getContractFactory("Token");
     const auroraTokenContract = await AuroraToken.attach(TokenAddress);
+
+    const StakingManager = await ethers.getContractFactory("StakingManager");
+    const stakingManagerContract = await StakingManager.attach(StakingManagerAddress);
   
     // const aliceDeposit = ethers.BigNumber.from(20).mul(decimals);
     // await auroraTokenContract.connect(alice).approve(stakedAuroraVaultContract.address, aliceDeposit);
     // await stakedAuroraVaultContract.connect(alice).deposit(aliceDeposit, alice.address);
+
+    console.log("Original deposits: ===============================");
 
     console.log("Contract status: =================================");
 
@@ -33,7 +39,8 @@ async function main() {
     console.log("bob stAUR: %s", await stakedAuroraVaultContract.balanceOf(bob.address));
     console.log("bob AUROR: %s", await auroraTokenContract.balanceOf(bob.address));
   
-  
+    console.log("Next update: =================================");
+    console.log("Next clean order queue: %s", await stakingManagerContract.nextCleanOrderQueue());
   
     // const AuroraStaking = await ethers.getContractFactory("AuroraStaking");
     // const StakingManager = await ethers.getContractFactory("StakingManager");
