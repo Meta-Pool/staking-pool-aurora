@@ -56,13 +56,13 @@ async function main() {
     console.log("Alice pending assets: %s", await stakingManagerContract.getPendingOrderAssets(alice.address));
     console.log("Alice availab assets: %s", await stakingManagerContract.getAvailableAssets(alice.address));
     console.log("--------");
-    console.log("Bob   withdraw order: %s", await stakingManagerContract.getWithdrawOrderAssets(alice.address));
-    console.log("Bob   pending assets: %s", await stakingManagerContract.getPendingOrderAssets(alice.address));
-    console.log("Bob   availab assets: %s", await stakingManagerContract.getAvailableAssets(alice.address));
+    console.log("Bob   withdraw order: %s", await stakingManagerContract.getWithdrawOrderAssets(bob.address));
+    console.log("Bob   pending assets: %s", await stakingManagerContract.getPendingOrderAssets(bob.address));
+    console.log("Bob   availab assets: %s", await stakingManagerContract.getAvailableAssets(bob.address));
     console.log("--------");
-    console.log("Carl  withdraw order: %s", await stakingManagerContract.getWithdrawOrderAssets(alice.address));
-    console.log("Carl  pending assets: %s", await stakingManagerContract.getPendingOrderAssets(alice.address));
-    console.log("Carl  availab assets: %s", await stakingManagerContract.getAvailableAssets(alice.address));
+    console.log("Carl  withdraw order: %s", await stakingManagerContract.getWithdrawOrderAssets(carl.address));
+    console.log("Carl  pending assets: %s", await stakingManagerContract.getPendingOrderAssets(carl.address));
+    console.log("Carl  availab assets: %s", await stakingManagerContract.getAvailableAssets(carl.address));
 
   }
   

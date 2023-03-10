@@ -30,7 +30,7 @@ async function main() {
     const stakedAuroraVaultContract = await StakedAuroraVault.attach(StakedAuroraVaultAddress);
     const stakingManagerContract = await StakingManager.attach(StakingManagerAddress);
 
-    await StakingManager.connect(alice).cleanOrdersQueue();
+    await stakingManagerContract.connect(alice).cleanOrdersQueue();
   }
   
   // We recommend this pattern to be able to use async/await everywhere
