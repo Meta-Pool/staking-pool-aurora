@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.18;
 
-import "./interfaces/IStakedAuroraVault.sol";
 import "./interfaces/IAuroraStaking.sol";
 import "./interfaces/IDepositor.sol";
+import "./interfaces/IStakedAuroraVault.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -259,12 +259,6 @@ contract StakingManager is AccessControl {
         withdrawOrders.push(withdrawOrder(_assets, _receiver));
     }
 
-    // IMPORTANT ⚠️ unstakeAssets might not make a lot of sense. Always go with unstakeShares / redeem.
-    // function unstakeAssets(uint256 _assets, address _receiver) public {
-    //     uint256 shares = IStakedAuroraVault(stAurora).previewWithdraw(_assets);
-    //     _unstake(_assets, shares, _receiver);
-    // }
-
     function unstakeShares(
         uint256 _assets,
         uint256 _shares,
@@ -273,24 +267,6 @@ contract StakingManager is AccessControl {
     ) external onlyStAurora {
         _unstake(_assets, _shares, _receiver, _owner);
     }
-
-    // /** @dev See {IERC4626-withdraw}. */
-    // function liquidWithdraw(
-    //     uint256 assets,
-    //     address receiver,
-    //     address owner
-    // ) public returns (uint256) {
-    //     require(false, "unimplemented");
-    // }
-
-    // /** @dev See {IERC4626-redeem}. */
-    // function liquidRedeem(
-    //     uint256 shares,
-    //     address receiver,
-    //     address owner
-    // ) public returns (uint256) {
-    //     require(false, "unimplemented");
-    // }
 
     function _unstake(uint256 _assets, uint256 _shares, address _receiver, address _owner) private {
         IStakedAuroraVault(stAurora).burn(_owner, _shares);
