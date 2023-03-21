@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.9;
+pragma solidity 0.8.18;
 
 interface IStakedAuroraVault {
     function previewWithdraw(uint256 _assets) external view returns (uint256);

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.9;
+pragma solidity 0.8.18;
 
 // import "./StakingManager.sol";
 import "./interfaces/IStakingManager.sol";
@@ -10,17 +10,19 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
-contract LiquidityPool is ERC4626 {
+contract LiquidityPool is ERC4626, Ownable {
     using SafeERC20 for IERC20;
     using SafeMath for uint;
-    address public stAuroraToken;
 
-    address public stakingManager;
+    address public stAurToken;
+    address public auroraToken;
+
+    // address public stakingManager;
     uint256 public minimumLiquidity;
     uint256 public minDepositAmount;
     uint public auroraBalance;
-    // Check if a treasury is needed
-    address public treasury;
+    // // Check if a treasury is needed
+    // address public treasury;
 
     // BASIS POINTS
     uint16 public constant MIN_FEE = 30;
@@ -41,26 +43,14 @@ contract LiquidityPool is ERC4626 {
     );
     event Swap(address indexed user, uint amountIn, uint amountOut, uint fees);
 
-    // Incorrect, instead assign an owner for the pool.
-    modifier onlyManager() {
-        require(
-            stakingManager != address(0) && msg.sender == stakingManager,
-            "ONLY_STAKING_MANAGER"
-        );
-        _;
-    }
-
-    // staking manager call constructor
     constructor(
-        address _stakingManager,
+        address _stAurToken,
         address _auroraToken,
         uint256 _minDepositAmount,
         uint256 _minLiquidity
     ) ERC4626(IERC20(_auroraToken)) ERC20("stAUR/AUR LP", "stAUR/AUR") {
-        require(_stakingManager != address(0));
+        require(_stAurToken != address(0));
         require(_auroraToken != address(0));
-        stakingManager = _stakingManager;
-        stAuroraToken = IStakingManager(_stakingManager).stAurora();
         minDepositAmount = _minDepositAmount;
         minimumLiquidity = _minLiquidity;
     }
@@ -83,28 +73,16 @@ contract LiquidityPool is ERC4626 {
         );
     }
 
-    // ⚠️ can staking manager run updateStakingManager function?
-    function updateStakingManager(
-        address _stakingManager
-    ) external onlyManager {
-        require(_stakingManager != address(0));
-        stakingManager = _stakingManager;
-    }
-
-    // ⚠️ can staking manager run updateMinimumLiquidity function?
-    function updateMinimumLiquidity(uint256 _amount) external onlyManager {
+    function updateMinimumLiquidity(uint256 _amount) external onlyOwner {
         minimumLiquidity = _amount;
     }
 
     /// @notice Return the amount of stAur and Aurora equivalent to Aurora in the pool
     function totalAssets() public view override returns (uint) {
-
-        // TODO: this is not needed! you already have stAuroraToken
-        address _stAuroraVault = IStakingManager(stakingManager).stAurora();
         return
             auroraBalance +
-            IStakedAuroraVault(_stAuroraVault).convertToAssets(
-                IStakedAuroraVault(_stAuroraVault).balanceOf(address(this))
+            IStakedAuroraVault(stAurToken).convertToAssets(
+                IStakedAuroraVault(stAurToken).balanceOf(address(this))
             );
     }
 
@@ -117,25 +95,59 @@ contract LiquidityPool is ERC4626 {
         return _shares;
     }
 
-    // TODO: Incorrect!
+    function mint(uint256 _shares, address _receiver) public override returns (uint256) {
+        revert("USE deposit()");
+        // require(_shares <= maxMint(_receiver), "ERC4626: mint more than max");
+
+        // uint256 assets = previewMint(_shares);
+        // require(assets >= minDepositAmount, "LESS_THAN_MIN_DEPOSIT_AMOUNT");
+        // _deposit(_msgSender(), _receiver, assets, _shares);
+
+        // return assets;
+    }
+
     function _deposit(
         address _caller,
         address _receiver,
         uint _assets,
         uint _shares
     ) internal virtual override {
-        if (_assets != 0) {
-            IERC20(asset()).safeTransferFrom(
-                msg.sender,
-                address(this),
-                _assets
-            );
-        } else {
-            _assets = msg.value;
-        }
+        IERC20(asset()).safeTransferFrom(
+            msg.sender,
+            address(this),
+            _assets
+        );
         _mint(_receiver, _shares);
         auroraBalance += _assets;
+
+        // TODO: Change events for standard events.
         emit AddLiquidity(_caller, _receiver, _assets, _shares);
+    }
+
+    function withdraw(
+        uint256 _assets,
+        address _receiver,
+        address _owner
+    ) public override returns (uint256) {
+        revert("USE redeem()");
+        // // TODO: ⛔ This flow is untested for withdraw and redeem. Test allowance.
+        // // By commenting out, we are running the test for 3rd party withdraw.
+        // // if (_owner != _msgSender()) require(false, "UNTESTED_ALLOWANCE_FOR_WITHDRAW");
+
+        // // console.log("Assets: %s", _assets);
+        // // console.log("max wi: %s", maxWithdraw(_owner));
+
+        // // TODO: ⛔ No require is being performed here! Please confirm it's safe!
+        // // require(_assets <= maxWithdraw(_owner), "ERC4626: withdraw more than max");
+
+        // // console.log("1. assets %s <> %s", _assets, 0);
+        // uint256 shares = previewWithdraw(_assets);
+        // // console.log("2. shares %s <> %s", shares, 0);
+        // // console.log("alice: %s", _owner);
+        // _withdraw(_msgSender(), _receiver, _owner, _assets, shares);
+        // // console.log("3. assets and shares %s <> %s", shares, 0);
+
+        // return shares;
     }
 
     function redeem(
@@ -149,10 +161,12 @@ contract LiquidityPool is ERC4626 {
         uint poolPercentage = (_shares * ONE_AURORA) / totalSupply();
         uint auroraToSend = (poolPercentage * auroraBalance) / ONE_AURORA;
         uint stAuroraToSend = (poolPercentage *
-            IStakedAuroraVault(IStakingManager(stakingManager).stAurora()).balanceOf(address(this))) / ONE_AURORA;
+            IStakedAuroraVault(stAurToken).balanceOf(address(this))) / ONE_AURORA;
         _burn(msg.sender, _shares);
         IERC20(asset()).safeTransfer(_receiver, auroraToSend);
-        IERC20(stAuroraToken).safeTransfer(_receiver, stAuroraToSend);
+
+        // stAurToken is using two interfaces???? IStakedAuroraVault and IERC20
+        IERC20(stAurToken).safeTransfer(_receiver, stAuroraToSend);
         auroraBalance -= auroraToSend;
         emit RemoveLiquidity(msg.sender, _shares, auroraToSend, stAuroraToSend);
         return auroraToSend;
