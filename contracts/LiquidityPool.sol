@@ -21,6 +21,8 @@ contract LiquidityPool is ERC4626 {
     uint public auroraBalance;
     // Check if a treasury is needed
     address public treasury;
+
+    // BASIS POINTS
     uint16 public constant MIN_FEE = 30;
     uint16 public constant MAX_FEE = 500;
     uint128 private constant ONE_AURORA = 1 ether;
@@ -39,6 +41,7 @@ contract LiquidityPool is ERC4626 {
     );
     event Swap(address indexed user, uint amountIn, uint amountOut, uint fees);
 
+    // Incorrect, instead assign an owner for the pool.
     modifier onlyManager() {
         require(
             stakingManager != address(0) && msg.sender == stakingManager,
@@ -80,6 +83,7 @@ contract LiquidityPool is ERC4626 {
         );
     }
 
+    // ⚠️ can staking manager run updateStakingManager function?
     function updateStakingManager(
         address _stakingManager
     ) external onlyManager {
@@ -87,12 +91,15 @@ contract LiquidityPool is ERC4626 {
         stakingManager = _stakingManager;
     }
 
+    // ⚠️ can staking manager run updateMinimumLiquidity function?
     function updateMinimumLiquidity(uint256 _amount) external onlyManager {
         minimumLiquidity = _amount;
     }
 
     /// @notice Return the amount of stAur and Aurora equivalent to Aurora in the pool
     function totalAssets() public view override returns (uint) {
+
+        // TODO: this is not needed! you already have stAuroraToken
         address _stAuroraVault = IStakingManager(stakingManager).stAurora();
         return
             auroraBalance +
@@ -110,6 +117,7 @@ contract LiquidityPool is ERC4626 {
         return _shares;
     }
 
+    // TODO: Incorrect!
     function _deposit(
         address _caller,
         address _receiver,
@@ -150,6 +158,7 @@ contract LiquidityPool is ERC4626 {
         return auroraToSend;
     }
 
+    // TODO: instead of StAurora use StAur.
     function swapStAuroraforAurora(
         uint _amount,
         uint _minReceived
