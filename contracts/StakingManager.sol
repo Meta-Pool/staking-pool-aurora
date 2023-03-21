@@ -1,61 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.18;
 
+import "./interfaces/IStakedAuroraVault.sol";
+import "./interfaces/IAuroraStaking.sol";
+import "./interfaces/IDepositor.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 // import "hardhat/console.sol";
-
-interface IAuroraStaking {
-
-    enum StreamStatus {
-        INACTIVE,
-        PROPOSED,
-        ACTIVE
-    }
-
-    function totalAuroraShares() external view returns (uint256);
-    function getUserShares(address account) external view returns (uint256);
-    function getTotalAmountOfStakedAurora() external view returns (uint256);
-
-    function getStream(uint256 streamId)
-        external
-        view
-        returns (
-            address streamOwner,
-            address rewardToken,
-            uint256 auroraDepositAmount,
-            uint256 auroraClaimedAmount,
-            uint256 rewardDepositAmount,
-            uint256 rewardClaimedAmount,
-            uint256 maxDepositAmount,
-            uint256 lastTimeOwnerClaimed,
-            uint256 rps,
-            uint256 tau,
-            StreamStatus status
-        );
-}
-
-interface IDepositor {
-    function unstake(uint256 _assets) external;
-    function unstakeAll() external;
-
-    function withdraw(uint _assets) external;
-
-    function getPending(address _account)
-        external
-        view
-        returns (uint256);
-}
-
-interface IStakedAuroraVault {
-    function previewWithdraw(uint256 _assets) external view returns (uint256);
-    function previewRedeem(uint256 _shares) external view returns (uint256);
-    function burn(address _owner, uint256 _shares) external;
-    function balanceOf(address _account) external view returns (uint256);
-}
 
 contract StakingManager is AccessControl {
     using SafeERC20 for IERC20;

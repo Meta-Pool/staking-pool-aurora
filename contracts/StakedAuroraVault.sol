@@ -1,24 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.18;
 
+import "./interfaces/IDepositor.sol";
+import "./interfaces/IStakingManager.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
 // import "hardhat/console.sol";
-
-interface IStakingManager {
-    function nextDepositor() external view returns (address);
-    function totalAssets() external view returns (uint256);
-    function setNextDepositor() external;
-    function transferAurora(address _receiver, address _owner, uint256 _assets) external;
-    function unstakeShares(uint256 _assets, uint256 _shares, address _receiver, address _owner) external;
-}
-
-interface IDepositor {
-    function stake(uint256 _assets) external;
-}
 
 contract StakedAuroraVault is ERC4626, Ownable {
     using SafeERC20 for IERC20;
