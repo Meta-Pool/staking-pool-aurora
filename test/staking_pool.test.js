@@ -34,8 +34,7 @@ describe("Staking Pool AURORA", function () {
     const StakingManager = await ethers.getContractFactory("StakingManager");
     const Depositor = await ethers.getContractFactory("Depositor");
     const StakedAuroraVault = await ethers.getContractFactory("StakedAuroraVault");
-    const LiquidityPool = await ethers.getContractFactory("LiquidityPool");
-   
+
     const [
       owner,
       depositors_owner,
@@ -103,16 +102,6 @@ describe("Staking Pool AURORA", function () {
     await stakingManagerContract.connect(depositors_owner).insertDepositor(depositor00Contract.address);
     await stakingManagerContract.connect(depositors_owner).insertDepositor(depositor01Contract.address);
 
-   // deploy and initialize liquidity pool
-   const liquidityPoolContract = await LiquidityPool.deploy(
-    stakingManagerContract.address,
-    auroraTokenContract.address,
-    ethers.BigNumber.from(1).mul(decimals), // 1 Aurora
-    ethers.BigNumber.from(100).mul(decimals) // 100 Aurora
-  );
-  await liquidityPoolContract.deployed();
-  
-      
     // Fixtures can return anything you consider useful for your tests
     return {
       auroraTokenContract,
@@ -121,7 +110,6 @@ describe("Staking Pool AURORA", function () {
       stakingManagerContract,
       depositor00Contract,
       depositor01Contract,
-      liquidityPoolContract,
       owner,
       depositors_owner,
       treasury,
@@ -141,7 +129,6 @@ describe("Staking Pool AURORA", function () {
       stakingManagerContract,
       depositor00Contract,
       depositor01Contract,
-      liquidityPoolContract,
       owner,
       depositors_owner,
       treasury,
@@ -173,7 +160,6 @@ describe("Staking Pool AURORA", function () {
       stakingManagerContract,
       depositor00Contract,
       depositor01Contract,
-      liquidityPoolContract,
       owner,
       depositors_owner,
       treasury,
@@ -201,7 +187,6 @@ describe("Staking Pool AURORA", function () {
         stakingManagerContract,
         depositor00Contract,
         depositor01Contract,
-        liquidityPoolContract,
         owner,
         depositors_owner
       } = await loadFixture(deployPoolFixture);
@@ -233,9 +218,6 @@ describe("Staking Pool AURORA", function () {
 
       expect(await auroraTokenContract.decimals()).to.equal(
         await stakedAuroraVaultContract.decimals());
-      expect(await liquidityPoolContract.stakingManager()).to.equal(stakingManagerContract.address);
-      expect(await liquidityPoolContract.stAuroraToken()).to.equal(stakedAuroraVaultContract.address);
-      expect(await liquidityPoolContract.asset()).to.equal(auroraTokenContract.address);
     });
 
     it("Should assign the total supply of Aurora tokens to Alice, Bob and Carl.", async function () {
@@ -992,34 +974,4 @@ describe("Staking Pool AURORA", function () {
       await stakedAuroraVaultContract.connect(alice).withdraw(carlAvailableAssets, carl.address, carl.address);
     });
   });
-
-  describe("Liquidity Pool", function() {
-    it("Stake Manager add liquidity", async function() {
-      const {
-        stakedAuroraVaultContract,
-        stakingManagerContract,
-        liquidityPoolContract,
-        auroraTokenContract,
-        operator,
-        alice,
-        carl,
-        decimals
-      } = await loadFixture(depositPoolFixture);
-
-      // allowances
-      const aliceDeposit = ethers.BigNumber.from(100).mul(decimals);
-      await auroraTokenContract.connect(alice).approve(liquidityPoolContract.address, aliceDeposit);
-      await stakedAuroraVaultContract.connect(alice).approve(liquidityPoolContract.address, aliceDeposit);
-      const carlDeposit = ethers.BigNumber.from(100).mul(decimals);
-      await auroraTokenContract.connect(carl).approve(liquidityPoolContract.address, carlDeposit);
-      await stakedAuroraVaultContract.connect(carl).approve(liquidityPoolContract.address, carlDeposit);
-      
-      const prevDepositResult = await liquidityPoolContract.connect(alice).previewDeposit(aliceDeposit);
-      console.log('PREV DEPOSIT', prevDepositResult)
-      const depositResult = await liquidityPoolContract.connect(alice).deposit(aliceDeposit, alice.address);
-      console.log('PREV DEPOSIT', depositResult)
-
-
-    });
-  })
 });
