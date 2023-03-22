@@ -13,8 +13,14 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 contract StakedAuroraVault is ERC4626, Ownable {
     using SafeERC20 for IERC20;
 
+    address[] public legacyStakingManagers;
+    address[] public legacyLiquidityPools;
+
     address public stakingManager;
+    address public liquidityPool;
     uint256 public minDepositAmount;
+
+    bool public fullyOperational;
 
     modifier onlyManager() {
         require(
@@ -25,20 +31,57 @@ contract StakedAuroraVault is ERC4626, Ownable {
         _;
     }
 
+    modifier onlyFullyOperational() {
+        require(fullyOperational, "CONTRACT_IS_NOT_FULLY_OPERATIONAL");
+        _;
+    }
+
     constructor(
         address _asset,
-        string memory _stAuroraName,
-        string memory _stAuroraSymbol,
+        string memory _stAurName,
+        string memory _stAurSymbol,
         uint256 _minDepositAmount
     )
         ERC4626(IERC20(_asset))
-        ERC20(_stAuroraName, _stAuroraSymbol) {
+        ERC20(_stAurName, _stAurSymbol)
+    {
+        require(_asset != address(0), "INVALID_ZERO_ADDRESS");
         minDepositAmount = _minDepositAmount;
+        fullyOperational = false;
+    }
+
+    function initializeStakingManager(address _stakingManager) external onlyOwner {
+        require(_stakingManager != address(0), "INVALID_ZERO_ADDRESS");
+        require(stakingManager == address(0), "ALREADY_INITIALIZED");
+
+        // Get fully operational for the first time.
+        if (liquidityPool != address(0)) { fullyOperational = true; }
+        stakingManager = _stakingManager;
+    }
+
+    function initializeLiquidityPool(address _liquidityPool) external onlyOwner {
+        require(_liquidityPool != address(0), "INVALID_ZERO_ADDRESS");
+        require(liquidityPool == address(0), "ALREADY_INITIALIZED");
+
+        // Get fully operational for the first time.
+        if (stakingManager != address(0)) { fullyOperational = true; }
+        liquidityPool = _liquidityPool;
     }
 
     function updateStakingManager(address _stakingManager) external onlyOwner {
-        require(_stakingManager != address(0));
+        require(_stakingManager != address(0), "INVALID_ZERO_ADDRESS");
+        require(stakingManager != address(0), "NOT_INITIALIZED");
+
+        legacyStakingManagers.push(stakingManager);
         stakingManager = _stakingManager;
+    }
+
+    function updateLiquidityPool(address _liquidityPool) external onlyOwner {
+        require(_liquidityPool != address(0), "INVALID_ZERO_ADDRESS");
+        require(liquidityPool != address(0), "NOT_INITIALIZED");
+
+        legacyLiquidityPools.push(liquidityPool);
+        liquidityPool = _liquidityPool;
     }
 
     function updateMinDepositAmount(uint256 _amount) external onlyOwner {
@@ -46,12 +89,14 @@ contract StakedAuroraVault is ERC4626, Ownable {
     }
 
     function totalAssets() public view override returns (uint256) {
-        if (stakingManager == address(0)) return 0;
+        if (liquidityPool == address(0) || stakingManager == address(0)) return 0;
         return IStakingManager(stakingManager).totalAssets();
     }
 
-    /** @dev See {IERC4626-deposit}. */
-    function deposit(uint256 _assets, address _receiver) public override returns (uint256) {
+    function deposit(
+        uint256 _assets,
+        address _receiver
+    ) public override onlyFullyOperational returns (uint256) {
         require(_assets <= maxDeposit(_receiver), "ERC4626: deposit more than max");
         require(_assets >= minDepositAmount, "LESS_THAN_MIN_DEPOSIT_AMOUNT");
 
@@ -61,12 +106,12 @@ contract StakedAuroraVault is ERC4626, Ownable {
         return shares;
     }
 
-    /** @dev See {IERC4626-mint}.
-     *
-     * As opposed to {deposit}, minting is allowed even if the vault is in a state where the price of a share is zero.
-     * In this case, the shares will be minted without requiring any assets to be deposited.
-     */
-    function mint(uint256 _shares, address _receiver) public override returns (uint256) {
+    /// As opposed to {deposit}, minting is allowed even if the vault is in a state where the price of a share is zero.
+    /// In this case, the shares will be minted without requiring any assets to be deposited.
+    function mint(
+        uint256 _shares,
+        address _receiver
+    ) public override onlyFullyOperational returns (uint256) {
         require(_shares <= maxMint(_receiver), "ERC4626: mint more than max");
 
         uint256 assets = previewMint(_shares);
@@ -76,7 +121,6 @@ contract StakedAuroraVault is ERC4626, Ownable {
         return assets;
     }
 
-    /** @dev See {IERC4626-withdraw}. */
     function withdraw(
         uint256 _assets,
         address _receiver,
@@ -102,7 +146,6 @@ contract StakedAuroraVault is ERC4626, Ownable {
         return shares;
     }
 
-    /** @dev See {IERC4626-redeem}. */
     function redeem(
         uint256 _shares,
         address _receiver,
@@ -125,9 +168,11 @@ contract StakedAuroraVault is ERC4626, Ownable {
         return assets;
     }
 
-    /**
-     * @dev Deposit/mint common workflow.
-     */
+    function burn(address _owner, uint256 _shares) external onlyManager {
+        _burn(_owner, _shares);
+    }
+
+    /// @dev Deposit/mint common workflow.
     function _deposit(
         address _caller,
         address _receiver,
@@ -148,9 +193,7 @@ contract StakedAuroraVault is ERC4626, Ownable {
         emit Deposit(_caller, _receiver, _assets, _shares);
     }
 
-    /**
-     * @dev Withdraw/redeem common workflow.
-     */
+    /// @dev Withdraw/redeem common workflow.
     function _withdraw(
         address _caller,
         address _receiver,
@@ -173,9 +216,5 @@ contract StakedAuroraVault is ERC4626, Ownable {
         // console.log("2.6. assets and shares %s <> %s", _shares, 0);
 
         emit Withdraw(_caller, _receiver, _owner, _assets, _shares);
-    }
-
-    function burn(address _owner, uint256 _shares) external onlyManager {
-        _burn(_owner, _shares);
     }
 }

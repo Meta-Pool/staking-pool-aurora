@@ -44,13 +44,18 @@ contract LiquidityPool is ERC4626, Ownable {
     constructor(
         address _stAurToken,
         address _auroraToken,
-        uint256 _minDepositAmount,
-        uint256 _minLiquidity
-    ) ERC4626(IERC20(_auroraToken)) ERC20("stAUR/AUR LP", "stAUR/AUR") {
-        require(_stAurToken != address(0));
-        require(_auroraToken != address(0));
+        string memory _lpTokenName,
+        string memory _lpTokenSymbol,
+        uint256 _minDepositAmount
+    )
+        ERC4626(IERC20(_auroraToken))
+        ERC20(_lpTokenName, _lpTokenSymbol)
+    {
+        require(_stAurToken != address(0), "INVALID_ZERO_ADDRESS");
+        require(_auroraToken != address(0), "INVALID_ZERO_ADDRESS");
+        stAurToken = _stAurToken;
+        auroraToken = _auroraToken;
         minDepositAmount = _minDepositAmount;
-        minimumLiquidity = _minLiquidity;
     }
 
     receive() external payable {}
