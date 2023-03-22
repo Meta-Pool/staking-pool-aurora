@@ -89,10 +89,12 @@ contract LiquidityPool is ERC4626, Ownable {
             );
     }
 
+    // TODO: WARINING ⚠️
     function deposit(
         uint _assets,
         address _receiver
     ) public override validDeposit(_assets) returns (uint) {
+        // shares cannot be calculate without considering the 2 assets.
         uint _shares = previewDeposit(_assets);
         _deposit(msg.sender, _receiver, _assets, _shares);
         return _shares;
