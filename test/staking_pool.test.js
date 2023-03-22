@@ -1,19 +1,7 @@
-// This is an example test file. Hardhat will run every *.js file in `test/`,
-// so feel free to add new ones.
-
-// Hardhat tests are normally written with Mocha and Chai.
-
-// We import Chai to use its asserting functions here.
 const { expect } = require("chai");
-
 const { ethers } = require("hardhat");
-
-// We use `loadFixture` to share common setups (or fixtures) between tests.
-// Using this simplifies your tests and makes them run faster, by taking
-// advantage of Hardhat Network's snapshot functionality.
 const { loadFixture, time } = require("@nomicfoundation/hardhat-network-helpers");
 
-// 1 AURORA
 const AURORA = ethers.BigNumber.from(1).mul(ethers.BigNumber.from(10).pow(18));
 
 // `describe` is a Mocha function that allows you to organize your tests.
