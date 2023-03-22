@@ -188,6 +188,9 @@ contract StakedAuroraVault is ERC4626, Ownable {
         IStakingManager manager = IStakingManager(stakingManager);
         auroraToken.safeTransferFrom(_caller, address(this), _assets);
 
+        // liquidityPool
+        // TODO: insert the setAsideStAur flow here!!!!!!!
+
         address depositor = manager.nextDepositor();
         auroraToken.safeIncreaseAllowance(depositor, _assets);
         IDepositor(depositor).stake(_assets);

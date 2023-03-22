@@ -17,7 +17,7 @@ contract StakingManager is AccessControl {
     bytes32 public constant DEPOSITORS_OWNER_ROLE = keccak256("DEPOSITORS_OWNER_ROLE");
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
 
-    address immutable public stAurora;
+    address immutable public stAurVault;
     address immutable public auroraToken;
     address immutable public auroraStaking;
 
@@ -47,25 +47,25 @@ contract StakingManager is AccessControl {
         address receiver;
     }
 
-    modifier onlyStAurora() {
-        require(msg.sender == stAurora);
+    modifier onlyStAurVault() {
+        require(msg.sender == stAurVault);
         _;
     }
 
     constructor(
-        address _stAurora,
+        address _stAurVault,
         address _auroraStaking,
         address _depositorOwner,
         uint256 _maxWithdrawOrders
     ) {
         require(
-            _stAurora != address(0)
+            _stAurVault != address(0)
                 && _auroraStaking != address(0)
                 && _depositorOwner != address(0)
         );
-        stAurora = _stAurora;
+        stAurVault = _stAurVault;
         auroraStaking = _auroraStaking;
-        auroraToken = IERC4626(_stAurora).asset();
+        auroraToken = IERC4626(_stAurVault).asset();
         maxWithdrawOrders = _maxWithdrawOrders;
         nextCleanOrderQueue = block.timestamp;
 
@@ -134,7 +134,7 @@ contract StakingManager is AccessControl {
         depositorShares[_depositor] = IAuroraStaking(auroraStaking).getUserShares(_depositor);
     }
 
-    function setNextDepositor() public onlyStAurora {
+    function setNextDepositor() public onlyStAurVault {
         updateDepositorShares(nextDepositor);
         address _nextDepositor = depositors[0];
         for (uint i = 0; i < depositors.length; i++) {
@@ -187,7 +187,7 @@ contract StakingManager is AccessControl {
         address _receiver,
         address _owner,
         uint256 _assets
-    ) external onlyStAurora {
+    ) external onlyStAurVault {
         // console.log("WE ARE HERE");
         // console.log("Assets  : %s", _assets);
         // console.log("Availab : %s", availableAssets[_owner]);
@@ -264,12 +264,12 @@ contract StakingManager is AccessControl {
         uint256 _shares,
         address _receiver,
         address _owner
-    ) external onlyStAurora {
+    ) external onlyStAurVault {
         _unstake(_assets, _shares, _receiver, _owner);
     }
 
     function _unstake(uint256 _assets, uint256 _shares, address _receiver, address _owner) private {
-        IStakedAuroraVault(stAurora).burn(_owner, _shares);
+        IStakedAuroraVault(stAurVault).burn(_owner, _shares);
         createWithdrawOrder(_assets, _receiver);
     }
 
