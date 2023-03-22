@@ -143,8 +143,14 @@ async function depositPoolFixture() {
     decimals
   } = await loadFixture(deployPoolFixture);
 
+  // Test deposit with a not fully operational contract.
   const aliceDeposit = ethers.BigNumber.from(6_000).mul(decimals);
   await auroraTokenContract.connect(alice).approve(stakedAuroraVaultContract.address, aliceDeposit);
+  await stakedAuroraVaultContract.connect(owner).toggleFullyOperational();
+  await expect(
+    stakedAuroraVaultContract.connect(alice).deposit(aliceDeposit, alice.address)
+  ).to.be.revertedWith("CONTRACT_IS_NOT_FULLY_OPERATIONAL");
+  await stakedAuroraVaultContract.connect(owner).toggleFullyOperational();
   await stakedAuroraVaultContract.connect(alice).deposit(aliceDeposit, alice.address);
 
   const bobDeposit = ethers.BigNumber.from(100_000).mul(decimals);
