@@ -48,7 +48,7 @@ contract StakingManager is AccessControl {
     }
 
     modifier onlyStAurVault() {
-        require(msg.sender == stAurVault);
+        require(msg.sender == stAurVault, "ONLY_FOR_STAUR_VAULT");
         _;
     }
 
@@ -134,7 +134,7 @@ contract StakingManager is AccessControl {
         depositorShares[_depositor] = IAuroraStaking(auroraStaking).getUserShares(_depositor);
     }
 
-    function setNextDepositor() public onlyStAurVault {
+    function setNextDepositor() external onlyStAurVault {
         updateDepositorShares(nextDepositor);
         address _nextDepositor = depositors[0];
         for (uint i = 0; i < depositors.length; i++) {

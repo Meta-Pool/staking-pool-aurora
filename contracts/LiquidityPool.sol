@@ -8,17 +8,21 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
+// import "hardhat/console.sol";
+
 contract LiquidityPool is ERC4626, Ownable {
     using SafeERC20 for IERC20;
-    using SafeMath for uint;
+    using SafeMath for uint256;
 
     address public stAurVault;
     address public auroraToken;
 
+    uint256 public stAurBalance;
+    uint256 public auroraBalance;
+
     // address public stakingManager;
     uint256 public minimumLiquidity;
     uint256 public minDepositAmount;
-    uint public auroraBalance;
     // // Check if a treasury is needed
     // address public treasury;
 
@@ -37,7 +41,7 @@ contract LiquidityPool is ERC4626, Ownable {
         address indexed user,
         uint shares,
         uint aurora,
-        uint stAurora
+        uint stAurVault
     );
     event Swap(address indexed user, uint amountIn, uint amountOut, uint fees);
 
@@ -47,7 +51,7 @@ contract LiquidityPool is ERC4626, Ownable {
     }
 
     modifier onlyStAurVault() {
-        require(msg.sender == stAurVault);
+        require(msg.sender == stAurVault, "ONLY_FOR_STAUR_VAULT");
         _;
     }
 
@@ -66,6 +70,8 @@ contract LiquidityPool is ERC4626, Ownable {
         stAurVault = _stAurVault;
         auroraToken = _auroraToken;
         minDepositAmount = _minDepositAmount;
+        stAurBalance = 0;
+        auroraBalance = 0;
     }
 
     receive() external payable {}
@@ -87,8 +93,22 @@ contract LiquidityPool is ERC4626, Ownable {
         minimumLiquidity = _amount;
     }
 
-    function setAsideStAur(uint256 _amount) external returns (bool) {
+    function transferStAur(address _receiver, uint256 _amount) external onlyStAurVault returns (bool) {
+        if (stAurBalance >= _amount) {
+            stAurBalance -= _amount;
+            IStakedAuroraVault vault = IStakedAuroraVault(stAurVault);
+            // TODO: ⚠️ WARNING! is there a way to do this transfer in a safer way?
+            vault.transfer(_receiver, _amount);
+            return true;
+        } else {
+            return false;
+        }
+    }
 
+    function getAuroraFromVault(uint256 _assets) external onlyStAurVault {
+        auroraBalance += _assets;
+        IERC20 aurora = IERC20(auroraToken);
+        aurora.safeTransferFrom(stAurVault, address(this), _assets);
     }
 
     /// @notice Return the amount of stAur and Aurora equivalent to Aurora in the pool
@@ -189,6 +209,7 @@ contract LiquidityPool is ERC4626, Ownable {
     }
 
     // TODO: instead of StAurora use StAur.
+    // ⚠️ Increase the stAurBalance!!!
     function swapStAuroraforAurora(
         uint _amount,
         uint _minReceived

@@ -2,6 +2,7 @@
 pragma solidity 0.8.18;
 
 import "./interfaces/IDepositor.sol";
+import "./interfaces/ILiquidityPool.sol";
 import "./interfaces/IStakingManager.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -188,15 +189,22 @@ contract StakedAuroraVault is ERC4626, Ownable {
         IStakingManager manager = IStakingManager(stakingManager);
         auroraToken.safeTransferFrom(_caller, address(this), _assets);
 
-        // liquidityPool
-        // TODO: insert the setAsideStAur flow here!!!!!!!
+        ILiquidityPool pool = ILiquidityPool(liquidityPool);
+        bool stAurTransfered = pool.transferStAur(_receiver, _shares);
 
-        address depositor = manager.nextDepositor();
-        auroraToken.safeIncreaseAllowance(depositor, _assets);
-        IDepositor(depositor).stake(_assets);
-        manager.setNextDepositor();
+        // FLOW 1: Use the stAUR in the Liquidity Pool.
+        if (stAurTransfered) {
+            auroraToken.safeIncreaseAllowance(liquidityPool, _assets);
+            pool.getAuroraFromVault(_assets);
+        // FLOW 2: Stake with the depositor to mint more stAUR.
+        } else {
+            address depositor = manager.nextDepositor();
+            auroraToken.safeIncreaseAllowance(depositor, _assets);
+            IDepositor(depositor).stake(_assets);
+            manager.setNextDepositor();
 
-        _mint(_receiver, _shares);
+            _mint(_receiver, _shares);
+        }
 
         emit Deposit(_caller, _receiver, _assets, _shares);
     }

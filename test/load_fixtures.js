@@ -86,7 +86,7 @@ async function deployPoolFixture() {
 
   // Deploy Liquidity Pool
   const liquidityPoolContract = await LiquidityPool.deploy(
-    stakingManagerContract.address,
+    stakedAuroraVaultContract.address,
     auroraTokenContract.address,
     "stAUR/AURORA LP Token",
     "stAUR/AUR",

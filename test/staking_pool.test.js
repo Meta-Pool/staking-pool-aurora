@@ -26,7 +26,7 @@ describe("Staking Pool AURORA", function () {
 
       expect(await stakingManagerContract.isAdmin(owner.address)).to.be.true;
       expect(await stakingManagerContract.isDepositorsOwner(depositors_owner.address)).to.be.true;
-      expect(await stakingManagerContract.stAurora()).to.equal(stakedAuroraVaultContract.address);
+      expect(await stakingManagerContract.stAurVault()).to.equal(stakedAuroraVaultContract.address);
       expect(await stakingManagerContract.auroraToken()).to.equal(auroraTokenContract.address);
       expect(await stakingManagerContract.auroraStaking()).to.equal(auroraStakingContract.address);
       expect(await stakingManagerContract.depositorsLength()).to.equal(2);
@@ -34,13 +34,13 @@ describe("Staking Pool AURORA", function () {
 
       expect(await depositor00Contract.owner()).to.equal(depositors_owner.address);
       expect(await depositor00Contract.stakingManager()).to.equal(stakingManagerContract.address);
-      expect(await depositor00Contract.stAurora()).to.equal(stakedAuroraVaultContract.address);
+      expect(await depositor00Contract.stAurVault()).to.equal(stakedAuroraVaultContract.address);
       expect(await depositor00Contract.auroraToken()).to.equal(auroraTokenContract.address);
       expect(await depositor00Contract.auroraStaking()).to.equal(auroraStakingContract.address);
 
       expect(await depositor01Contract.owner()).to.equal(depositors_owner.address);
       expect(await depositor01Contract.stakingManager()).to.equal(stakingManagerContract.address);
-      expect(await depositor01Contract.stAurora()).to.equal(stakedAuroraVaultContract.address);
+      expect(await depositor01Contract.stAurVault()).to.equal(stakedAuroraVaultContract.address);
       expect(await depositor01Contract.auroraToken()).to.equal(auroraTokenContract.address);
       expect(await depositor01Contract.auroraStaking()).to.equal(auroraStakingContract.address);
 
@@ -334,7 +334,7 @@ describe("Staking Pool AURORA", function () {
       // console.log("Staker Manager Balance 5: %s", await auroraTokenContract.balanceOf(stakingManagerContract.address));
 
       // The total Supply should drop to zero, but some assets will remain due to
-      // the fast stAurora repricing.
+      // the fast stAUR repricing.
       expect(await stakedAuroraVaultContract.totalSupply()).to.equal(0);
       expect(await stakedAuroraVaultContract.totalAssets()).to.be.lessThan(AURORA);
       expect(await stakingManagerContract.totalAssets()).to.be.lessThan(AURORA);
