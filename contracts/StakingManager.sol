@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.10;
+pragma solidity 0.8.18;
 
+import "./interfaces/IAuroraStaking.sol";
+import "./interfaces/IDepositor.sol";
+import "./interfaces/IStakedAuroraVault.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -8,62 +11,13 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 // import "hardhat/console.sol";
 
-interface IAuroraStaking {
-
-    enum StreamStatus {
-        INACTIVE,
-        PROPOSED,
-        ACTIVE
-    }
-
-    function totalAuroraShares() external view returns (uint256);
-    function getUserShares(address account) external view returns (uint256);
-    function getTotalAmountOfStakedAurora() external view returns (uint256);
-
-    function getStream(uint256 streamId)
-        external
-        view
-        returns (
-            address streamOwner,
-            address rewardToken,
-            uint256 auroraDepositAmount,
-            uint256 auroraClaimedAmount,
-            uint256 rewardDepositAmount,
-            uint256 rewardClaimedAmount,
-            uint256 maxDepositAmount,
-            uint256 lastTimeOwnerClaimed,
-            uint256 rps,
-            uint256 tau,
-            StreamStatus status
-        );
-}
-
-interface IDepositor {
-    function unstake(uint256 _assets) external;
-    function unstakeAll() external;
-
-    function withdraw(uint _assets) external;
-
-    function getPending(address _account)
-        external
-        view
-        returns (uint256);
-}
-
-interface IStakedAuroraVault {
-    function previewWithdraw(uint256 _assets) external view returns (uint256);
-    function previewRedeem(uint256 _shares) external view returns (uint256);
-    function burn(address _owner, uint256 _shares) external;
-    function balanceOf(address _account) external view returns (uint256);
-}
-
 contract StakingManager is AccessControl {
     using SafeERC20 for IERC20;
 
     bytes32 public constant DEPOSITORS_OWNER_ROLE = keccak256("DEPOSITORS_OWNER_ROLE");
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
 
-    address immutable public stAurora;
+    address immutable public stAurVault;
     address immutable public auroraToken;
     address immutable public auroraStaking;
 
@@ -93,25 +47,25 @@ contract StakingManager is AccessControl {
         address receiver;
     }
 
-    modifier onlyStAurora() {
-        require(msg.sender == stAurora);
+    modifier onlyStAurVault() {
+        require(msg.sender == stAurVault, "ONLY_FOR_STAUR_VAULT");
         _;
     }
 
     constructor(
-        address _stAurora,
+        address _stAurVault,
         address _auroraStaking,
         address _depositorOwner,
         uint256 _maxWithdrawOrders
     ) {
         require(
-            _stAurora != address(0)
+            _stAurVault != address(0)
                 && _auroraStaking != address(0)
                 && _depositorOwner != address(0)
         );
-        stAurora = _stAurora;
+        stAurVault = _stAurVault;
         auroraStaking = _auroraStaking;
-        auroraToken = IERC4626(_stAurora).asset();
+        auroraToken = IERC4626(_stAurVault).asset();
         maxWithdrawOrders = _maxWithdrawOrders;
         nextCleanOrderQueue = block.timestamp;
 
@@ -180,7 +134,7 @@ contract StakingManager is AccessControl {
         depositorShares[_depositor] = IAuroraStaking(auroraStaking).getUserShares(_depositor);
     }
 
-    function setNextDepositor() public onlyStAurora {
+    function setNextDepositor() external onlyStAurVault {
         updateDepositorShares(nextDepositor);
         address _nextDepositor = depositors[0];
         for (uint i = 0; i < depositors.length; i++) {
@@ -233,7 +187,7 @@ contract StakingManager is AccessControl {
         address _receiver,
         address _owner,
         uint256 _assets
-    ) external onlyStAurora {
+    ) external onlyStAurVault {
         // console.log("WE ARE HERE");
         // console.log("Assets  : %s", _assets);
         // console.log("Availab : %s", availableAssets[_owner]);
@@ -305,41 +259,17 @@ contract StakingManager is AccessControl {
         withdrawOrders.push(withdrawOrder(_assets, _receiver));
     }
 
-    // IMPORTANT ⚠️ unstakeAssets might not make a lot of sense. Always go with unstakeShares / redeem.
-    // function unstakeAssets(uint256 _assets, address _receiver) public {
-    //     uint256 shares = IStakedAuroraVault(stAurora).previewWithdraw(_assets);
-    //     _unstake(_assets, shares, _receiver);
-    // }
-
     function unstakeShares(
         uint256 _assets,
         uint256 _shares,
         address _receiver,
         address _owner
-    ) external onlyStAurora {
+    ) external onlyStAurVault {
         _unstake(_assets, _shares, _receiver, _owner);
     }
 
-    // /** @dev See {IERC4626-withdraw}. */
-    // function liquidWithdraw(
-    //     uint256 assets,
-    //     address receiver,
-    //     address owner
-    // ) public returns (uint256) {
-    //     require(false, "unimplemented");
-    // }
-
-    // /** @dev See {IERC4626-redeem}. */
-    // function liquidRedeem(
-    //     uint256 shares,
-    //     address receiver,
-    //     address owner
-    // ) public returns (uint256) {
-    //     require(false, "unimplemented");
-    // }
-
     function _unstake(uint256 _assets, uint256 _shares, address _receiver, address _owner) private {
-        IStakedAuroraVault(stAurora).burn(_owner, _shares);
+        IStakedAuroraVault(stAurVault).burn(_owner, _shares);
         createWithdrawOrder(_assets, _receiver);
     }
 

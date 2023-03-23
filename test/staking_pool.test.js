@@ -1,184 +1,13 @@
-// This is an example test file. Hardhat will run every *.js file in `test/`,
-// so feel free to add new ones.
-
-// Hardhat tests are normally written with Mocha and Chai.
-
-// We import Chai to use its asserting functions here.
 const { expect } = require("chai");
-
 const { ethers } = require("hardhat");
-
-// We use `loadFixture` to share common setups (or fixtures) between tests.
-// Using this simplifies your tests and makes them run faster, by taking
-// advantage of Hardhat Network's snapshot functionality.
 const { loadFixture, time } = require("@nomicfoundation/hardhat-network-helpers");
+const { deployPoolFixture, depositPoolFixture } = require("./load_fixtures");
 
-// 1 AURORA
 const AURORA = ethers.BigNumber.from(1).mul(ethers.BigNumber.from(10).pow(18));
 
-// `describe` is a Mocha function that allows you to organize your tests.
-// Having your tests organized makes debugging them easier. All Mocha
-// functions are available in the global scope.
-//
-// `describe` receives the name of a section of your test suite, and a
-// callback. The callback must define the tests of that section. This callback
-// can't be an async function.
 describe("Staking Pool AURORA", function () {
-  // We define a fixture to reuse the same setup in every test. We use
-  // loadFixture to run this setup once, snapshot that state, and reset Hardhat
-  // Network to that snapshot in every test.
-  async function deployPoolFixture() {
-    // Get the ContractFactory and Signers here.
-    const AuroraToken = await ethers.getContractFactory("Token");
-    const AuroraStaking = await ethers.getContractFactory("AuroraStaking");
-    const StakingManager = await ethers.getContractFactory("StakingManager");
-    const Depositor = await ethers.getContractFactory("Depositor");
-    const StakedAuroraVault = await ethers.getContractFactory("StakedAuroraVault");
-    const [
-      owner,
-      depositors_owner,
-      treasury,
-      operator,
-      alice,
-      bob,
-      carl
-    ] = await ethers.getSigners();
-
-    const decimals = ethers.BigNumber.from(10).pow(18);
-    const initialSupply = ethers.BigNumber.from(10_000_000).mul(decimals);
-    const auroraTokenContract = await AuroraToken.deploy(
-      initialSupply,
-      "Aurora Token",
-      "AURORA",
-      alice.address
-    );
-    await auroraTokenContract.deployed();
-
-    // Sharing total suply with Bob and Carl.
-    const splitSupply = ethers.BigNumber.from(3_000_000).mul(decimals);
-    await auroraTokenContract.connect(alice).transfer(bob.address, splitSupply);
-    await auroraTokenContract.connect(alice).transfer(carl.address, splitSupply);
-
-    const auroraStakingContract = await AuroraStaking.deploy(
-      auroraTokenContract.address
-    );
-    await auroraStakingContract.deployed();
-
-    // Send Tokens to the Aurora Staking contract to pay for rewards.
-    const forRewards = ethers.BigNumber.from(1_000_000).mul(decimals);
-    await auroraTokenContract.connect(alice).transfer(auroraStakingContract.address, forRewards);
-
-    const minDepositAmount = ethers.BigNumber.from(1).mul(decimals);
-    const stakedAuroraVaultContract = await StakedAuroraVault.deploy(
-      auroraTokenContract.address,
-      "Staked Aurora Token",
-      "stAUR",
-      minDepositAmount
-    );
-    await stakedAuroraVaultContract.deployed();
-
-    const stakingManagerContract = await StakingManager.deploy(
-      stakedAuroraVaultContract.address,
-      auroraStakingContract.address,
-      depositors_owner.address,
-      10
-    );
-    await stakingManagerContract.deployed();
-
-    // Insert/update the staking manager in the ERC-4626
-    await stakedAuroraVaultContract.updateStakingManager(stakingManagerContract.address);
-
-    const depositor00Contract = await Depositor.connect(depositors_owner).deploy(
-      stakingManagerContract.address
-    );
-    await depositor00Contract.deployed();
-
-    const depositor01Contract = await Depositor.connect(depositors_owner).deploy(
-      stakingManagerContract.address
-    );
-    await depositor01Contract.deployed();
-
-    await stakingManagerContract.connect(depositors_owner).insertDepositor(depositor00Contract.address);
-    await stakingManagerContract.connect(depositors_owner).insertDepositor(depositor01Contract.address);
-
-    // Fixtures can return anything you consider useful for your tests
-    return {
-      auroraTokenContract,
-      auroraStakingContract,
-      stakedAuroraVaultContract,
-      stakingManagerContract,
-      depositor00Contract,
-      depositor01Contract,
-      owner,
-      depositors_owner,
-      treasury,
-      operator,
-      alice,
-      bob,
-      carl,
-      decimals
-    };
-  }
-
-  async function depositPoolFixture() {
-    const {
-      auroraTokenContract,
-      auroraStakingContract,
-      stakedAuroraVaultContract,
-      stakingManagerContract,
-      depositor00Contract,
-      depositor01Contract,
-      owner,
-      depositors_owner,
-      treasury,
-      operator,
-      alice,
-      bob,
-      carl,
-      decimals
-    } = await loadFixture(deployPoolFixture);
-
-    const aliceDeposit = ethers.BigNumber.from(6_000).mul(decimals);
-    await auroraTokenContract.connect(alice).approve(stakedAuroraVaultContract.address, aliceDeposit);
-    await stakedAuroraVaultContract.connect(alice).deposit(aliceDeposit, alice.address);
-
-    const bobDeposit = ethers.BigNumber.from(100_000).mul(decimals);
-    await auroraTokenContract.connect(bob).approve(stakedAuroraVaultContract.address, bobDeposit);
-    await stakedAuroraVaultContract.connect(bob).deposit(bobDeposit, bob.address);
-
-    const carlDeposit = ethers.BigNumber.from(24_000).mul(decimals);
-    await auroraTokenContract.connect(carl).approve(stakedAuroraVaultContract.address, carlDeposit);
-    await stakedAuroraVaultContract.connect(carl).deposit(carlDeposit, carl.address);
-
-    await stakingManagerContract.cleanOrdersQueue();
-
-    return {
-      auroraTokenContract,
-      auroraStakingContract,
-      stakedAuroraVaultContract,
-      stakingManagerContract,
-      depositor00Contract,
-      depositor01Contract,
-      owner,
-      depositors_owner,
-      treasury,
-      operator,
-      alice,
-      bob,
-      carl,
-      decimals
-    };
-  }
-
-  // You can nest describe calls to create subsections.
   describe("Deployment", function () {
-    // `it` is another Mocha function. This is the one you use to define each
-    // of your tests. It receives the test name, and a callback function.
-    //
-    // If the callback function is async, Mocha will `await` it.
     it("Should be correct for all contracts initial parameters.", async function () {
-      // We use loadFixture to setup our environment, and then assert that
-      // things went well
       const {
         auroraTokenContract,
         auroraStakingContract,
@@ -197,7 +26,7 @@ describe("Staking Pool AURORA", function () {
 
       expect(await stakingManagerContract.isAdmin(owner.address)).to.be.true;
       expect(await stakingManagerContract.isDepositorsOwner(depositors_owner.address)).to.be.true;
-      expect(await stakingManagerContract.stAurora()).to.equal(stakedAuroraVaultContract.address);
+      expect(await stakingManagerContract.stAurVault()).to.equal(stakedAuroraVaultContract.address);
       expect(await stakingManagerContract.auroraToken()).to.equal(auroraTokenContract.address);
       expect(await stakingManagerContract.auroraStaking()).to.equal(auroraStakingContract.address);
       expect(await stakingManagerContract.depositorsLength()).to.equal(2);
@@ -205,13 +34,13 @@ describe("Staking Pool AURORA", function () {
 
       expect(await depositor00Contract.owner()).to.equal(depositors_owner.address);
       expect(await depositor00Contract.stakingManager()).to.equal(stakingManagerContract.address);
-      expect(await depositor00Contract.stAurora()).to.equal(stakedAuroraVaultContract.address);
+      expect(await depositor00Contract.stAurVault()).to.equal(stakedAuroraVaultContract.address);
       expect(await depositor00Contract.auroraToken()).to.equal(auroraTokenContract.address);
       expect(await depositor00Contract.auroraStaking()).to.equal(auroraStakingContract.address);
 
       expect(await depositor01Contract.owner()).to.equal(depositors_owner.address);
       expect(await depositor01Contract.stakingManager()).to.equal(stakingManagerContract.address);
-      expect(await depositor01Contract.stAurora()).to.equal(stakedAuroraVaultContract.address);
+      expect(await depositor01Contract.stAurVault()).to.equal(stakedAuroraVaultContract.address);
       expect(await depositor01Contract.auroraToken()).to.equal(auroraTokenContract.address);
       expect(await depositor01Contract.auroraStaking()).to.equal(auroraStakingContract.address);
 
@@ -505,7 +334,7 @@ describe("Staking Pool AURORA", function () {
       // console.log("Staker Manager Balance 5: %s", await auroraTokenContract.balanceOf(stakingManagerContract.address));
 
       // The total Supply should drop to zero, but some assets will remain due to
-      // the fast stAurora repricing.
+      // the fast stAUR repricing.
       expect(await stakedAuroraVaultContract.totalSupply()).to.equal(0);
       expect(await stakedAuroraVaultContract.totalAssets()).to.be.lessThan(AURORA);
       expect(await stakingManagerContract.totalAssets()).to.be.lessThan(AURORA);
