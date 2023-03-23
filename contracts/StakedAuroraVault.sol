@@ -94,6 +94,10 @@ contract StakedAuroraVault is ERC4626, Ownable {
         fullyOperational = !fullyOperational;
     }
 
+    function getStAurPrice() public view returns (uint256) {
+        return convertToAssets(1 ether);
+    }
+
     function totalAssets() public view override returns (uint256) {
         if (liquidityPool == address(0) || stakingManager == address(0)) return 0;
         return IStakingManager(stakingManager).totalAssets();

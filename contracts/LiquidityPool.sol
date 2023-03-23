@@ -156,8 +156,8 @@ contract LiquidityPool is ERC4626, Ownable {
             address(this),
             _assets
         );
-        _mint(_receiver, _shares);
         auroraBalance += _assets;
+        _mint(_receiver, _shares);
 
         // TODO: Change events for standard events.
         emit AddLiquidity(_caller, _receiver, _assets, _shares);

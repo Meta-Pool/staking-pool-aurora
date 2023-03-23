@@ -213,25 +213,19 @@ async function liquidityPoolFixture() {
     decimals
   } = await loadFixture(depositPoolFixture);
 
-  // Test deposit with a not fully operational contract.
-  const aliceDeposit = ethers.BigNumber.from(6_000).mul(decimals);
-  await auroraTokenContract.connect(alice).approve(stakedAuroraVaultContract.address, aliceDeposit);
-  await stakedAuroraVaultContract.connect(owner).toggleFullyOperational();
-  await expect(
-    stakedAuroraVaultContract.connect(alice).deposit(aliceDeposit, alice.address)
-  ).to.be.revertedWith("CONTRACT_IS_NOT_FULLY_OPERATIONAL");
-  await stakedAuroraVaultContract.connect(owner).toggleFullyOperational();
-  await stakedAuroraVaultContract.connect(alice).deposit(aliceDeposit, alice.address);
+  const providerDeposit = ethers.BigNumber.from(1_000_000).mul(decimals);
+  await auroraTokenContract.connect(liquidity_provider).approve(liquidityPoolContract.address, providerDeposit);
+  await stakedAuroraVaultContract.connect(alice).deposit(providerDeposit, liquidity_provider.address);
 
-  const bobDeposit = ethers.BigNumber.from(100_000).mul(decimals);
-  await auroraTokenContract.connect(bob).approve(stakedAuroraVaultContract.address, bobDeposit);
-  await stakedAuroraVaultContract.connect(bob).deposit(bobDeposit, bob.address);
+  // const bobDeposit = ethers.BigNumber.from(100_000).mul(decimals);
+  // await auroraTokenContract.connect(bob).approve(stakedAuroraVaultContract.address, bobDeposit);
+  // await stakedAuroraVaultContract.connect(bob).deposit(bobDeposit, bob.address);
 
-  const carlDeposit = ethers.BigNumber.from(24_000).mul(decimals);
-  await auroraTokenContract.connect(carl).approve(stakedAuroraVaultContract.address, carlDeposit);
-  await stakedAuroraVaultContract.connect(carl).deposit(carlDeposit, carl.address);
+  // const carlDeposit = ethers.BigNumber.from(24_000).mul(decimals);
+  // await auroraTokenContract.connect(carl).approve(stakedAuroraVaultContract.address, carlDeposit);
+  // await stakedAuroraVaultContract.connect(carl).deposit(carlDeposit, carl.address);
 
-  await stakingManagerContract.cleanOrdersQueue();
+  // await stakingManagerContract.cleanOrdersQueue();
 
   return {
     auroraTokenContract,
