@@ -8,17 +8,21 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
+// import "hardhat/console.sol";
+
 contract LiquidityPool is ERC4626, Ownable {
     using SafeERC20 for IERC20;
-    using SafeMath for uint;
+    using SafeMath for uint256;
 
-    address public stAurToken;
+    address public stAurVault;
     address public auroraToken;
+
+    uint256 public stAurBalance;
+    uint256 public auroraBalance;
 
     // address public stakingManager;
     uint256 public minimumLiquidity;
     uint256 public minDepositAmount;
-    uint public auroraBalance;
     // // Check if a treasury is needed
     // address public treasury;
 
@@ -37,12 +41,22 @@ contract LiquidityPool is ERC4626, Ownable {
         address indexed user,
         uint shares,
         uint aurora,
-        uint stAurora
+        uint stAurVault
     );
     event Swap(address indexed user, uint amountIn, uint amountOut, uint fees);
 
+    modifier validDeposit(uint _amount) {
+        _checkDeposit(_amount);
+        _;
+    }
+
+    modifier onlyStAurVault() {
+        require(msg.sender == stAurVault, "ONLY_FOR_STAUR_VAULT");
+        _;
+    }
+
     constructor(
-        address _stAurToken,
+        address _stAurVault,
         address _auroraToken,
         string memory _lpTokenName,
         string memory _lpTokenSymbol,
@@ -51,19 +65,18 @@ contract LiquidityPool is ERC4626, Ownable {
         ERC4626(IERC20(_auroraToken))
         ERC20(_lpTokenName, _lpTokenSymbol)
     {
-        require(_stAurToken != address(0), "INVALID_ZERO_ADDRESS");
+        require(_stAurVault != address(0), "INVALID_ZERO_ADDRESS");
         require(_auroraToken != address(0), "INVALID_ZERO_ADDRESS");
-        stAurToken = _stAurToken;
+        stAurVault = _stAurVault;
         auroraToken = _auroraToken;
         minDepositAmount = _minDepositAmount;
+        stAurBalance = 0;
+        auroraBalance = 0;
     }
 
     receive() external payable {}
 
-    modifier validDeposit(uint _amount) {
-        _checkDeposit(_amount);
-        _;
-    }
+
 
     function _checkAccount(address _expected) private view {
         require(msg.sender == _expected, "Access error");
@@ -80,12 +93,30 @@ contract LiquidityPool is ERC4626, Ownable {
         minimumLiquidity = _amount;
     }
 
+    function transferStAur(address _receiver, uint256 _amount) external onlyStAurVault returns (bool) {
+        if (stAurBalance >= _amount) {
+            stAurBalance -= _amount;
+            IStakedAuroraVault vault = IStakedAuroraVault(stAurVault);
+            // TODO: ⚠️ WARNING! is there a way to do this transfer in a safer way?
+            vault.transfer(_receiver, _amount);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    function getAuroraFromVault(uint256 _assets) external onlyStAurVault {
+        auroraBalance += _assets;
+        IERC20 aurora = IERC20(auroraToken);
+        aurora.safeTransferFrom(stAurVault, address(this), _assets);
+    }
+
     /// @notice Return the amount of stAur and Aurora equivalent to Aurora in the pool
     function totalAssets() public view override returns (uint) {
         return
             auroraBalance +
-            IStakedAuroraVault(stAurToken).convertToAssets(
-                IStakedAuroraVault(stAurToken).balanceOf(address(this))
+            IStakedAuroraVault(stAurVault).convertToAssets(
+                IStakedAuroraVault(stAurVault).balanceOf(address(this))
             );
     }
 
@@ -166,18 +197,19 @@ contract LiquidityPool is ERC4626, Ownable {
         uint poolPercentage = (_shares * ONE_AURORA) / totalSupply();
         uint auroraToSend = (poolPercentage * auroraBalance) / ONE_AURORA;
         uint stAuroraToSend = (poolPercentage *
-            IStakedAuroraVault(stAurToken).balanceOf(address(this))) / ONE_AURORA;
+            IStakedAuroraVault(stAurVault).balanceOf(address(this))) / ONE_AURORA;
         _burn(msg.sender, _shares);
         IERC20(asset()).safeTransfer(_receiver, auroraToSend);
 
-        // stAurToken is using two interfaces???? IStakedAuroraVault and IERC20
-        IERC20(stAurToken).safeTransfer(_receiver, stAuroraToSend);
+        // stAurVault is using two interfaces???? IStakedAuroraVault and IERC20
+        IERC20(stAurVault).safeTransfer(_receiver, stAuroraToSend);
         auroraBalance -= auroraToSend;
         emit RemoveLiquidity(msg.sender, _shares, auroraToSend, stAuroraToSend);
         return auroraToSend;
     }
 
     // TODO: instead of StAurora use StAur.
+    // ⚠️ Increase the stAurBalance!!!
     function swapStAuroraforAurora(
         uint _amount,
         uint _minReceived

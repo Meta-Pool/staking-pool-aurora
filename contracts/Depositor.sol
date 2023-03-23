@@ -11,17 +11,17 @@ contract Depositor is Ownable {
     using SafeERC20 for IERC20;
 
     address public stakingManager;
-    address immutable public stAurora;
+    address immutable public stAurVault;
     address immutable public auroraToken;
     address immutable public auroraStaking;
 
     modifier onlyManager() {
-        require(msg.sender == stakingManager);
+        require(msg.sender == stakingManager, "ONLY_FOR_STAUR_MANAGER");
         _;
     }
 
-    modifier onlyStAurora() {
-        require(msg.sender == stAurora);
+    modifier onlyStAurVault() {
+        require(msg.sender == stAurVault, "ONLY_FOR_STAUR_VAULT");
         _;
     }
 
@@ -30,7 +30,7 @@ contract Depositor is Ownable {
         stakingManager = _stakingManager;
 
         IStakingManager manager = IStakingManager(stakingManager);
-        stAurora = manager.stAurora();
+        stAurVault = manager.stAurVault();
         auroraToken = manager.auroraToken();
         auroraStaking = manager.auroraStaking();
     }
@@ -40,9 +40,9 @@ contract Depositor is Ownable {
         stakingManager = _stakingManager;
     }
 
-    function stake(uint256 _assets) public onlyStAurora {
+    function stake(uint256 _assets) public onlyStAurVault {
         IERC20 aurora = IERC20(auroraToken);
-        aurora.safeTransferFrom(stAurora, address(this), _assets);
+        aurora.safeTransferFrom(stAurVault, address(this), _assets);
         aurora.safeIncreaseAllowance(auroraStaking, _assets);
         IAuroraStaking(auroraStaking).stake(_assets);
     }
