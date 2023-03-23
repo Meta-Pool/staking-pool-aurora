@@ -15,6 +15,7 @@ async function deployPoolFixture() {
     owner,
     depositors_owner,
     liquidity_pool_owner,
+    liquidity_provider,
     operator,
     alice,
     bob,
@@ -22,7 +23,7 @@ async function deployPoolFixture() {
   ] = await ethers.getSigners();
 
   const decimals = ethers.BigNumber.from(10).pow(18);
-  const initialSupply = ethers.BigNumber.from(10_000_000).mul(decimals);
+  const initialSupply = ethers.BigNumber.from(20_000_000).mul(decimals);
   const auroraTokenContract = await AuroraToken.deploy(
     initialSupply,
     "Aurora Token",
@@ -35,6 +36,10 @@ async function deployPoolFixture() {
   const splitSupply = ethers.BigNumber.from(3_000_000).mul(decimals);
   await auroraTokenContract.connect(alice).transfer(bob.address, splitSupply);
   await auroraTokenContract.connect(alice).transfer(carl.address, splitSupply);
+
+  // Sharing Aurora Tokens with the Liquidity Provider.
+  const liquiditySupply = ethers.BigNumber.from(10_000_000).mul(decimals);
+  await auroraTokenContract.connect(alice).transfer(liquidity_provider.address, liquiditySupply);
 
   const auroraStakingContract = await AuroraStaking.deploy(
     auroraTokenContract.address
@@ -85,12 +90,13 @@ async function deployPoolFixture() {
   await stakingManagerContract.connect(depositors_owner).insertDepositor(depositor01Contract.address);
 
   // Deploy Liquidity Pool
-  const liquidityPoolContract = await LiquidityPool.deploy(
+  const liquidityPoolContract = await LiquidityPool.connect(liquidity_pool_owner).deploy(
     stakedAuroraVaultContract.address,
     auroraTokenContract.address,
     "stAUR/AURORA LP Token",
     "stAUR/AUR",
-    minDepositAmount
+    minDepositAmount,
+    200 // Swap fee basis points
   );
   await liquidityPoolContract.deployed();
 
@@ -114,9 +120,11 @@ async function deployPoolFixture() {
     stakingManagerContract,
     depositor00Contract,
     depositor01Contract,
+    liquidityPoolContract,
     owner,
     depositors_owner,
     liquidity_pool_owner,
+    liquidity_provider,
     operator,
     alice,
     bob,
@@ -133,9 +141,11 @@ async function depositPoolFixture() {
     stakingManagerContract,
     depositor00Contract,
     depositor01Contract,
+    liquidityPoolContract,
     owner,
     depositors_owner,
     liquidity_pool_owner,
+    liquidity_provider,
     operator,
     alice,
     bob,
@@ -170,9 +180,71 @@ async function depositPoolFixture() {
     stakingManagerContract,
     depositor00Contract,
     depositor01Contract,
+    liquidityPoolContract,
     owner,
     depositors_owner,
     liquidity_pool_owner,
+    liquidity_provider,
+    operator,
+    alice,
+    bob,
+    carl,
+    decimals
+  };
+}
+
+async function liquidityPoolFixture() {
+  const {
+    auroraTokenContract,
+    auroraStakingContract,
+    stakedAuroraVaultContract,
+    stakingManagerContract,
+    depositor00Contract,
+    depositor01Contract,
+    liquidityPoolContract,
+    owner,
+    depositors_owner,
+    liquidity_pool_owner,
+    liquidity_provider,
+    operator,
+    alice,
+    bob,
+    carl,
+    decimals
+  } = await loadFixture(depositPoolFixture);
+
+  // Test deposit with a not fully operational contract.
+  const aliceDeposit = ethers.BigNumber.from(6_000).mul(decimals);
+  await auroraTokenContract.connect(alice).approve(stakedAuroraVaultContract.address, aliceDeposit);
+  await stakedAuroraVaultContract.connect(owner).toggleFullyOperational();
+  await expect(
+    stakedAuroraVaultContract.connect(alice).deposit(aliceDeposit, alice.address)
+  ).to.be.revertedWith("CONTRACT_IS_NOT_FULLY_OPERATIONAL");
+  await stakedAuroraVaultContract.connect(owner).toggleFullyOperational();
+  await stakedAuroraVaultContract.connect(alice).deposit(aliceDeposit, alice.address);
+
+  const bobDeposit = ethers.BigNumber.from(100_000).mul(decimals);
+  await auroraTokenContract.connect(bob).approve(stakedAuroraVaultContract.address, bobDeposit);
+  await stakedAuroraVaultContract.connect(bob).deposit(bobDeposit, bob.address);
+
+  const carlDeposit = ethers.BigNumber.from(24_000).mul(decimals);
+  await auroraTokenContract.connect(carl).approve(stakedAuroraVaultContract.address, carlDeposit);
+  await stakedAuroraVaultContract.connect(carl).deposit(carlDeposit, carl.address);
+
+  await stakingManagerContract.cleanOrdersQueue();
+
+  return {
+    auroraTokenContract,
+    auroraStakingContract,
+    stakedAuroraVaultContract,
+    stakingManagerContract,
+    depositor00Contract,
+    depositor01Contract,
+    liquidityPoolContract,
+    owner,
+    depositors_owner,
+    liquidity_pool_owner,
+    liquidity_provider,
     operator,
     alice,
     bob,
@@ -183,7 +255,8 @@ async function depositPoolFixture() {
 
 module.exports = {
   deployPoolFixture,
-  depositPoolFixture
+  depositPoolFixture,
+  liquidityPoolFixture
 };
 
   

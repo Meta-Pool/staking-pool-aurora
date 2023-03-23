@@ -1,12 +1,45 @@
-// const { expect } = require("chai");
-// const { ethers } = require("hardhat");
-// const { loadFixture, time } = require("@nomicfoundation/hardhat-network-helpers");
+const { expect } = require("chai");
+const { ethers } = require("hardhat");
+const { loadFixture, time } = require("@nomicfoundation/hardhat-network-helpers");
+const { deployPoolFixture, liquidityPoolFixture } = require("./load_fixtures");
 
-// const AURORA = ethers.BigNumber.from(1).mul(ethers.BigNumber.from(10).pow(18));
+const AURORA = ethers.BigNumber.from(1).mul(ethers.BigNumber.from(10).pow(18));
 
-// describe("Liquidity Pool StAUR <> AURORA", function () {
+describe("Liquidity Pool StAUR <> AURORA", function () {
+  describe("Deployment", function () {
+    it("Should be correct for LP contract initial parameters.", async function () {
+      const {
+        auroraTokenContract,
+        liquidityPoolContract,
+        liquidity_pool_owner,
+        stakedAuroraVaultContract
+      } = await loadFixture(deployPoolFixture);
 
-// });
+      expect(await liquidityPoolContract.owner()).to.equal(liquidity_pool_owner.address);
+      expect(await liquidityPoolContract.stAurVault()).to.equal(stakedAuroraVaultContract.address);
+      expect(await liquidityPoolContract.auroraToken()).to.equal(auroraTokenContract.address);
+      expect(await liquidityPoolContract.stAurBalance()).to.equal(0);
+      expect(await liquidityPoolContract.auroraBalance()).to.equal(0);
+      expect(await liquidityPoolContract.swapFeeBasisPoints()).to.equal(200);
+    });
+
+    // it("Should assign the total supply of Aurora tokens to Alice, Bob and Carl.", async function () {
+    //   const {
+    //     auroraTokenContract,
+    //     auroraStakingContract,
+    //     alice,
+    //     bob,
+    //     carl
+    //   } = await loadFixture(deployPoolFixture);
+    //   const aliceBalance = await auroraTokenContract.balanceOf(alice.address);
+    //   const bobBalance = await auroraTokenContract.balanceOf(bob.address);
+    //   const carlBalance = await auroraTokenContract.balanceOf(carl.address);
+    //   const stakingBalance = await auroraTokenContract.balanceOf(auroraStakingContract.address);
+    //   expect(await auroraTokenContract.totalSupply()).to.equal(
+    //     aliceBalance.add(bobBalance).add(carlBalance).add(stakingBalance));
+    // });
+  });
+});
 
 
 

@@ -52,6 +52,7 @@ describe("Staking Pool AURORA", function () {
       const {
         auroraTokenContract,
         auroraStakingContract,
+        liquidity_provider,
         alice,
         bob,
         carl
@@ -60,8 +61,9 @@ describe("Staking Pool AURORA", function () {
       const bobBalance = await auroraTokenContract.balanceOf(bob.address);
       const carlBalance = await auroraTokenContract.balanceOf(carl.address);
       const stakingBalance = await auroraTokenContract.balanceOf(auroraStakingContract.address);
+      const liquidityBalance = await auroraTokenContract.balanceOf(liquidity_provider.address);
       expect(await auroraTokenContract.totalSupply()).to.equal(
-        aliceBalance.add(bobBalance).add(carlBalance).add(stakingBalance));
+        aliceBalance.add(bobBalance).add(carlBalance).add(stakingBalance).add(liquidityBalance));
     });
   });
 

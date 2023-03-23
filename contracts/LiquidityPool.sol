@@ -27,8 +27,9 @@ contract LiquidityPool is ERC4626, Ownable {
     // address public treasury;
 
     // BASIS POINTS
-    uint16 public constant MIN_FEE = 30;
-    uint16 public constant MAX_FEE = 500;
+    // uint16 public constant MIN_FEE = 30;
+    // uint16 public constant MAX_FEE = 500;
+    uint256 public swapFeeBasisPoints;
     uint128 private constant ONE_AURORA = 1 ether;
 
     event AddLiquidity(
@@ -60,7 +61,8 @@ contract LiquidityPool is ERC4626, Ownable {
         address _auroraToken,
         string memory _lpTokenName,
         string memory _lpTokenSymbol,
-        uint256 _minDepositAmount
+        uint256 _minDepositAmount,
+        uint256 _swapFeeBasisPoints
     )
         ERC4626(IERC20(_auroraToken))
         ERC20(_lpTokenName, _lpTokenSymbol)
@@ -70,8 +72,9 @@ contract LiquidityPool is ERC4626, Ownable {
         stAurVault = _stAurVault;
         auroraToken = _auroraToken;
         minDepositAmount = _minDepositAmount;
-        stAurBalance = 0;
-        auroraBalance = 0;
+        swapFeeBasisPoints = _swapFeeBasisPoints;
+        // stAurBalance = 0;
+        // auroraBalance = 0;
     }
 
     receive() external payable {}
@@ -214,10 +217,10 @@ contract LiquidityPool is ERC4626, Ownable {
         uint _amount,
         uint _minReceived
     ) external returns (uint) {
-        uint16 feeRange = MAX_FEE - MIN_FEE;
+        // uint16 feeRange = MAX_FEE - MIN_FEE;
         uint amountToAurora = convertToAssets(_amount);
         require(auroraBalance - amountToAurora > 0, "Not enough Aurora");
-        uint feeAmount = MIN_FEE;
+        uint feeAmount = swapFeeBasisPoints;
         amountToAurora = convertToAssets(_amount - feeAmount);
         require(
             amountToAurora >= _minReceived,
