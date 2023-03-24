@@ -211,21 +211,47 @@ async function liquidityPoolFixture() {
     bob,
     carl,
     decimals
-  } = await loadFixture(depositPoolFixture);
+  } = await loadFixture(deployPoolFixture);
+
+  // AURORA deposits to the Vault.
+  const aliceDeposit = ethers.BigNumber.from(6_000).mul(decimals);
+  await auroraTokenContract.connect(alice).approve(stakedAuroraVaultContract.address, aliceDeposit);
+  await stakedAuroraVaultContract.connect(alice).deposit(aliceDeposit, alice.address);
+
+  const bobDeposit = ethers.BigNumber.from(100_000).mul(decimals);
+  await auroraTokenContract.connect(bob).approve(stakedAuroraVaultContract.address, bobDeposit);
+  await stakedAuroraVaultContract.connect(bob).deposit(bobDeposit, bob.address);
+
+  const carlDeposit = ethers.BigNumber.from(24_000).mul(decimals);
+  await auroraTokenContract.connect(carl).approve(stakedAuroraVaultContract.address, carlDeposit);
+  await stakedAuroraVaultContract.connect(carl).deposit(carlDeposit, carl.address);
 
   const providerDeposit = ethers.BigNumber.from(1_000_000).mul(decimals);
-  await auroraTokenContract.connect(liquidity_provider).approve(liquidityPoolContract.address, providerDeposit);
-  await stakedAuroraVaultContract.connect(alice).deposit(providerDeposit, liquidity_provider.address);
+  await auroraTokenContract.connect(liquidity_provider).approve(stakedAuroraVaultContract.address, providerDeposit);
+  await stakedAuroraVaultContract.connect(liquidity_provider).deposit(providerDeposit, liquidity_provider.address);
 
-  // const bobDeposit = ethers.BigNumber.from(100_000).mul(decimals);
+  await stakingManagerContract.cleanOrdersQueue();
+
+  // AURORA deposits to the Liquidity Pool.
+  await auroraTokenContract.connect(liquidity_provider).approve(liquidityPoolContract.address, providerDeposit);
+  await liquidityPoolContract.connect(alice).deposit(providerDeposit, liquidity_provider.address);
+
+  // StAUR deposits to the Liquidity Pool.
+  const providerSwap = ethers.BigNumber.from(90_000).mul(decimals); // The amount of stAUR the provider will swap back to AURORA.
+  await stakedAuroraVaultContract.connect(liquidity_provider).approve(liquidityPoolContract.address, providerSwap);
+  await liquidityPoolContract.connect(alice).deposit(providerDeposit, liquidity_provider.address);
+
+  // const aliceDeposit = ethers.BigNumber.from(3_000).mul(decimals);
+  // await auroraTokenContract.connect(alice).approve(stakedAuroraVaultContract.address, aliceDeposit);
+  // await stakedAuroraVaultContract.connect(alice).deposit(aliceDeposit, alice.address);
+
+  // const bobDeposit = ethers.BigNumber.from(3_000).mul(decimals);
   // await auroraTokenContract.connect(bob).approve(stakedAuroraVaultContract.address, bobDeposit);
   // await stakedAuroraVaultContract.connect(bob).deposit(bobDeposit, bob.address);
 
-  // const carlDeposit = ethers.BigNumber.from(24_000).mul(decimals);
+  // const carlDeposit = ethers.BigNumber.from(4_000).mul(decimals);
   // await auroraTokenContract.connect(carl).approve(stakedAuroraVaultContract.address, carlDeposit);
   // await stakedAuroraVaultContract.connect(carl).deposit(carlDeposit, carl.address);
-
-  // await stakingManagerContract.cleanOrdersQueue();
 
   return {
     auroraTokenContract,

@@ -23,14 +23,15 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
       expect(await liquidityPoolContract.swapFeeBasisPoints()).to.equal(200);
     });
 
-    // it("Should assign the total supply of Aurora tokens to Alice, Bob and Carl.", async function () {
+    // it("Should assign the total supply of Aurora tokens to Alice, Bob, Carl and Liq Provider.", async function () {
     //   const {
     //     auroraTokenContract,
     //     auroraStakingContract,
     //     alice,
     //     bob,
     //     carl
-    //   } = await loadFixture(deployPoolFixture);
+    //   } = await loadFixture(liquidityPoolFixture);
+
     //   const aliceBalance = await auroraTokenContract.balanceOf(alice.address);
     //   const bobBalance = await auroraTokenContract.balanceOf(bob.address);
     //   const carlBalance = await auroraTokenContract.balanceOf(carl.address);

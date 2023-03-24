@@ -57,6 +57,7 @@ describe("Staking Pool AURORA", function () {
         bob,
         carl
       } = await loadFixture(deployPoolFixture);
+
       const aliceBalance = await auroraTokenContract.balanceOf(alice.address);
       const bobBalance = await auroraTokenContract.balanceOf(bob.address);
       const carlBalance = await auroraTokenContract.balanceOf(carl.address);
@@ -768,6 +769,44 @@ describe("Staking Pool AURORA", function () {
   });
 
   describe("Give the allowance to a 3rd party 🦅 to withdraw/redeem", function () {
+    it("Alice will redeem and withdraw Carl assets.", async function () {
+      const {
+        stakedAuroraVaultContract,
+        stakingManagerContract,
+        alice,
+        carl,
+        decimals
+      } = await loadFixture(depositPoolFixture);
+
+      // const carlDeposit = ethers.BigNumber.from(24_000).mul(decimals); // Original deposit
+      const carlAllowAllice = ethers.BigNumber.from(10_000).mul(decimals);
+      expect(await stakingManagerContract.getPendingOrderAssets(alice.address)).to.equal(0);
+      expect(await stakingManagerContract.getPendingOrderAssets(carl.address)).to.equal(0);
+
+      await stakedAuroraVaultContract.connect(carl).approve(alice.address, carlAllowAllice);
+
+      await expect(
+        stakedAuroraVaultContract.connect(alice).redeem(carlAllowAllice, alice.address, alice.address)
+      ).to.be.revertedWith("ERC20: burn amount exceeds balance");
+      await stakedAuroraVaultContract.connect(alice).redeem(carlAllowAllice, alice.address, carl.address);
+
+      // Move forward: From redeem to pending.
+      await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
+      await stakingManagerContract.cleanOrdersQueue();
+
+      expect(await stakingManagerContract.getPendingOrderAssets(alice.address)).to.be.greaterThan(0);
+      expect(await stakingManagerContract.getPendingOrderAssets(carl.address)).to.equal(0);
+
+      // Move forward: From pending to available.
+      await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
+      await stakingManagerContract.cleanOrdersQueue();
+
+      const carlAvailableAssets = await stakingManagerContract.getAvailableAssets(carl.address);
+      await stakedAuroraVaultContract.connect(alice).withdraw(carlAvailableAssets, carl.address, carl.address);
+    });
+  });
+
+  describe("Using the Liquidity Pool 🎱 to cover users deplosits (FLOW 1).", function () {
     it("Alice will redeem and withdraw Carl assets.", async function () {
       const {
         stakedAuroraVaultContract,
