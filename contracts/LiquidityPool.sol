@@ -12,6 +12,7 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 contract LiquidityPool is ERC4626, Ownable {
     using SafeERC20 for IERC20;
+    using SafeERC20 for IStakedAuroraVault;
     using SafeMath for uint256;
 
     address public stAurVault;
@@ -30,6 +31,7 @@ contract LiquidityPool is ERC4626, Ownable {
     // uint16 public constant MIN_FEE = 30;
     // uint16 public constant MAX_FEE = 500;
     uint256 public swapFeeBasisPoints;
+    uint256 public colledtedStAurFees;
     uint128 private constant ONE_AURORA = 1 ether;
 
     event AddLiquidity(
@@ -79,19 +81,6 @@ contract LiquidityPool is ERC4626, Ownable {
 
     receive() external payable {}
 
-
-
-    function _checkAccount(address _expected) private view {
-        require(msg.sender == _expected, "Access error");
-    }
-
-    function _checkDeposit(uint _amount) internal view {
-        require(
-            _amount >= minDepositAmount,
-            "Deposit does not cover minimum amount"
-        );
-    }
-
     function updateMinimumLiquidity(uint256 _amount) external onlyOwner {
         minimumLiquidity = _amount;
     }
@@ -118,6 +107,7 @@ contract LiquidityPool is ERC4626, Ownable {
     function totalAssets() public view override returns (uint) {
         return
             auroraBalance +
+            // TODO: Change this for stAurBalance!!!!!!!
             IStakedAuroraVault(stAurVault).convertToAssets(
                 IStakedAuroraVault(stAurVault).balanceOf(address(this))
             );
@@ -143,24 +133,6 @@ contract LiquidityPool is ERC4626, Ownable {
         // _deposit(_msgSender(), _receiver, assets, _shares);
 
         // return assets;
-    }
-
-    function _deposit(
-        address _caller,
-        address _receiver,
-        uint _assets,
-        uint _shares
-    ) internal virtual override {
-        IERC20(asset()).safeTransferFrom(
-            msg.sender,
-            address(this),
-            _assets
-        );
-        auroraBalance += _assets;
-        _mint(_receiver, _shares);
-
-        // TODO: Change events for standard events.
-        emit AddLiquidity(_caller, _receiver, _assets, _shares);
     }
 
     function withdraw(
@@ -211,8 +183,36 @@ contract LiquidityPool is ERC4626, Ownable {
         return auroraToSend;
     }
 
+    function previewSwapStAurForAurora(uint256 _amount) external view returns (uint256) {
+        (uint256 discountedAmount,) = _calculatePoolFees(_amount);
+        return IStakedAuroraVault(stAurVault).convertToAssets(discountedAmount);
+    }
+
+    function swapStAurforAurora(
+        uint256 _amount,
+        uint256 _minAuroraToReceive
+    ) external {
+        IStakedAuroraVault vault = IStakedAuroraVault(stAurVault);
+        (uint256 discountedAmount, uint256 fee) = _calculatePoolFees(_amount);
+        uint256 auroraToSend = vault.convertToAssets(discountedAmount);
+
+        require(auroraToSend <= auroraBalance, "NOT_ENOUGH_AURORA");
+        require(auroraToSend >= _minAuroraToReceive, "UNREACHED_MIN_SWAP_AMOUNT");
+
+        stAurBalance += discountedAmount;
+        colledtedStAurFees += fee;
+        auroraBalance -= auroraToSend;
+
+        // Step 1. Get the caller stAur tokens.
+        vault.safeTransferFrom(msg.sender, address(this), _amount);
+
+        // Step 2. Transfer the Aurora tokens to the caller.
+        IERC20(auroraToken).safeTransfer(msg.sender, auroraToSend);
+    }
+
     // TODO: instead of StAurora use StAur.
     // ⚠️ Increase the stAurBalance!!!
+    // DEPRECATED! see above.
     function swapStAuroraforAurora(
         uint _amount,
         uint _minReceived
@@ -231,5 +231,44 @@ contract LiquidityPool is ERC4626, Ownable {
         auroraBalance -= amountToAurora;
         emit Swap(msg.sender, _amount, amountToAurora, feeAmount);
         return amountToAurora;
+    }
+
+    // PRIVATE ZONE
+
+    function _checkAccount(address _expected) private view {
+        require(msg.sender == _expected, "Access error");
+    }
+
+    function _checkDeposit(uint _amount) private view {
+        require(
+            _amount >= minDepositAmount,
+            "Deposit does not cover minimum amount"
+        );
+    }
+
+    function _calculatePoolFees(uint256 _amount)
+        private
+        view
+        returns (uint256 _discountedAmount, uint256 _fee) {
+        uint256 fee = (_amount * swapFeeBasisPoints) / 10_000;
+        return (_amount - fee, fee);
+    }
+
+    function _deposit(
+        address _caller,
+        address _receiver,
+        uint _assets,
+        uint _shares
+    ) internal virtual override {
+        IERC20(asset()).safeTransferFrom(
+            msg.sender,
+            address(this),
+            _assets
+        );
+        auroraBalance += _assets;
+        _mint(_receiver, _shares);
+
+        // TODO: Change events for standard events.
+        emit AddLiquidity(_caller, _receiver, _assets, _shares);
     }
 }

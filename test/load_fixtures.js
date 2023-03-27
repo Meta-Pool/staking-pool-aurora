@@ -234,12 +234,19 @@ async function liquidityPoolFixture() {
 
   // AURORA deposits to the Liquidity Pool.
   await auroraTokenContract.connect(liquidity_provider).approve(liquidityPoolContract.address, providerDeposit);
-  await liquidityPoolContract.connect(alice).deposit(providerDeposit, liquidity_provider.address);
+  await liquidityPoolContract.connect(liquidity_provider).deposit(providerDeposit, liquidity_provider.address);
 
   // StAUR deposits to the Liquidity Pool.
   const providerSwap = ethers.BigNumber.from(90_000).mul(decimals); // The amount of stAUR the provider will swap back to AURORA.
   await stakedAuroraVaultContract.connect(liquidity_provider).approve(liquidityPoolContract.address, providerSwap);
-  await liquidityPoolContract.connect(alice).deposit(providerDeposit, liquidity_provider.address);
+
+  console.log("TOTAL stAUR supply: ", await stakedAuroraVaultContract.totalSupply());
+  console.log("TEST: ", await liquidityPoolContract.previewSwapStAurForAurora(ethers.BigNumber.from("122999995906279770504128600")));
+
+
+
+
+  // await liquidityPoolContract.connect(alice).deposit(providerDeposit, liquidity_provider.address);
 
   // const aliceDeposit = ethers.BigNumber.from(3_000).mul(decimals);
   // await auroraTokenContract.connect(alice).approve(stakedAuroraVaultContract.address, aliceDeposit);

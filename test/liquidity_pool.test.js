@@ -23,22 +23,31 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
       expect(await liquidityPoolContract.swapFeeBasisPoints()).to.equal(200);
     });
 
-    // it("Should assign the total supply of Aurora tokens to Alice, Bob, Carl and Liq Provider.", async function () {
-    //   const {
-    //     auroraTokenContract,
-    //     auroraStakingContract,
-    //     alice,
-    //     bob,
-    //     carl
-    //   } = await loadFixture(liquidityPoolFixture);
+    it("Should assign the total supply of Aurora tokens to Alice, Bob, Carl and Liq Provider.", async function () {
+      const {
+        auroraTokenContract,
+        auroraStakingContract,
+        liquidityPoolContract,
+        liquidity_provider,
+        alice,
+        bob,
+        carl
+      } = await loadFixture(liquidityPoolFixture);
 
-    //   const aliceBalance = await auroraTokenContract.balanceOf(alice.address);
-    //   const bobBalance = await auroraTokenContract.balanceOf(bob.address);
-    //   const carlBalance = await auroraTokenContract.balanceOf(carl.address);
-    //   const stakingBalance = await auroraTokenContract.balanceOf(auroraStakingContract.address);
-    //   expect(await auroraTokenContract.totalSupply()).to.equal(
-    //     aliceBalance.add(bobBalance).add(carlBalance).add(stakingBalance));
-    // });
+      // AURORA tokens in the users balances.
+      const aliceBalance = await auroraTokenContract.balanceOf(alice.address);
+      const bobBalance = await auroraTokenContract.balanceOf(bob.address);
+      const carlBalance = await auroraTokenContract.balanceOf(carl.address);
+      const stakingBalance = await auroraTokenContract.balanceOf(auroraStakingContract.address);
+      const liquidityBalance = await auroraTokenContract.balanceOf(liquidity_provider.address);
+
+      // AURORA tokens in the liquidity pool.
+      const lpTokenBalance = await liquidityPoolContract.balanceOf(liquidity_provider.address);
+      const poolBalance = await liquidityPoolContract.convertToAssets(lpTokenBalance);
+
+      expect(await auroraTokenContract.totalSupply()).to.equal(
+        aliceBalance.add(bobBalance).add(carlBalance).add(stakingBalance).add(liquidityBalance).add(poolBalance));
+    });
   });
 });
 

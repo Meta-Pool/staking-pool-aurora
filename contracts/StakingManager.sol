@@ -146,15 +146,6 @@ contract StakingManager is AccessControl {
         nextDepositor = _nextDepositor;
     }
 
-    function _calculateStakeValue(uint256 _shares) private view returns (uint256) {
-        IAuroraStaking aurora = IAuroraStaking(auroraStaking);
-        uint256 denominator = aurora.totalAuroraShares();
-        if (denominator == 0) return 0;
-        uint256 numerator = _shares * aurora.getTotalAmountOfStakedAurora();
-        uint256 stakeValue = numerator / denominator;
-        return stakeValue;
-    }
-
     function getTotalAssetsFromDepositor(address _depositor) public view returns (uint256) {
         uint256 depositorAuroraShares = depositorShares[_depositor];
         if (depositorAuroraShares == 0) return 0;
@@ -321,5 +312,14 @@ contract StakingManager is AccessControl {
                 if (alreadyWithdraw == totalWithdraw) return;
             }
         }
+    }
+
+    function _calculateStakeValue(uint256 _shares) private view returns (uint256) {
+        IAuroraStaking aurora = IAuroraStaking(auroraStaking);
+        uint256 denominator = aurora.totalAuroraShares();
+        if (denominator == 0) return 0;
+        uint256 numerator = _shares * aurora.getTotalAmountOfStakedAurora();
+        uint256 stakeValue = numerator / denominator;
+        return stakeValue;
     }
 }
