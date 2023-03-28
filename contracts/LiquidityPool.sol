@@ -27,6 +27,8 @@ contract LiquidityPool is ERC4626, Ownable {
     uint256 public swapFeeBasisPoints;
     uint256 public colledtedStAurFees;
 
+    uint128 private constant ONE_AURORA = 1 ether;
+
     event AddLiquidity(
         address indexed user,
         address indexed receiver,
@@ -210,7 +212,7 @@ contract LiquidityPool is ERC4626, Ownable {
         // Step 2. Transfer the Aurora tokens to the caller.
         IERC20(auroraToken).safeTransfer(msg.sender, auroraToSend);
 
-        emit Swap(msg.sender, _amount, auroraToSend, fee);
+        emit SwapStAurForAurora(msg.sender, _amount, auroraToSend, fee);
     }
 
     // TODO: instead of StAurora use StAur.
@@ -232,7 +234,7 @@ contract LiquidityPool is ERC4626, Ownable {
 
         IERC20(asset()).safeTransferFrom(msg.sender, address(this), _amount);
         auroraBalance -= amountToAurora;
-        emit Swap(msg.sender, _amount, amountToAurora, feeAmount);
+        emit SwapStAurForAurora(msg.sender, _amount, amountToAurora, feeAmount);
         return amountToAurora;
     }
 
