@@ -16,38 +16,40 @@ contract LiquidityPool is ERC4626, Ownable {
     address public stAurVault;
     address public auroraToken;
 
+    /// @dev Internal accounting for the two vault assets.
     uint256 public stAurBalance;
     uint256 public auroraBalance;
 
-    // address public stakingManager;
     uint256 public minimumLiquidity;
     uint256 public minDepositAmount;
-    // // Check if a treasury is needed
-    // address public treasury;
 
-    // BASIS POINTS
-    // uint16 public constant MIN_FEE = 30;
-    // uint16 public constant MAX_FEE = 500;
+    /// @dev Fee is represented as Basis Point (100 points == 0.01%).
     uint256 public swapFeeBasisPoints;
     uint256 public colledtedStAurFees;
-    uint128 private constant ONE_AURORA = 1 ether;
 
     event AddLiquidity(
         address indexed user,
         address indexed receiver,
-        uint amount,
-        uint shares
+        uint256 amount,
+        uint256 shares
     );
+
     event RemoveLiquidity(
         address indexed user,
-        uint shares,
-        uint aurora,
-        uint stAurVault
+        uint256 shares,
+        uint256 aurora,
+        uint256 stAurVault
     );
-    event Swap(address indexed user, uint amountIn, uint amountOut, uint fees);
 
-    modifier validDeposit(uint _amount) {
-        _checkDeposit(_amount);
+    event SwapStAurForAurora(
+        address indexed _user,
+        uint256 _stAurAmount,
+        uint256 _auroraAmount,
+        uint256 _fee
+    );
+
+    modifier validDeposit(uint256 _amount) {
+        require(_amount >= minDepositAmount, "BELOW_MIN_DEPOSIT");
         _;
     }
 
@@ -73,8 +75,6 @@ contract LiquidityPool is ERC4626, Ownable {
         auroraToken = _auroraToken;
         minDepositAmount = _minDepositAmount;
         swapFeeBasisPoints = _swapFeeBasisPoints;
-        // stAurBalance = 0;
-        // auroraBalance = 0;
     }
 
     receive() external payable {}
@@ -83,32 +83,35 @@ contract LiquidityPool is ERC4626, Ownable {
         minimumLiquidity = _amount;
     }
 
-    function transferStAur(address _receiver, uint256 _amount) external onlyStAurVault returns (bool) {
+    /// @dev This function will ONLY be called by the stAUR vault
+    /// @dev to cover Aurora deposits (FLOW 1).
+    function transferStAur(
+        address _receiver,
+        uint256 _amount
+    ) external onlyStAurVault returns (bool) {
         if (stAurBalance >= _amount) {
             stAurBalance -= _amount;
-            IStakedAuroraVault vault = IStakedAuroraVault(stAurVault);
-            // TODO: ⚠️ WARNING! is there a way to do this transfer in a safer way?
-            vault.transfer(_receiver, _amount);
+            IStakedAuroraVault(stAurVault).safeTransfer(_receiver, _amount);
             return true;
         } else {
             return false;
         }
     }
 
+    /// @dev If stAUR is transfered from the LP {see transferStAur()},
+    /// @dev then Aurora MUST be claimed from the vault (FLOW 1).
     function getAuroraFromVault(uint256 _assets) external onlyStAurVault {
         auroraBalance += _assets;
-        IERC20 aurora = IERC20(auroraToken);
-        aurora.safeTransferFrom(stAurVault, address(this), _assets);
+        IERC20(auroraToken).safeTransferFrom(stAurVault, address(this), _assets);
     }
 
-    /// @notice Return the amount of stAur and Aurora equivalent to Aurora in the pool
+    /// @notice The returned amount is denominated in Aurora Tokens.
+    /// @dev Return the balance of Aurora and the current value in Aurora for the stAUR balance.
     function totalAssets() public view override returns (uint) {
-        return
-            auroraBalance +
-            // TODO: Change this for stAurBalance!!!!!!!
-            IStakedAuroraVault(stAurVault).convertToAssets(
-                IStakedAuroraVault(stAurVault).balanceOf(address(this))
-            );
+        return (
+            auroraBalance
+                + IStakedAuroraVault(stAurVault).convertToAssets(stAurBalance)
+        );
     }
 
     // TODO: WARINING ⚠️
@@ -235,16 +238,9 @@ contract LiquidityPool is ERC4626, Ownable {
 
     // PRIVATE ZONE
 
-    function _checkAccount(address _expected) private view {
-        require(msg.sender == _expected, "Access error");
-    }
-
-    function _checkDeposit(uint _amount) private view {
-        require(
-            _amount >= minDepositAmount,
-            "Deposit does not cover minimum amount"
-        );
-    }
+    // function _checkAccount(address _expected) private view {
+    //     require(msg.sender == _expected, "Access error");
+    // }
 
     function _calculatePoolFees(uint256 _amount)
         private
