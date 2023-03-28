@@ -6,14 +6,12 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 // import "hardhat/console.sol";
 
 contract LiquidityPool is ERC4626, Ownable {
     using SafeERC20 for IERC20;
     using SafeERC20 for IStakedAuroraVault;
-    using SafeMath for uint256;
 
     address public stAurVault;
     address public auroraToken;

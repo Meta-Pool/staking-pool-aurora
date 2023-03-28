@@ -11,6 +11,8 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
 // import "hardhat/console.sol";
 
+// NOTE: SafeMath is no longer needed starting with Solidity 0.8. The compiler now has built in overflow checking.
+
 contract StakedAuroraVault is ERC4626, Ownable {
     using SafeERC20 for IERC20;
 
