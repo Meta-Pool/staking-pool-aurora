@@ -208,6 +208,8 @@ contract LiquidityPool is ERC4626, Ownable {
 
         // Step 2. Transfer the Aurora tokens to the caller.
         IERC20(auroraToken).safeTransfer(msg.sender, auroraToSend);
+
+        emit Swap(msg.sender, _amount, auroraToSend, fee);
     }
 
     // TODO: instead of StAurora use StAur.
@@ -260,12 +262,13 @@ contract LiquidityPool is ERC4626, Ownable {
         uint _assets,
         uint _shares
     ) internal virtual override {
+        auroraBalance += _assets;
+
         IERC20(asset()).safeTransferFrom(
             msg.sender,
             address(this),
             _assets
         );
-        auroraBalance += _assets;
         _mint(_receiver, _shares);
 
         // TODO: Change events for standard events.
