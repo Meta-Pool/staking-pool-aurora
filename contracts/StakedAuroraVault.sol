@@ -102,7 +102,7 @@ contract StakedAuroraVault is ERC4626, Ownable {
         minDepositAmount = _amount;
     }
 
-    /// In case of any emergency 🦺 the contract will not be fully operational.
+    /// Use in case of emergency 🦺.
     function toggleFullyOperational() external onlyOwner {
         require(liquidityPool != address(0) && stakingManager != address(0), "CONTRACT_NOT_INITIALIZED");
         fullyOperational = !fullyOperational;

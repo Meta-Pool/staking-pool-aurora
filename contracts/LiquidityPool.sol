@@ -27,6 +27,8 @@ contract LiquidityPool is ERC4626, Ownable {
     uint256 public swapFeeBasisPoints;
     uint256 public colledtedStAurFees;
 
+    bool public fullyOperational;
+
     uint128 private constant ONE_AURORA = 1 ether;
 
     event AddLiquidity(
@@ -55,6 +57,11 @@ contract LiquidityPool is ERC4626, Ownable {
         _;
     }
 
+    modifier onlyFullyOperational() {
+        require(fullyOperational, "CONTRACT_IS_NOT_FULLY_OPERATIONAL");
+        _;
+    }
+
     constructor(
         address _stAurVault,
         address _auroraToken,
@@ -72,9 +79,15 @@ contract LiquidityPool is ERC4626, Ownable {
         auroraToken = _auroraToken;
         minDepositAmount = _minDepositAmount;
         swapFeeBasisPoints = _swapFeeBasisPoints;
+        fullyOperational = true;
     }
 
     receive() external payable {}
+
+    /// Use in case of emergency 🦺.
+    function toggleFullyOperational() external onlyOwner {
+        fullyOperational = !fullyOperational;
+    }
 
     function updateMinimumLiquidity(uint256 _amount) external onlyOwner {
         minimumLiquidity = _amount;
@@ -115,11 +128,13 @@ contract LiquidityPool is ERC4626, Ownable {
     function deposit(
         uint _assets,
         address _receiver
-    ) public override returns (uint256) {
+    ) public override onlyFullyOperational returns (uint256) {
+        require(_assets <= maxDeposit(_receiver), "ERC4626: deposit more than max");
         require(_assets >= minDepositAmount, "LESS_THAN_MIN_DEPOSIT_AMOUNT");
-        // shares cannot be calculate without considering the 2 assets.
+
         uint _shares = previewDeposit(_assets);
         _deposit(_msgSender(), _receiver, _assets, _shares);
+
         return _shares;
     }
 
@@ -236,10 +251,6 @@ contract LiquidityPool is ERC4626, Ownable {
 
     // PRIVATE ZONE
 
-    // function _checkAccount(address _expected) private view {
-    //     require(msg.sender == _expected, "Access error");
-    // }
-
     function _calculatePoolFees(uint256 _amount)
         private
         view
@@ -251,16 +262,11 @@ contract LiquidityPool is ERC4626, Ownable {
     function _deposit(
         address _caller,
         address _receiver,
-        uint _assets,
-        uint _shares
+        uint256 _assets,
+        uint256 _shares
     ) internal virtual override {
         auroraBalance += _assets;
-
-        IERC20(asset()).safeTransferFrom(
-            msg.sender,
-            address(this),
-            _assets
-        );
+        IERC20(asset()).safeTransferFrom(_caller, address(this), _assets);
         _mint(_receiver, _shares);
 
         // TODO: Change events for standard events.
