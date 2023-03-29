@@ -112,6 +112,12 @@ async function deployPoolFixture() {
   // Staking Aurora Vault should be fully operational by now.
   expect(await stakedAuroraVaultContract.fullyOperational()).to.be.true;
 
+  // Whitelisting all the accounts.
+  await stakedAuroraVaultContract.connect(owner).whitelistAccount(alice.address);
+  await stakedAuroraVaultContract.connect(owner).whitelistAccount(bob.address);
+  await stakedAuroraVaultContract.connect(owner).whitelistAccount(carl.address);
+  await stakedAuroraVaultContract.connect(owner).whitelistAccount(liquidity_provider.address);
+
   // Fixtures can return anything you consider useful for your tests
   return {
     auroraTokenContract,
@@ -153,6 +159,11 @@ async function depositPoolFixture() {
     decimals
   } = await loadFixture(deployPoolFixture);
 
+  // Blacklist some of the accounts for testing purposes.
+  await stakedAuroraVaultContract.connect(owner).blacklistAccount(alice.address);
+  await stakedAuroraVaultContract.connect(owner).blacklistAccount(bob.address);
+  await stakedAuroraVaultContract.connect(owner).blacklistAccount(carl.address);
+
   // Test deposit with a not fully operational contract.
   const aliceDeposit = ethers.BigNumber.from(6_000).mul(decimals);
   await auroraTokenContract.connect(alice).approve(stakedAuroraVaultContract.address, aliceDeposit);
@@ -161,11 +172,23 @@ async function depositPoolFixture() {
     stakedAuroraVaultContract.connect(alice).deposit(aliceDeposit, alice.address)
   ).to.be.revertedWith("CONTRACT_IS_NOT_FULLY_OPERATIONAL");
   await stakedAuroraVaultContract.connect(owner).toggleFullyOperational();
+
+  await expect(
+    stakedAuroraVaultContract.connect(alice).deposit(aliceDeposit, alice.address)
+  ).to.be.revertedWith("ACCOUNT_IS_NOT_WHITELISTED");
+
+  await stakedAuroraVaultContract.connect(owner).whitelistAccount(alice.address);
   await stakedAuroraVaultContract.connect(alice).deposit(aliceDeposit, alice.address);
+
+  await stakedAuroraVaultContract.connect(owner).toggleEnforceWhitelist();
 
   const bobDeposit = ethers.BigNumber.from(100_000).mul(decimals);
   await auroraTokenContract.connect(bob).approve(stakedAuroraVaultContract.address, bobDeposit);
   await stakedAuroraVaultContract.connect(bob).deposit(bobDeposit, bob.address);
+
+  await stakedAuroraVaultContract.connect(owner).toggleEnforceWhitelist();
+  await stakedAuroraVaultContract.connect(owner).whitelistAccount(bob.address);
+  await stakedAuroraVaultContract.connect(owner).whitelistAccount(carl.address);
 
   const carlDeposit = ethers.BigNumber.from(24_000).mul(decimals);
   await auroraTokenContract.connect(carl).approve(stakedAuroraVaultContract.address, carlDeposit);
@@ -261,5 +284,3 @@ module.exports = {
   depositPoolFixture,
   liquidityPoolFixture
 };
-
-  

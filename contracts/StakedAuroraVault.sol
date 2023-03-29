@@ -24,11 +24,14 @@ contract StakedAuroraVault is ERC4626, Ownable {
     uint256 public minDepositAmount;
 
     bool public fullyOperational;
+    bool public enforceWhitelist;
+
+    mapping(address => bool) public accountWhitelist;
 
     modifier onlyManager() {
         require(
             stakingManager != address(0)
-                && msg.sender == stakingManager,
+                && _msgSender() == stakingManager,
             "ONLY_STAKING_MANAGER"
         );
         _;
@@ -36,6 +39,13 @@ contract StakedAuroraVault is ERC4626, Ownable {
 
     modifier onlyFullyOperational() {
         require(fullyOperational, "CONTRACT_IS_NOT_FULLY_OPERATIONAL");
+        _;
+    }
+
+    modifier checkWhitelist() {
+        if (enforceWhitelist) {
+            require(accountWhitelist[_msgSender()], "ACCOUNT_IS_NOT_WHITELISTED");
+        }
         _;
     }
 
@@ -51,6 +61,7 @@ contract StakedAuroraVault is ERC4626, Ownable {
         require(_asset != address(0), "INVALID_ZERO_ADDRESS");
         minDepositAmount = _minDepositAmount;
         fullyOperational = false;
+        enforceWhitelist = true;
     }
 
     function initializeStakingManager(address _stakingManager) external onlyOwner {
@@ -91,9 +102,22 @@ contract StakedAuroraVault is ERC4626, Ownable {
         minDepositAmount = _amount;
     }
 
+    /// In case of any emergency 🦺 the contract will not be fully operational.
     function toggleFullyOperational() external onlyOwner {
         require(liquidityPool != address(0) && stakingManager != address(0), "CONTRACT_NOT_INITIALIZED");
         fullyOperational = !fullyOperational;
+    }
+
+    function toggleEnforceWhitelist() external onlyOwner {
+        enforceWhitelist = !enforceWhitelist;
+    }
+
+    function whitelistAccount(address _account) external onlyOwner {
+        accountWhitelist[_account] = true;
+    }
+
+    function blacklistAccount(address _account) external onlyOwner {
+        accountWhitelist[_account] = false;
     }
 
     function getStAurPrice() public view returns (uint256) {
@@ -108,7 +132,7 @@ contract StakedAuroraVault is ERC4626, Ownable {
     function deposit(
         uint256 _assets,
         address _receiver
-    ) public override onlyFullyOperational returns (uint256) {
+    ) public override onlyFullyOperational checkWhitelist returns (uint256) {
         require(_assets <= maxDeposit(_receiver), "ERC4626: deposit more than max");
         require(_assets >= minDepositAmount, "LESS_THAN_MIN_DEPOSIT_AMOUNT");
 
@@ -123,7 +147,7 @@ contract StakedAuroraVault is ERC4626, Ownable {
     function mint(
         uint256 _shares,
         address _receiver
-    ) public override onlyFullyOperational returns (uint256) {
+    ) public override onlyFullyOperational checkWhitelist returns (uint256) {
         require(_shares <= maxMint(_receiver), "ERC4626: mint more than max");
 
         uint256 assets = previewMint(_shares);

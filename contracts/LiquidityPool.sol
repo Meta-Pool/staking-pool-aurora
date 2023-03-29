@@ -50,11 +50,6 @@ contract LiquidityPool is ERC4626, Ownable {
         uint256 _fee
     );
 
-    modifier validDeposit(uint256 _amount) {
-        require(_amount >= minDepositAmount, "BELOW_MIN_DEPOSIT");
-        _;
-    }
-
     modifier onlyStAurVault() {
         require(msg.sender == stAurVault, "ONLY_FOR_STAUR_VAULT");
         _;
@@ -109,7 +104,7 @@ contract LiquidityPool is ERC4626, Ownable {
 
     /// @notice The returned amount is denominated in Aurora Tokens.
     /// @dev Return the balance of Aurora and the current value in Aurora for the stAUR balance.
-    function totalAssets() public view override returns (uint) {
+    function totalAssets() public view override returns (uint256) {
         return (
             auroraBalance
                 + IStakedAuroraVault(stAurVault).convertToAssets(stAurBalance)
@@ -120,10 +115,11 @@ contract LiquidityPool is ERC4626, Ownable {
     function deposit(
         uint _assets,
         address _receiver
-    ) public override validDeposit(_assets) returns (uint) {
+    ) public override returns (uint256) {
+        require(_assets >= minDepositAmount, "LESS_THAN_MIN_DEPOSIT_AMOUNT");
         // shares cannot be calculate without considering the 2 assets.
         uint _shares = previewDeposit(_assets);
-        _deposit(msg.sender, _receiver, _assets, _shares);
+        _deposit(_msgSender(), _receiver, _assets, _shares);
         return _shares;
     }
 
