@@ -48,6 +48,21 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
       expect(await auroraTokenContract.totalSupply()).to.equal(
         aliceBalance.add(bobBalance).add(carlBalance).add(stakingBalance).add(liquidityBalance).add(poolBalance));
     });
+
+    it("Should fail for mint 🦗 and withdraw operations. Use deposit and redeem instead.", async function () {
+      const {
+        liquidityPoolContract,
+        alice
+      } = await loadFixture(deployPoolFixture);
+
+      await expect(
+        liquidityPoolContract.mint(10, alice.address)
+      ).to.be.revertedWith("UNAVAILABLE_FUNCTION");
+
+      await expect(
+        liquidityPoolContract.withdraw(10, alice.address, alice.address)
+      ).to.be.revertedWith("UNAVAILABLE_FUNCTION");
+    });
   });
 
   describe("Swap stAUR for Aurora.", function () {

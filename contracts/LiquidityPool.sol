@@ -29,8 +29,6 @@ contract LiquidityPool is ERC4626, Ownable {
 
     bool public fullyOperational;
 
-    uint128 private constant ONE_AURORA = 1 ether;
-
     event AddLiquidity(
         address indexed user,
         address indexed receiver,
@@ -124,77 +122,57 @@ contract LiquidityPool is ERC4626, Ownable {
         );
     }
 
-    // TODO: WARINING ⚠️
     function deposit(
-        uint _assets,
+        uint256 _assets,
         address _receiver
     ) public override onlyFullyOperational returns (uint256) {
         require(_assets <= maxDeposit(_receiver), "ERC4626: deposit more than max");
         require(_assets >= minDepositAmount, "LESS_THAN_MIN_DEPOSIT_AMOUNT");
 
-        uint _shares = previewDeposit(_assets);
+        uint256 _shares = previewDeposit(_assets);
         _deposit(_msgSender(), _receiver, _assets, _shares);
 
         return _shares;
     }
 
-    function mint(uint256 _shares, address _receiver) public override returns (uint256) {
-        revert("USE deposit()");
-        // require(_shares <= maxMint(_receiver), "ERC4626: mint more than max");
-
-        // uint256 assets = previewMint(_shares);
-        // require(assets >= minDepositAmount, "LESS_THAN_MIN_DEPOSIT_AMOUNT");
-        // _deposit(_msgSender(), _receiver, assets, _shares);
-
-        // return assets;
-    }
-
-    function withdraw(
-        uint256 _assets,
+    function redeem(
+        uint256 _shares,
         address _receiver,
         address _owner
     ) public override returns (uint256) {
-        revert("USE redeem()");
-        // // TODO: ⛔ This flow is untested for withdraw and redeem. Test allowance.
-        // // By commenting out, we are running the test for 3rd party withdraw.
-        // // if (_owner != _msgSender()) require(false, "UNTESTED_ALLOWANCE_FOR_WITHDRAW");
-
-        // // console.log("Assets: %s", _assets);
-        // // console.log("max wi: %s", maxWithdraw(_owner));
-
-        // // TODO: ⛔ No require is being performed here! Please confirm it's safe!
-        // // require(_assets <= maxWithdraw(_owner), "ERC4626: withdraw more than max");
-
-        // // console.log("1. assets %s <> %s", _assets, 0);
-        // uint256 shares = previewWithdraw(_assets);
-        // // console.log("2. shares %s <> %s", shares, 0);
-        // // console.log("alice: %s", _owner);
-        // _withdraw(_msgSender(), _receiver, _owner, _assets, shares);
-        // // console.log("3. assets and shares %s <> %s", shares, 0);
-
-        // return shares;
-    }
-
-    function redeem(
-        uint _shares,
-        address _receiver,
-        address _owner
-    ) public virtual override returns (uint) {
-        if (msg.sender != _owner) {
-            _spendAllowance(_owner, msg.sender, _shares);
+        // TODO: test the allowance.
+        if (_msgSender() != _owner) {
+            _spendAllowance(_owner, _msgSender(), _shares);
         }
-        uint poolPercentage = (_shares * ONE_AURORA) / totalSupply();
-        uint auroraToSend = (poolPercentage * auroraBalance) / ONE_AURORA;
-        uint stAuroraToSend = (poolPercentage *
-            IStakedAuroraVault(stAurVault).balanceOf(address(this))) / ONE_AURORA;
-        _burn(msg.sender, _shares);
+
+        // IMPORTANT: run the burn 🔥 before the calculations.
+        _burn(_msgSender(), _shares);
+
+        // Core Calculations.
+        uint256 ONE_AURORA = 1 ether;
+        uint256 poolPercentage = (_shares * ONE_AURORA) / totalSupply();
+        uint256 auroraToSend = (poolPercentage * auroraBalance) / ONE_AURORA;
+        uint256 stAurToSend = (poolPercentage * stAurBalance) / ONE_AURORA;
+
+        auroraBalance -= auroraToSend;
+        stAurBalance -= stAurToSend;
+
+        // Send Aurora tokens.
         IERC20(asset()).safeTransfer(_receiver, auroraToSend);
 
-        // stAurVault is using two interfaces???? IStakedAuroraVault and IERC20
-        IERC20(stAurVault).safeTransfer(_receiver, stAuroraToSend);
-        auroraBalance -= auroraToSend;
-        emit RemoveLiquidity(msg.sender, _shares, auroraToSend, stAuroraToSend);
-        return auroraToSend;
+        // Then, send stAUR tokens.
+        IStakedAuroraVault(stAurVault).safeTransfer(_receiver, stAurToSend);
+
+        emit RemoveLiquidity(msg.sender, _shares, auroraToSend, stAurToSend);
+        return poolPercentage;
+    }
+
+    function mint(uint256, address) public override pure returns (uint256) {
+        revert("UNAVAILABLE_FUNCTION");
+    }
+
+    function withdraw(uint256, address, address) public override pure returns (uint256) {
+        revert("UNAVAILABLE_FUNCTION");
     }
 
     function previewSwapStAurForAurora(uint256 _amount) external view returns (uint256) {
