@@ -30,23 +30,24 @@ contract LiquidityPool is ERC4626, Ownable {
     bool public fullyOperational;
 
     event AddLiquidity(
-        address indexed user,
-        address indexed receiver,
-        uint256 amount,
-        uint256 shares
+        address indexed _user,
+        address indexed _receiver,
+        uint256 _shares,
+        uint256 _auroraAmount
     );
 
     event RemoveLiquidity(
-        address indexed user,
-        uint256 shares,
-        uint256 aurora,
-        uint256 stAurVault
+        address indexed _user,
+        address indexed _receiver,
+        uint256 _shares,
+        uint256 _auroraAmount,
+        uint256 _stAurAmount
     );
 
-    event SwapStAurForAurora(
+    event SwapStAur(
         address indexed _user,
-        uint256 _stAurAmount,
         uint256 _auroraAmount,
+        uint256 _stAurAmount,
         uint256 _fee
     );
 
@@ -163,7 +164,13 @@ contract LiquidityPool is ERC4626, Ownable {
         // Then, send stAUR tokens.
         IStakedAuroraVault(stAurVault).safeTransfer(_receiver, stAurToSend);
 
-        emit RemoveLiquidity(msg.sender, _shares, auroraToSend, stAurToSend);
+        emit RemoveLiquidity(
+            _msgSender(),
+            _receiver,
+            _shares,
+            auroraToSend,
+            stAurToSend
+        );
         return poolPercentage;
     }
 
@@ -181,11 +188,11 @@ contract LiquidityPool is ERC4626, Ownable {
     }
 
     function swapStAurforAurora(
-        uint256 _amount,
+        uint256 _stAurAmount,
         uint256 _minAuroraToReceive
     ) external {
         IStakedAuroraVault vault = IStakedAuroraVault(stAurVault);
-        (uint256 discountedAmount, uint256 fee) = _calculatePoolFees(_amount);
+        (uint256 discountedAmount, uint256 fee) = _calculatePoolFees(_stAurAmount);
         uint256 auroraToSend = vault.convertToAssets(discountedAmount);
 
         require(auroraToSend <= auroraBalance, "NOT_ENOUGH_AURORA");
@@ -196,35 +203,12 @@ contract LiquidityPool is ERC4626, Ownable {
         auroraBalance -= auroraToSend;
 
         // Step 1. Get the caller stAur tokens.
-        vault.safeTransferFrom(msg.sender, address(this), _amount);
+        vault.safeTransferFrom(msg.sender, address(this), _stAurAmount);
 
         // Step 2. Transfer the Aurora tokens to the caller.
         IERC20(auroraToken).safeTransfer(msg.sender, auroraToSend);
 
-        emit SwapStAurForAurora(msg.sender, _amount, auroraToSend, fee);
-    }
-
-    // TODO: instead of StAurora use StAur.
-    // ⚠️ Increase the stAurBalance!!!
-    // DEPRECATED! see above.
-    function swapStAuroraforAurora(
-        uint _amount,
-        uint _minReceived
-    ) external returns (uint) {
-        // uint16 feeRange = MAX_FEE - MIN_FEE;
-        uint amountToAurora = convertToAssets(_amount);
-        require(auroraBalance - amountToAurora > 0, "Not enough Aurora");
-        uint feeAmount = swapFeeBasisPoints;
-        amountToAurora = convertToAssets(_amount - feeAmount);
-        require(
-            amountToAurora >= _minReceived,
-            "Slippage error: Swap doesn't reach min amount"
-        );
-
-        IERC20(asset()).safeTransferFrom(msg.sender, address(this), _amount);
-        auroraBalance -= amountToAurora;
-        emit SwapStAurForAurora(msg.sender, _amount, amountToAurora, feeAmount);
-        return amountToAurora;
+        emit SwapStAur(msg.sender, auroraToSend, _stAurAmount, fee);
     }
 
     // PRIVATE ZONE
@@ -247,7 +231,6 @@ contract LiquidityPool is ERC4626, Ownable {
         IERC20(asset()).safeTransferFrom(_caller, address(this), _assets);
         _mint(_receiver, _shares);
 
-        // TODO: Change events for standard events.
-        emit AddLiquidity(_caller, _receiver, _assets, _shares);
+        emit AddLiquidity(_caller, _receiver, _shares, _assets);
     }
 }
