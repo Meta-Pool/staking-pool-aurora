@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { loadFixture, time } = require("@nomicfoundation/hardhat-network-helpers");
-const { deployPoolFixture, liquidityPoolFixture } = require("./load_fixtures");
+const { deployPoolFixture, liquidityPoolFixture } = require("./test_setup");
 
 const AURORA = ethers.BigNumber.from(1).mul(ethers.BigNumber.from(10).pow(18));
 
