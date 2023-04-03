@@ -259,7 +259,12 @@ contract StakingManager is AccessControl {
         _unstake(_assets, _shares, _receiver, _owner);
     }
 
-    function _unstake(uint256 _assets, uint256 _shares, address _receiver, address _owner) private {
+    function _unstake(
+        uint256 _assets,
+        uint256 _shares,
+        address _receiver,
+        address _owner
+    ) private {
         IStakedAuroraVault(stAurVault).burn(_owner, _shares);
         createWithdrawOrder(_assets, _receiver);
     }
