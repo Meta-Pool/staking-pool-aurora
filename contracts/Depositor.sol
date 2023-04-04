@@ -60,11 +60,9 @@ contract Depositor is Ownable {
         IERC20(auroraToken).safeTransfer(stakingManager, _assets);
     }
 
-    function getPending(address _account)
-        external
-        view
-        returns (uint256)
-    {
+    function getPending(
+        address _account
+    ) external view returns (uint256) {
         return IAuroraStaking(auroraStaking).getPending(0, _account);
     }
 
