@@ -15,6 +15,7 @@ contract StakingManager is AccessControl {
     using SafeERC20 for IERC20;
 
     bytes32 public constant DEPOSITORS_OWNER_ROLE = keccak256("DEPOSITORS_OWNER_ROLE");
+    // TODO: Unused ROLE! ⚠️
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
 
     address immutable public stAurVault;
