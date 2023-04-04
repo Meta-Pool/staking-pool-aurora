@@ -23,6 +23,8 @@ contract StakedAuroraVault is ERC4626, Ownable {
     address public liquidityPool;
     uint256 public minDepositAmount;
 
+    /// @dev When is NOT fully operational, users cannot:
+    /// @dev 1) mint, 2) deposit nor 3) create withdraw orders.
     bool public fullyOperational;
     bool public enforceWhitelist;
 
@@ -102,7 +104,7 @@ contract StakedAuroraVault is ERC4626, Ownable {
         minDepositAmount = _amount;
     }
 
-    /// Use in case of emergency 🦺.
+    /// @dev Use in case of emergency 🦺.
     function toggleFullyOperational() external onlyOwner {
         require(liquidityPool != address(0) && stakingManager != address(0), "CONTRACT_NOT_INITIALIZED");
         fullyOperational = !fullyOperational;
@@ -186,7 +188,7 @@ contract StakedAuroraVault is ERC4626, Ownable {
         uint256 _shares,
         address _receiver,
         address _owner
-    ) public override returns (uint256) {
+    ) public override onlyFullyOperational returns (uint256) {
         // TODO: ⛔ This flow is untested for withdraw and redeem.
         // By commenting out, we are running the test for 3rd party redeem.
         // if (_owner != _msgSender()) require(false, "UNTESTED_ALLOWANCE_FOR_REDEEM");
@@ -206,6 +208,15 @@ contract StakedAuroraVault is ERC4626, Ownable {
 
     function burn(address _owner, uint256 _shares) external onlyManager {
         _burn(_owner, _shares);
+    }
+
+    /// @dev Only called when the withdraw orders are cleared for emergency.
+    function emergencyMintRecover(
+        address _receiver,
+        uint256 _assets
+    ) external onlyManager {
+        uint256 shares = previewDeposit(_assets);
+        _mint(_receiver, shares);
     }
 
     /// @dev Deposit/mint common workflow.

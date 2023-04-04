@@ -15,33 +15,31 @@ contract StakingManager is AccessControl {
     using SafeERC20 for IERC20;
 
     bytes32 public constant DEPOSITORS_OWNER_ROLE = keccak256("DEPOSITORS_OWNER_ROLE");
-    // TODO: Unused ROLE! ⚠️
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
 
     address immutable public stAurVault;
     address immutable public auroraToken;
     address immutable public auroraStaking;
 
+    /// @dev Timestamp that allows the clean-orders process to run.
     uint256 public nextCleanOrderQueue;
 
     address[] public depositors;
     address public nextDepositor;
     mapping(address => uint256) depositorShares;
 
-    mapping(address => uint256) availableAssets;
-
+    /// @dev For the withdraw process, the assets follow this path:
+    /// @dev WithdrawOrder -> PendingOrders -> AvailableAssets
     withdrawOrder[] withdrawOrders;
     withdrawOrder[] pendingOrders;
+    mapping(address => uint256) availableAssets;
+
+    /// @dev The depositors and withdrawOrders arrays need to be looped.
+    /// @dev We enforce limits to the size of this two arrays.
+    uint256 maxWithdrawOrders;
+    uint256 maxDepositors;
 
     uint256 totalWithdrawInQueue;
-
-    // TODO: Not sure if this should become immutable.
-    // What if you use a fixed size array?
-    // ... or use the mapping trick? 🤷
-    uint256 maxWithdrawOrders;
-
-    uint256 public lpTotalAsset;
-    uint256 public lpTotalShare;
 
     struct withdrawOrder {
         uint256 assets;
@@ -57,27 +55,62 @@ contract StakingManager is AccessControl {
         address _stAurVault,
         address _auroraStaking,
         address _depositorOwner,
-        uint256 _maxWithdrawOrders
+        address _contractOperator,
+        uint256 _maxWithdrawOrders,
+        uint256 _maxDepositors
     ) {
         require(
             _stAurVault != address(0)
                 && _auroraStaking != address(0)
                 && _depositorOwner != address(0)
+                && _contractOperator != address(0)
         );
         stAurVault = _stAurVault;
         auroraStaking = _auroraStaking;
         auroraToken = IERC4626(_stAurVault).asset();
         maxWithdrawOrders = _maxWithdrawOrders;
+        maxDepositors = _maxDepositors;
         nextCleanOrderQueue = block.timestamp;
 
         _grantRole(DEPOSITORS_OWNER_ROLE, _depositorOwner);
+        _grantRole(OPERATOR_ROLE, _contractOperator);
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _grantRole(OPERATOR_ROLE, msg.sender);
     }
 
-    function insertDepositor(address _depositor) external onlyRole(DEPOSITORS_OWNER_ROLE) {
+    function insertDepositor(
+        address _depositor
+    ) external onlyRole(DEPOSITORS_OWNER_ROLE) {
+        require(depositors.length < maxDepositors, "DEPOSITORS_LIMIT_REACHED");
         depositors.push(_depositor);
         nextDepositor = _depositor;
+    }
+
+    function changeMaxDepositors(
+        uint256 _maxDepositors
+    ) external onlyRole(OPERATOR_ROLE) {
+        require(_maxDepositors != maxDepositors, "INVALID_CHANGE");
+        require(_maxDepositors >= depositors.length, "BELOW_CURRENT_LENGTH");
+        maxDepositors = _maxDepositors;
+    }
+
+    function changeMaxWithdrawOrders(
+        uint256 _maxWithdrawOrders
+    ) external onlyRole(OPERATOR_ROLE) {
+        require(_maxWithdrawOrders != maxWithdrawOrders, "INVALID_CHANGE");
+        require(_maxWithdrawOrders >= withdrawOrders.length, "BELOW_CURRENT_LENGTH");
+        maxWithdrawOrders = _maxWithdrawOrders;
+    }
+
+    /// @dev In case of emergency 🦺, return all funds to users with a withdraw order.
+    function emergencyClearWithdrawOrders() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(!IStakedAuroraVault(stAurVault).fullyOperational(), "ONLY_FOR_EMERGENCIES");
+        for (uint i = 0; i < withdrawOrders.length; i++) {
+            IStakedAuroraVault(stAurVault).emergencyMintRecover(
+                withdrawOrders[i].receiver,
+                withdrawOrders[i].assets
+            );
+        }
+        delete withdrawOrders;
     }
 
     /**
