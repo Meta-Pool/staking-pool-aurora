@@ -125,6 +125,10 @@ contract StakingManager is AccessControl {
         return 0;
     }
 
+    function getTotalWithdrawOrders() public view returns (uint256) {
+        return withdrawOrders.length;
+    }
+
     function getPendingOrderAssets(address _account) public view returns (uint256) {
         for (uint i = 0; i < pendingOrders.length; i++) {
             if (pendingOrders[i].receiver == _account) {
@@ -267,23 +271,6 @@ contract StakingManager is AccessControl {
         totalWithdrawInQueue = 0;
     }
 
-    function createWithdrawOrder(uint256 _assets, address _receiver) private {
-        require(withdrawOrders.length <= maxWithdrawOrders, "TOO_MANY_WITHDRAW_ORDERS");
-        totalWithdrawInQueue += _assets;
-
-        // console.log("ASSETS >>>>>>>> %s", _assets);
-
-        // TODO: Multiple storage access. It might fail. ⚠️
-        for (uint i = 0; i < withdrawOrders.length; i++) {
-            if (withdrawOrders[i].receiver == _receiver) {
-                withdrawOrder storage oldOrder = withdrawOrders[i];
-                oldOrder.assets += _assets;
-                return;
-            }
-        }
-        withdrawOrders.push(withdrawOrder(_assets, _receiver));
-    }
-
     function unstakeShares(
         uint256 _assets,
         uint256 _shares,
@@ -300,7 +287,21 @@ contract StakingManager is AccessControl {
         address _owner
     ) private {
         IStakedAuroraVault(stAurVault).burn(_owner, _shares);
-        createWithdrawOrder(_assets, _receiver);
+        _createWithdrawOrder(_assets, _receiver);
+    }
+
+    function _createWithdrawOrder(uint256 _assets, address _receiver) private {
+        require(withdrawOrders.length < maxWithdrawOrders, "TOO_MANY_WITHDRAW_ORDERS");
+        totalWithdrawInQueue += _assets;
+
+        for (uint i = 0; i < withdrawOrders.length; i++) {
+            if (withdrawOrders[i].receiver == _receiver) {
+                withdrawOrder storage oldOrder = withdrawOrders[i];
+                oldOrder.assets += _assets;
+                return;
+            }
+        }
+        withdrawOrders.push(withdrawOrder(_assets, _receiver));
     }
 
     function _withdrawFromDepositor() private {

@@ -870,69 +870,95 @@ describe("Staking Pool AURORA", function () {
   });
 
   describe("Emergency flow 🦺 works.", function () {
-    it("Should return withdraw orders to users.", async function () {
+    it("Should return TOTAL withdraw orders to users.", async function () {
       const {
         auroraTokenContract,
+        auroraStakingContract,
         stakedAuroraVaultContract,
-        liquidityPoolContract
+        stakingManagerContract,
+        depositor00Contract,
+        depositor01Contract,
+        liquidityPoolContract,
+        owner,
+        depositors_owner,
+        liquidity_pool_owner,
+        liquidity_provider,
+        operator,
+        alice,
+        bob,
+        carl,
+        spam0,
+        spam1,
+        spam2,
+        spam3,
+        spam4,
+        spam5,
+        spam6,
+        spam7,
+        spam8,
+        spam9
       } = await loadFixture(botsHordeFixture);
 
-      console.log("WE ARE HERE!");
+      const aliceShares = await stakedAuroraVaultContract.balanceOf(alice.address);
+      const bobShares = await stakedAuroraVaultContract.balanceOf(bob.address);
+      const carlShares = await stakedAuroraVaultContract.balanceOf(carl.address);
+      const liquidityProviderShares = await stakedAuroraVaultContract.balanceOf(liquidity_provider.address);
+      const spam0Shares = await stakedAuroraVaultContract.balanceOf(spam0.address);
+      const spam1Shares = await stakedAuroraVaultContract.balanceOf(spam1.address);
+      const spam2Shares = await stakedAuroraVaultContract.balanceOf(spam2.address);
+      const spam3Shares = await stakedAuroraVaultContract.balanceOf(spam3.address);
+      const spam4Shares = await stakedAuroraVaultContract.balanceOf(spam4.address);
+      const spam5Shares = await stakedAuroraVaultContract.balanceOf(spam5.address);
+      const spam6Shares = await stakedAuroraVaultContract.balanceOf(spam6.address);
+      const spam7Shares = await stakedAuroraVaultContract.balanceOf(spam7.address);
+      const spam8Shares = await stakedAuroraVaultContract.balanceOf(spam8.address);
+      const spam9Shares = await stakedAuroraVaultContract.balanceOf(spam9.address);
 
+      expect(await stakedAuroraVaultContract.totalSupply()).to.equal(
+        aliceShares.add(bobShares).add(carlShares).add(liquidityProviderShares).add(spam0Shares)
+          .add(spam1Shares).add(spam2Shares).add(spam3Shares).add(spam4Shares).add(spam5Shares)
+          .add(spam6Shares).add(spam7Shares).add(spam8Shares).add(spam9Shares)
+      );
 
+      await stakedAuroraVaultContract.connect(spam0).redeem(spam0Shares, spam0.address, spam0.address);
+      await stakedAuroraVaultContract.connect(spam1).redeem(spam1Shares, spam1.address, spam1.address);
+      await stakedAuroraVaultContract.connect(spam2).redeem(spam2Shares, spam2.address, spam2.address);
+      await stakedAuroraVaultContract.connect(spam3).redeem(spam3Shares, spam3.address, spam3.address);
+      await stakedAuroraVaultContract.connect(spam4).redeem(spam4Shares, spam4.address, spam4.address);
+      await stakedAuroraVaultContract.connect(spam5).redeem(spam5Shares, spam5.address, spam5.address);
+      await stakedAuroraVaultContract.connect(spam6).redeem(spam6Shares, spam6.address, spam6.address);
+      await stakedAuroraVaultContract.connect(spam7).redeem(spam7Shares, spam7.address, spam7.address);
+      await stakedAuroraVaultContract.connect(spam8).redeem(spam8Shares, spam8.address, spam8.address);
+      await stakedAuroraVaultContract.connect(spam9).redeem(spam9Shares, spam9.address, spam9.address);
 
-      // // StAUR deposits to the Liquidity Pool.
-      // const providerSwap = ethers.BigNumber.from(90_000).mul(DECIMALS); // The amount of stAUR the provider will swap back to AURORA.
-      // await stakedAuroraVaultContract.connect(liquidity_provider).approve(liquidityPoolContract.address, providerSwap);
-      // await liquidityPoolContract.connect(liquidity_provider).swapStAurforAurora(
-      //   providerSwap,
-      //   await liquidityPoolContract.previewSwapStAurForAurora(providerSwap)
-      // );
+      await expect(
+        stakedAuroraVaultContract.connect(alice).redeem(aliceShares, alice.address, alice.address)
+      ).to.be.revertedWith("TOO_MANY_WITHDRAW_ORDERS");
 
-      // var preTotalSupply = await stakedAuroraVaultContract.totalSupply();
-      // var preStAurBalance = await liquidityPoolContract.stAurBalance();
-      // const alicePreStAurBalance = await stakedAuroraVaultContract.balanceOf(alice.address);
-      // const aliceDeposit = ethers.BigNumber.from(24_000).mul(DECIMALS);
-      // await auroraTokenContract.connect(alice).approve(stakedAuroraVaultContract.address, aliceDeposit);
-      // await stakedAuroraVaultContract.connect(alice).deposit(aliceDeposit, alice.address);
-      // expect(preTotalSupply).to.equal(await stakedAuroraVaultContract.totalSupply());
-      // expect(preStAurBalance.sub(await liquidityPoolContract.stAurBalance())).to.equal(
-      //   (await stakedAuroraVaultContract.balanceOf(alice.address)).sub(alicePreStAurBalance)
-      // );
+      // Move forward: From withdraw to pending.
+      await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
+      await stakingManagerContract.cleanOrdersQueue();
 
-      // preTotalSupply = await stakedAuroraVaultContract.totalSupply();
-      // preStAurBalance = await liquidityPoolContract.stAurBalance();
-      // const bobPreStAurBalance = await stakedAuroraVaultContract.balanceOf(bob.address);
-      // const bobDeposit = ethers.BigNumber.from(50_000).mul(DECIMALS);
-      // await auroraTokenContract.connect(bob).approve(stakedAuroraVaultContract.address, bobDeposit);
-      // await stakedAuroraVaultContract.connect(bob).deposit(bobDeposit, bob.address);
-      // expect(preTotalSupply).to.equal(await stakedAuroraVaultContract.totalSupply());
-      // expect(preStAurBalance.sub(await liquidityPoolContract.stAurBalance())).to.equal(
-      //   (await stakedAuroraVaultContract.balanceOf(bob.address)).sub(bobPreStAurBalance)
-      // );
+      await stakedAuroraVaultContract.connect(alice).redeem(aliceShares, alice.address, alice.address);
+      await stakedAuroraVaultContract.connect(bob).redeem(bobShares, bob.address, bob.address);
+      await stakedAuroraVaultContract.connect(carl).redeem(carlShares, carl.address, carl.address);
 
-      // preTotalSupply = await stakedAuroraVaultContract.totalSupply();
-      // preStAurBalance = await liquidityPoolContract.stAurBalance();
-      // const carlPreStAurBalance = await stakedAuroraVaultContract.balanceOf(carl.address);
-      // const carlDeposit = ethers.BigNumber.from(14_000).mul(DECIMALS);
-      // await auroraTokenContract.connect(carl).approve(stakedAuroraVaultContract.address, carlDeposit);
-      // await stakedAuroraVaultContract.connect(carl).deposit(carlDeposit, carl.address);
-      // expect(preTotalSupply).to.equal(await stakedAuroraVaultContract.totalSupply());
-      // expect(preStAurBalance.sub(await liquidityPoolContract.stAurBalance())).to.equal(
-      //   (await stakedAuroraVaultContract.balanceOf(carl.address)).sub(carlPreStAurBalance)
-      // );
+      // Move forward: From pending to available.
+      await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
+      await stakingManagerContract.cleanOrdersQueue();
 
-      // // StAUR in the Liquidity Pool is depleted! The vault should mint more now.
-      // preTotalSupply = await stakedAuroraVaultContract.totalSupply();
-      // preStAurBalance = await liquidityPoolContract.stAurBalance();
-      // const depletedPreStAurBalance = await stakedAuroraVaultContract.balanceOf(alice.address);
-      // const depletedDeposit = ethers.BigNumber.from(14_000).mul(DECIMALS);
-      // await auroraTokenContract.connect(alice).approve(stakedAuroraVaultContract.address, depletedDeposit);
-      // await stakedAuroraVaultContract.connect(alice).deposit(depletedDeposit, alice.address);
-      // expect(preStAurBalance).to.equal(await liquidityPoolContract.stAurBalance());
-      // expect(preTotalSupply.sub(await stakedAuroraVaultContract.totalSupply())).to.equal(
-      //   depletedPreStAurBalance.sub(await stakedAuroraVaultContract.balanceOf(alice.address))
-      // );
+      const nextSpam0Balance = (await auroraTokenContract.balanceOf(spam0.address)).add(
+        await stakingManagerContract.getAvailableAssets(spam0.address)
+      );
+      await stakedAuroraVaultContract.connect(spam0).withdraw(
+        await stakingManagerContract.getAvailableAssets(spam0.address),
+        spam0.address,
+        spam0.address
+      );
+      expect(await auroraTokenContract.balanceOf(spam0.address)).to.equal(nextSpam0Balance);
+
+      // Work-in-progress 👷‍♂️
+
     });
   });
 });
