@@ -232,15 +232,12 @@ contract StakingManager is AccessControl {
         return totalWithdrawInQueue;
     }
 
-    /// UNSTAKING FLOW
-
-    /** ROBOT 🤖
-     * 1. Withdraw pending Aurora from depositors.
-     * 2. Move previous pending amount to Available.
-     * 3. Unstake withdraw orders.
-     * 4. Move withdraw orders to Pending.
-     * 5. Remove withdraw orders.
-    */
+    /// Unstaking Flow - Ran by ROBOT 🤖
+    /// 1. Withdraw pending Aurora from depositors.
+    /// 2. Move previous pending amount to Available.
+    /// 3. Unstake withdraw orders.
+    /// 4. Move withdraw orders to Pending.
+    /// 5. Remove withdraw orders.
     function cleanOrdersQueue() public {
         require(depositors.length > 0);
         require(nextCleanOrderQueue <= block.timestamp, "WAIT_FOR_NEXT_CLEAN_ORDER");
