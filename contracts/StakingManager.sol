@@ -113,9 +113,6 @@ contract StakingManager is AccessControl {
         delete withdrawOrders;
     }
 
-    /**
-     * VIEW FUNCTIONS
-     */
     function getWithdrawOrderAssets(address _account) public view returns (uint256) {
         for (uint i = 0; i < withdrawOrders.length; i++) {
             if (withdrawOrders[i].receiver == _account) {

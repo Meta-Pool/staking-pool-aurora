@@ -342,7 +342,7 @@ async function botsHordeFixture() {
   await auroraTokenContract.connect(alice).transfer(spam8.address, botBalance);
   await auroraTokenContract.connect(alice).transfer(spam9.address, botBalance);
 
-  const botDeposit = ethers.BigNumber.from(1).mul(DECIMALS);
+  const botDeposit = ethers.BigNumber.from(10).mul(DECIMALS);
   await auroraTokenContract.connect(spam0).approve(stakedAuroraVaultContract.address, botDeposit);
   await auroraTokenContract.connect(spam1).approve(stakedAuroraVaultContract.address, botDeposit);
   await auroraTokenContract.connect(spam2).approve(stakedAuroraVaultContract.address, botDeposit);
