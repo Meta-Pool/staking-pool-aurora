@@ -195,7 +195,6 @@ contract StakedAuroraVault is ERC4626, Ownable {
         _mint(_receiver, shares);
     }
 
-    /// @dev Deposit/mint common workflow.
     function _deposit(
         address _caller,
         address _receiver,
