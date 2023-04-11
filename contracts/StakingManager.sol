@@ -11,6 +11,10 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 // import "hardhat/console.sol";
 
+/// @notice Staking Manager Logic 🤖:
+/// Deposits will always go to the depositor with LESS staked amount.
+/// Withdraws will always be taken from the depositor with the greatest index.
+
 contract StakingManager is AccessControl {
     using SafeERC20 for IERC20;
 
@@ -63,7 +67,8 @@ contract StakingManager is AccessControl {
             _stAurVault != address(0)
                 && _auroraStaking != address(0)
                 && _depositorOwner != address(0)
-                && _contractOperator != address(0)
+                && _contractOperator != address(0),
+            "INVALID_ZERO_ADDRESS"
         );
         stAurVault = _stAurVault;
         auroraStaking = _auroraStaking;
@@ -101,9 +106,13 @@ contract StakingManager is AccessControl {
         maxWithdrawOrders = _maxWithdrawOrders;
     }
 
-    /// @dev In case of emergency 🦺, return all funds to users with a withdraw order.
+    /// @notice Only in case of emergency 🦺, return all funds to users with a withdraw order.
+    /// @notice Users will not receive back the exact same amount of shares they had before.
     function emergencyClearWithdrawOrders() external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(!IStakedAuroraVault(stAurVault).fullyOperational(), "ONLY_WHEN_VAULT_IS_NOT_FULLY_OP");
+        require(
+            !IStakedAuroraVault(stAurVault).fullyOperational(),
+            "ONLY_WHEN_VAULT_IS_NOT_FULLY_OP"
+        );
         for (uint i = 0; i < withdrawOrders.length; i++) {
             IStakedAuroraVault(stAurVault).emergencyMintRecover(
                 withdrawOrders[i].receiver,
@@ -205,8 +214,6 @@ contract StakingManager is AccessControl {
         uint256 _assets,
         address _owner
     ) public view returns (bool) {
-        // console.log("available assets: %s", availableAssets[_owner]);
-        // console.log("total     assets: %s", _assets);
         return availableAssets[_owner] >= _assets;
     }
 
@@ -215,14 +222,9 @@ contract StakingManager is AccessControl {
         address _owner,
         uint256 _assets
     ) external onlyStAurVault {
-        // console.log("WE ARE HERE");
-        // console.log("Assets  : %s", _assets);
-        // console.log("Availab : %s", availableAssets[_owner]);
         require(isAvailableToWithdraw(_assets, _owner), "NOT_ENOUGH_AVAILABLE_ASSETS");
-        // console.log("ASSESTS ARE ENOUGH");
         availableAssets[_owner] -= _assets;
         IERC20 token = IERC20(auroraToken);
-        // console.log("Pay the allowance here! 0000000000");
         token.safeTransfer(_receiver, _assets);
     }
 
@@ -240,27 +242,15 @@ contract StakingManager is AccessControl {
         require(depositors.length > 0);
         require(nextCleanOrderQueue <= block.timestamp, "WAIT_FOR_NEXT_CLEAN_ORDER");
 
-        // console.log("__START Depositor 00: %s", getTotalAssetsFromDepositor(depositors[0]));
-        // console.log("__START Depositor 01: %s", getTotalAssetsFromDepositor(depositors[1]));
-
-        // console.log("I will assume we are failing here!");
         _withdrawFromDepositor();   // Step 1.
-        // console.log("FINALE I will assume we are failing here!");
-        // console.log("__   01 Depositor 00: %s", getTotalAssetsFromDepositor(depositors[0]));
-        // console.log("__   01 Depositor 01: %s", getTotalAssetsFromDepositor(depositors[1]));
         _movePendingToAvailable();  // Step 2.
-        // console.log("__   02 Depositor 00: %s", getTotalAssetsFromDepositor(depositors[0]));
-        // console.log("__   02 Depositor 01: %s", getTotalAssetsFromDepositor(depositors[1]));
-        // console.log("I will assume we are failing here!");
         _unstakeWithdrawOrders();   // Step 3.
-        // console.log("FINALE I will assume we are failing here!");
-        // console.log("__   03 Depositor 00: %s", getTotalAssetsFromDepositor(depositors[0]));
-        // console.log("__   03 Depositor 01: %s", getTotalAssetsFromDepositor(depositors[1]));
 
-        // Step 4 & 5. TODO: We need help from Batman 🦇.
-        pendingOrders = withdrawOrders; // TODO: Problems! try not to copy the array ⚠️
+        // Step 4 & 5.
+        pendingOrders = withdrawOrders; // Warning ⚠️ - Array is copied.
         delete withdrawOrders;
-        // withdrawOrders = new withdrawOrder[](0);
+
+        // Update the timestamp and totals.
         (,,,,,,,,,uint256 tau,) = IAuroraStaking(auroraStaking).getStream(0);
         nextCleanOrderQueue = block.timestamp + tau;
         totalWithdrawInQueue = 0;
@@ -288,16 +278,13 @@ contract StakingManager is AccessControl {
     }
 
     function _withdrawFromDepositor() private {
-        // console.log("*******");
         for (uint i = 0; i < depositors.length; i++) {
             address depositor = depositors[i];
             uint256 pendingAmount = IDepositor(depositor).getPending(depositors[i]);
-            // console.log("PENDING AMOUNT DEP %s: %s", i, pendingAmount);
             if (pendingAmount > 0) {
                 IDepositor(depositor).withdraw(pendingAmount);
             }
         }
-        // console.log("*******");
     }
 
     function _movePendingToAvailable() private {
@@ -305,7 +292,6 @@ contract StakingManager is AccessControl {
             withdrawOrder memory order = pendingOrders[i];
             availableAssets[order.receiver] += order.assets;
         }
-        // TODO: Problems!!
         delete pendingOrders;
     }
 
@@ -313,16 +299,14 @@ contract StakingManager is AccessControl {
         uint256 totalWithdraw = getTotalWithdrawInQueue();
         uint256 alreadyWithdraw = 0;
 
-        // TODO: CAUTION ⛔ keep an eye on this logic.
+        // CAUTION ⛔ keep an eye on this logic.
         if (totalWithdraw > 0) {
             for (uint i = depositors.length; i > 0; i--) {
                 address depositor = depositors[i-1];
                 uint256 assets = getTotalAssetsFromDepositor(depositor);
                 if (assets == 0) continue;
-                // console.log("DEP %s Assets: %s", i-1, assets);
                 uint256 nextWithdraw = totalWithdraw - alreadyWithdraw;
 
-                // console.log("BEFORE UNSTAKE DEPOSITOR %s Assets: %s", i-1, IAuroraStaking(auroraStaking).getUserShares(depositor));
                 if (assets >= nextWithdraw) {
                     IDepositor(depositor).unstake(nextWithdraw);
                     alreadyWithdraw += nextWithdraw;
@@ -330,7 +314,6 @@ contract StakingManager is AccessControl {
                     IDepositor(depositor).unstakeAll();
                     alreadyWithdraw += assets;
                 }
-                // console.log("AFTER  UNSTAKE DEPOSITOR %s Assets: %s", i-1, IAuroraStaking(auroraStaking).getUserShares(depositor));
                 updateDepositorShares(depositor);
                 if (alreadyWithdraw == totalWithdraw) return;
             }
