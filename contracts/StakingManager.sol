@@ -266,22 +266,10 @@ contract StakingManager is AccessControl {
         totalWithdrawInQueue = 0;
     }
 
-    function unstakeShares(
+    function createWithdrawOrder(
         uint256 _assets,
-        uint256 _shares,
-        address _receiver,
-        address _owner
+        address _receiver
     ) external onlyStAurVault {
-        _unstake(_assets, _shares, _receiver, _owner);
-    }
-
-    function _unstake(
-        uint256 _assets,
-        uint256 _shares,
-        address _receiver,
-        address _owner
-    ) private {
-        IStakedAuroraVault(stAurVault).burn(_owner, _shares);
         _createWithdrawOrder(_assets, _receiver);
     }
 

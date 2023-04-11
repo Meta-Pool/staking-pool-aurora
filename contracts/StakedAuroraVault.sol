@@ -23,19 +23,16 @@ contract StakedAuroraVault is ERC4626, Ownable {
     address public liquidityPool;
     uint256 public minDepositAmount;
 
-    /// @dev When is NOT fully operational, users cannot:
-    /// @dev 1) mint, 2) deposit nor 3) create withdraw orders.
+    /// @notice When is NOT fully operational, users cannot:
+    /// @notice 1) mint, 2) deposit nor 3) create withdraw orders.
     bool public fullyOperational;
     bool public enforceWhitelist;
 
     mapping(address => bool) public accountWhitelist;
 
     modifier onlyManager() {
-        require(
-            stakingManager != address(0)
-                && _msgSender() == stakingManager,
-            "ONLY_STAKING_MANAGER"
-        );
+        require(stakingManager != address(0), "INVALID_ZERO_ADDRESS");
+        require(_msgSender() == stakingManager, "ONLY_STAKING_MANAGER");
         _;
     }
 
@@ -104,7 +101,7 @@ contract StakedAuroraVault is ERC4626, Ownable {
         minDepositAmount = _amount;
     }
 
-    /// @dev Use in case of emergency 🦺.
+    /// @notice Use in case of emergency 🦺.
     function toggleFullyOperational() external onlyOwner {
         require(liquidityPool != address(0) && stakingManager != address(0), "CONTRACT_NOT_INITIALIZED");
         fullyOperational = !fullyOperational;
@@ -144,8 +141,6 @@ contract StakedAuroraVault is ERC4626, Ownable {
         return shares;
     }
 
-    /// As opposed to {deposit}, minting is allowed even if the vault is in a state where the price of a share is zero.
-    /// In this case, the shares will be minted without requiring any assets to be deposited.
     function mint(
         uint256 _shares,
         address _receiver
@@ -159,55 +154,36 @@ contract StakedAuroraVault is ERC4626, Ownable {
         return assets;
     }
 
+    /// @dev It can only be called after the redeem of the stAUR and the waiting period.
     function withdraw(
         uint256 _assets,
         address _receiver,
         address _owner
     ) public override returns (uint256) {
-        // TODO: ⛔ This flow is untested for withdraw and redeem. Test allowance.
-        // By commenting out, we are running the test for 3rd party withdraw.
-        // if (_owner != _msgSender()) require(false, "UNTESTED_ALLOWANCE_FOR_WITHDRAW");
-
-        // console.log("Assets: %s", _assets);
-        // console.log("max wi: %s", maxWithdraw(_owner));
-
-        // TODO: ⛔ No require is being performed here! Please confirm it's safe!
-        // require(_assets <= maxWithdraw(_owner), "ERC4626: withdraw more than max");
-
-        // console.log("1. assets %s <> %s", _assets, 0);
         uint256 shares = previewWithdraw(_assets);
-        // console.log("2. shares %s <> %s", shares, 0);
-        // console.log("alice: %s", _owner);
         _withdraw(_msgSender(), _receiver, _owner, _assets, shares);
-        // console.log("3. assets and shares %s <> %s", shares, 0);
 
         return shares;
     }
 
+    /// @dev The redeem fn starts the release of tokens from the Aurora staking contract.
     function redeem(
         uint256 _shares,
         address _receiver,
         address _owner
     ) public override onlyFullyOperational returns (uint256) {
-        // TODO: ⛔ This flow is untested for withdraw and redeem.
-        // By commenting out, we are running the test for 3rd party redeem.
-        // if (_owner != _msgSender()) require(false, "UNTESTED_ALLOWANCE_FOR_REDEEM");
-
         // TODO: ⛔ This might be a solution for the allowance. But please test it.
         if (_msgSender() != _owner) {
             _spendAllowance(_owner, _msgSender(), _shares);
         }
 
-        // require(_shares <= maxRedeem(_owner), "ERC4626: redeem more than max");
-
+        // IMPORTANT NOTE: run the _burn fn after the asset calculation.
         uint256 assets = previewRedeem(_shares);
-        IStakingManager(stakingManager).unstakeShares(assets, _shares, _receiver, _owner);
+        _burn(_owner, _shares);
+
+        IStakingManager(stakingManager).createWithdrawOrder(assets, _receiver);
 
         return assets;
-    }
-
-    function burn(address _owner, uint256 _shares) external onlyManager {
-        _burn(_owner, _shares);
     }
 
     /// @dev Only called when the withdraw orders are cleared for emergency.
@@ -250,7 +226,6 @@ contract StakedAuroraVault is ERC4626, Ownable {
         emit Deposit(_caller, _receiver, _assets, _shares);
     }
 
-    /// @dev Withdraw/redeem common workflow.
     function _withdraw(
         address _caller,
         address _receiver,
@@ -258,19 +233,11 @@ contract StakedAuroraVault is ERC4626, Ownable {
         uint256 _assets,
         uint256 _shares
     ) internal override {
-        // console.log("caller: %s", _caller);
-        // console.log("owner: %s", _owner);
         if (_caller != _owner) {
             _spendAllowance(_owner, _caller, _shares);
         }
 
-        // console.log("2.5. ASSets:%s <> %s", _assets, 0);
-        // IMPORTANT!!! IF this withdraw will only works with delayed unstake, then
-        // the burn is already made by the staking manager.
-        // _burn(owner, shares);
-
         IStakingManager(stakingManager).transferAurora(_receiver, _owner, _assets);
-        // console.log("2.6. assets and shares %s <> %s", _shares, 0);
 
         emit Withdraw(_caller, _receiver, _owner, _assets, _shares);
     }

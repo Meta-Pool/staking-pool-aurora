@@ -83,7 +83,7 @@ contract LiquidityPool is ERC4626, Ownable {
 
     receive() external payable {}
 
-    /// Use in case of emergency 🦺.
+    /// @notice Use in case of emergency 🦺.
     function toggleFullyOperational() external onlyOwner {
         fullyOperational = !fullyOperational;
     }
@@ -146,7 +146,7 @@ contract LiquidityPool is ERC4626, Ownable {
             _spendAllowance(_owner, _msgSender(), _shares);
         }
 
-        // IMPORTANT: run the burn 🔥 before the calculations.
+        // IMPORTANT NOTE: run the burn 🔥 before the calculations.
         _burn(_msgSender(), _shares);
 
         // Core Calculations.
