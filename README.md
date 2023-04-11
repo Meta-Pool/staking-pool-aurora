@@ -21,8 +21,11 @@ Using the Aurora SDK, after the liquidity pool is developed, the stAUR token cou
 Address for the Staking Pool in Aurora Mainnet.
 
 ```js
+  // These are the addresses of the Aurora Token and Aurora Plus in Mainnet.
   const TokenAddress = "0x8BEc47865aDe3B172A928df8f990Bc7f2A3b9f79";
   const AuroraStakingAddress = "0xccc2b1aD21666A5847A804a73a41F904C4a4A0Ec";
+
+  // These are the addresses of the contracts Meta Pool deployed.
   const StakingManagerAddress = "0xd239cd3A5Dec2d2cb12fB8eC512Fe3790FA2cD0e";
   const Depositor00Address = "0x6fA37581EBA252C08240c85f30fA8A5e3462c09d";
   const Depositor01Address = "0x31e0752Deb99f1fCE9701Dc5611A1652189dEdC3";

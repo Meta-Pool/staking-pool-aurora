@@ -1,184 +1,18 @@
-// This is an example test file. Hardhat will run every *.js file in `test/`,
-// so feel free to add new ones.
-
-// Hardhat tests are normally written with Mocha and Chai.
-
-// We import Chai to use its asserting functions here.
 const { expect } = require("chai");
-
 const { ethers } = require("hardhat");
-
-// We use `loadFixture` to share common setups (or fixtures) between tests.
-// Using this simplifies your tests and makes them run faster, by taking
-// advantage of Hardhat Network's snapshot functionality.
 const { loadFixture, time } = require("@nomicfoundation/hardhat-network-helpers");
+const {
+  deployPoolFixture,
+  depositPoolFixture,
+  liquidityPoolFixture,
+  botsHordeFixture,
+  AURORA,
+  DECIMALS
+} = require("./test_setup");
 
-// 1 AURORA
-const AURORA = ethers.BigNumber.from(1).mul(ethers.BigNumber.from(10).pow(18));
-
-// `describe` is a Mocha function that allows you to organize your tests.
-// Having your tests organized makes debugging them easier. All Mocha
-// functions are available in the global scope.
-//
-// `describe` receives the name of a section of your test suite, and a
-// callback. The callback must define the tests of that section. This callback
-// can't be an async function.
 describe("Staking Pool AURORA", function () {
-  // We define a fixture to reuse the same setup in every test. We use
-  // loadFixture to run this setup once, snapshot that state, and reset Hardhat
-  // Network to that snapshot in every test.
-  async function deployPoolFixture() {
-    // Get the ContractFactory and Signers here.
-    const AuroraToken = await ethers.getContractFactory("Token");
-    const AuroraStaking = await ethers.getContractFactory("AuroraStaking");
-    const StakingManager = await ethers.getContractFactory("StakingManager");
-    const Depositor = await ethers.getContractFactory("Depositor");
-    const StakedAuroraVault = await ethers.getContractFactory("StakedAuroraVault");
-    const [
-      owner,
-      depositors_owner,
-      treasury,
-      operator,
-      alice,
-      bob,
-      carl
-    ] = await ethers.getSigners();
-
-    const decimals = ethers.BigNumber.from(10).pow(18);
-    const initialSupply = ethers.BigNumber.from(10_000_000).mul(decimals);
-    const auroraTokenContract = await AuroraToken.deploy(
-      initialSupply,
-      "Aurora Token",
-      "AURORA",
-      alice.address
-    );
-    await auroraTokenContract.deployed();
-
-    // Sharing total suply with Bob and Carl.
-    const splitSupply = ethers.BigNumber.from(3_000_000).mul(decimals);
-    await auroraTokenContract.connect(alice).transfer(bob.address, splitSupply);
-    await auroraTokenContract.connect(alice).transfer(carl.address, splitSupply);
-
-    const auroraStakingContract = await AuroraStaking.deploy(
-      auroraTokenContract.address
-    );
-    await auroraStakingContract.deployed();
-
-    // Send Tokens to the Aurora Staking contract to pay for rewards.
-    const forRewards = ethers.BigNumber.from(1_000_000).mul(decimals);
-    await auroraTokenContract.connect(alice).transfer(auroraStakingContract.address, forRewards);
-
-    const minDepositAmount = ethers.BigNumber.from(1).mul(decimals);
-    const stakedAuroraVaultContract = await StakedAuroraVault.deploy(
-      auroraTokenContract.address,
-      "Staked Aurora Token",
-      "stAUR",
-      minDepositAmount
-    );
-    await stakedAuroraVaultContract.deployed();
-
-    const stakingManagerContract = await StakingManager.deploy(
-      stakedAuroraVaultContract.address,
-      auroraStakingContract.address,
-      depositors_owner.address,
-      10
-    );
-    await stakingManagerContract.deployed();
-
-    // Insert/update the staking manager in the ERC-4626
-    await stakedAuroraVaultContract.updateStakingManager(stakingManagerContract.address);
-
-    const depositor00Contract = await Depositor.connect(depositors_owner).deploy(
-      stakingManagerContract.address
-    );
-    await depositor00Contract.deployed();
-
-    const depositor01Contract = await Depositor.connect(depositors_owner).deploy(
-      stakingManagerContract.address
-    );
-    await depositor01Contract.deployed();
-
-    await stakingManagerContract.connect(depositors_owner).insertDepositor(depositor00Contract.address);
-    await stakingManagerContract.connect(depositors_owner).insertDepositor(depositor01Contract.address);
-
-    // Fixtures can return anything you consider useful for your tests
-    return {
-      auroraTokenContract,
-      auroraStakingContract,
-      stakedAuroraVaultContract,
-      stakingManagerContract,
-      depositor00Contract,
-      depositor01Contract,
-      owner,
-      depositors_owner,
-      treasury,
-      operator,
-      alice,
-      bob,
-      carl,
-      decimals
-    };
-  }
-
-  async function depositPoolFixture() {
-    const {
-      auroraTokenContract,
-      auroraStakingContract,
-      stakedAuroraVaultContract,
-      stakingManagerContract,
-      depositor00Contract,
-      depositor01Contract,
-      owner,
-      depositors_owner,
-      treasury,
-      operator,
-      alice,
-      bob,
-      carl,
-      decimals
-    } = await loadFixture(deployPoolFixture);
-
-    const aliceDeposit = ethers.BigNumber.from(6_000).mul(decimals);
-    await auroraTokenContract.connect(alice).approve(stakedAuroraVaultContract.address, aliceDeposit);
-    await stakedAuroraVaultContract.connect(alice).deposit(aliceDeposit, alice.address);
-
-    const bobDeposit = ethers.BigNumber.from(100_000).mul(decimals);
-    await auroraTokenContract.connect(bob).approve(stakedAuroraVaultContract.address, bobDeposit);
-    await stakedAuroraVaultContract.connect(bob).deposit(bobDeposit, bob.address);
-
-    const carlDeposit = ethers.BigNumber.from(24_000).mul(decimals);
-    await auroraTokenContract.connect(carl).approve(stakedAuroraVaultContract.address, carlDeposit);
-    await stakedAuroraVaultContract.connect(carl).deposit(carlDeposit, carl.address);
-
-    await stakingManagerContract.cleanOrdersQueue();
-
-    return {
-      auroraTokenContract,
-      auroraStakingContract,
-      stakedAuroraVaultContract,
-      stakingManagerContract,
-      depositor00Contract,
-      depositor01Contract,
-      owner,
-      depositors_owner,
-      treasury,
-      operator,
-      alice,
-      bob,
-      carl,
-      decimals
-    };
-  }
-
-  // You can nest describe calls to create subsections.
   describe("Deployment", function () {
-    // `it` is another Mocha function. This is the one you use to define each
-    // of your tests. It receives the test name, and a callback function.
-    //
-    // If the callback function is async, Mocha will `await` it.
     it("Should be correct for all contracts initial parameters.", async function () {
-      // We use loadFixture to setup our environment, and then assert that
-      // things went well
       const {
         auroraTokenContract,
         auroraStakingContract,
@@ -197,7 +31,7 @@ describe("Staking Pool AURORA", function () {
 
       expect(await stakingManagerContract.isAdmin(owner.address)).to.be.true;
       expect(await stakingManagerContract.isDepositorsOwner(depositors_owner.address)).to.be.true;
-      expect(await stakingManagerContract.stAurora()).to.equal(stakedAuroraVaultContract.address);
+      expect(await stakingManagerContract.stAurVault()).to.equal(stakedAuroraVaultContract.address);
       expect(await stakingManagerContract.auroraToken()).to.equal(auroraTokenContract.address);
       expect(await stakingManagerContract.auroraStaking()).to.equal(auroraStakingContract.address);
       expect(await stakingManagerContract.depositorsLength()).to.equal(2);
@@ -205,13 +39,13 @@ describe("Staking Pool AURORA", function () {
 
       expect(await depositor00Contract.owner()).to.equal(depositors_owner.address);
       expect(await depositor00Contract.stakingManager()).to.equal(stakingManagerContract.address);
-      expect(await depositor00Contract.stAurora()).to.equal(stakedAuroraVaultContract.address);
+      expect(await depositor00Contract.stAurVault()).to.equal(stakedAuroraVaultContract.address);
       expect(await depositor00Contract.auroraToken()).to.equal(auroraTokenContract.address);
       expect(await depositor00Contract.auroraStaking()).to.equal(auroraStakingContract.address);
 
       expect(await depositor01Contract.owner()).to.equal(depositors_owner.address);
       expect(await depositor01Contract.stakingManager()).to.equal(stakingManagerContract.address);
-      expect(await depositor01Contract.stAurora()).to.equal(stakedAuroraVaultContract.address);
+      expect(await depositor01Contract.stAurVault()).to.equal(stakedAuroraVaultContract.address);
       expect(await depositor01Contract.auroraToken()).to.equal(auroraTokenContract.address);
       expect(await depositor01Contract.auroraStaking()).to.equal(auroraStakingContract.address);
 
@@ -223,16 +57,19 @@ describe("Staking Pool AURORA", function () {
       const {
         auroraTokenContract,
         auroraStakingContract,
+        liquidity_provider,
         alice,
         bob,
         carl
       } = await loadFixture(deployPoolFixture);
+
       const aliceBalance = await auroraTokenContract.balanceOf(alice.address);
       const bobBalance = await auroraTokenContract.balanceOf(bob.address);
       const carlBalance = await auroraTokenContract.balanceOf(carl.address);
       const stakingBalance = await auroraTokenContract.balanceOf(auroraStakingContract.address);
+      const liquidityBalance = await auroraTokenContract.balanceOf(liquidity_provider.address);
       expect(await auroraTokenContract.totalSupply()).to.equal(
-        aliceBalance.add(bobBalance).add(carlBalance).add(stakingBalance));
+        aliceBalance.add(bobBalance).add(carlBalance).add(stakingBalance).add(liquidityBalance));
     });
   });
 
@@ -247,11 +84,10 @@ describe("Staking Pool AURORA", function () {
         depositor01Contract,
         alice,
         bob,
-        carl,
-        decimals
+        carl
       } = await loadFixture(deployPoolFixture);
 
-      const aliceDeposit = ethers.BigNumber.from(100_000).mul(decimals);
+      const aliceDeposit = ethers.BigNumber.from(100_000).mul(DECIMALS);
       await auroraTokenContract.connect(alice).approve(stakedAuroraVaultContract.address, aliceDeposit);
       await stakedAuroraVaultContract.connect(alice).deposit(aliceDeposit, alice.address);
       expect(await stakedAuroraVaultContract.balanceOf(alice.address)).to.equal(
@@ -273,7 +109,7 @@ describe("Staking Pool AURORA", function () {
         await stakingManagerContract.getTotalAssetsFromDepositor(depositor00Contract.address)
       ).to.equal(0);
 
-      const bobDeposit = ethers.BigNumber.from(6_000).mul(decimals);
+      const bobDeposit = ethers.BigNumber.from(6_000).mul(DECIMALS);
       await auroraTokenContract.connect(bob).approve(stakedAuroraVaultContract.address, bobDeposit);
       await stakedAuroraVaultContract.connect(bob).deposit(bobDeposit, bob.address);
       expect(await stakedAuroraVaultContract.balanceOf(bob.address)).to.equal(
@@ -293,7 +129,7 @@ describe("Staking Pool AURORA", function () {
         await stakingManagerContract.getTotalAssetsFromDepositor(depositor00Contract.address)
       ).to.equal(bobDeposit);
 
-      const carlDeposit = ethers.BigNumber.from(24_000).mul(decimals);
+      const carlDeposit = ethers.BigNumber.from(24_000).mul(DECIMALS);
       await auroraTokenContract.connect(carl).approve(stakedAuroraVaultContract.address, carlDeposit);
       await stakedAuroraVaultContract.connect(carl).deposit(carlDeposit, carl.address);
       expect(await stakedAuroraVaultContract.balanceOf(carl.address)).to.equal(
@@ -324,15 +160,14 @@ describe("Staking Pool AURORA", function () {
         depositor01Contract,
         alice,
         bob,
-        carl,
-        decimals
+        carl
       } = await loadFixture(deployPoolFixture);
 
       // CONSIDER: since the testing-aurora-staking is being revalued every second,
       // we need to approve more tokens than the returned by previewMint.
-      const extraToken = ethers.BigNumber.from(1).mul(decimals);
+      const extraToken = ethers.BigNumber.from(1).mul(DECIMALS);
 
-      const aliceMint = ethers.BigNumber.from(1).mul(decimals);
+      const aliceMint = ethers.BigNumber.from(1).mul(DECIMALS);
       await auroraTokenContract.connect(alice).approve(stakedAuroraVaultContract.address,
         await stakedAuroraVaultContract.previewMint(aliceMint.add(extraToken)));
       await stakedAuroraVaultContract.connect(alice).mint(aliceMint, alice.address);
@@ -346,7 +181,7 @@ describe("Staking Pool AURORA", function () {
         await auroraStakingContract.getUserShares(depositor01Contract.address)
       );
 
-      const bobMint = ethers.BigNumber.from(4).mul(decimals);
+      const bobMint = ethers.BigNumber.from(4).mul(DECIMALS);
       await auroraTokenContract.connect(bob).approve(stakedAuroraVaultContract.address,
         await stakedAuroraVaultContract.previewMint(bobMint.add(extraToken)));
       await stakedAuroraVaultContract.connect(bob).mint(bobMint, bob.address);
@@ -359,7 +194,7 @@ describe("Staking Pool AURORA", function () {
         await auroraStakingContract.getUserShares(depositor01Contract.address)
       );
 
-      const carlDeposit = ethers.BigNumber.from(60).mul(decimals);
+      const carlDeposit = ethers.BigNumber.from(60).mul(DECIMALS);
       await auroraTokenContract.connect(carl).approve(stakedAuroraVaultContract.address,
         await stakedAuroraVaultContract.previewMint(carlDeposit.add(extraToken)));
       await stakedAuroraVaultContract.connect(carl).mint(carlDeposit, carl.address);
@@ -377,11 +212,10 @@ describe("Staking Pool AURORA", function () {
       const {
           stakedAuroraVaultContract,
           auroraTokenContract,
-          alice,
-          decimals
+          alice
       } = await loadFixture(deployPoolFixture);
 
-      const amountToDeposit = ethers.BigNumber.from(1).mul(decimals).sub(1);
+      const amountToDeposit = ethers.BigNumber.from(1).mul(DECIMALS).sub(1);
       await auroraTokenContract.connect(alice).approve(stakedAuroraVaultContract.address, amountToDeposit);
 
       // First, by direct deposit.
@@ -405,8 +239,7 @@ describe("Staking Pool AURORA", function () {
         stakingManagerContract,
         alice,
         bob,
-        carl,
-        decimals
+        carl
       } = await loadFixture(depositPoolFixture);
 
       // console.log("Total assets 1: %s", await stakedAuroraVaultContract.totalAssets());
@@ -417,7 +250,6 @@ describe("Staking Pool AURORA", function () {
       expect(aliceShares).to.be.greaterThan(0);
       const aliceLessAssets = await stakedAuroraVaultContract.previewRedeem(aliceShares);
       expect(await stakingManagerContract.getWithdrawOrderAssets(alice.address)).to.equal(0);
-
 
       await stakedAuroraVaultContract.connect(alice).redeem(aliceShares, alice.address, alice.address);
       expect(await stakedAuroraVaultContract.balanceOf(alice.address)).to.equal(0);
@@ -458,9 +290,9 @@ describe("Staking Pool AURORA", function () {
       ).to.be.greaterThanOrEqual(carlLessAssets);
 
       // /// Original deposits.
-      // const aliceDeposit = ethers.BigNumber.from(6_000).mul(decimals);
-      // const bobDeposit = ethers.BigNumber.from(100_000).mul(decimals);
-      // const carlDeposit = ethers.BigNumber.from(24_000).mul(decimals);
+      // const aliceDeposit = ethers.BigNumber.from(6_000).mul(DECIMALS);
+      // const bobDeposit = ethers.BigNumber.from(100_000).mul(DECIMALS);
+      // const carlDeposit = ethers.BigNumber.from(24_000).mul(DECIMALS);
       // const aliceCurrAssets = await stakedAuroraVaultContract.previewRedeem(aliceShares);
       // const bobCurrAssets = await stakedAuroraVaultContract.previewRedeem(bobShares);
       // const carlCurrAssets = await stakedAuroraVaultContract.previewRedeem(carlShares);
@@ -505,7 +337,7 @@ describe("Staking Pool AURORA", function () {
       // console.log("Staker Manager Balance 5: %s", await auroraTokenContract.balanceOf(stakingManagerContract.address));
 
       // The total Supply should drop to zero, but some assets will remain due to
-      // the fast stAurora repricing.
+      // the fast stAUR repricing.
       expect(await stakedAuroraVaultContract.totalSupply()).to.equal(0);
       expect(await stakedAuroraVaultContract.totalAssets()).to.be.lessThan(AURORA);
       expect(await stakingManagerContract.totalAssets()).to.be.lessThan(AURORA);
@@ -604,8 +436,7 @@ describe("Staking Pool AURORA", function () {
         depositor01Contract,
         alice,
         bob,
-        carl,
-        decimals
+        carl
       } = await loadFixture(depositPoolFixture);
 
       // CONSIDER: at this point, the Depositor 01 will receive the first withdraw. But,
@@ -635,7 +466,7 @@ describe("Staking Pool AURORA", function () {
       expect(posBobDep00).to.be.greaterThan(preBobDep01);
 
       // Next deposit should go to the Depositor 01.
-      const carlDeposit = ethers.BigNumber.from(1_000).mul(decimals);
+      const carlDeposit = ethers.BigNumber.from(1_000).mul(DECIMALS);
       await auroraTokenContract.connect(carl).approve(stakedAuroraVaultContract.address, carlDeposit);
       await stakedAuroraVaultContract.connect(carl).deposit(carlDeposit, carl.address);
 
@@ -826,7 +657,6 @@ describe("Staking Pool AURORA", function () {
 
     it("Should not allow to withdraw more than available. ", async function () {
       const {
-        auroraTokenContract,
         stakedAuroraVaultContract,
         stakingManagerContract,
         alice
@@ -863,13 +693,12 @@ describe("Staking Pool AURORA", function () {
         auroraTokenContract,
         stakedAuroraVaultContract,
         stakingManagerContract,
-        carl,
-        decimals
+        carl
       } = await loadFixture(depositPoolFixture);
 
       const carlShares01 = await stakedAuroraVaultContract.balanceOf(carl.address);
 
-      const carlDeposit = ethers.BigNumber.from(24_000).mul(decimals);
+      const carlDeposit = ethers.BigNumber.from(24_000).mul(DECIMALS);
       await auroraTokenContract.connect(carl).approve(stakedAuroraVaultContract.address, carlDeposit);
       await stakedAuroraVaultContract.connect(carl).deposit(carlDeposit, carl.address);
 
@@ -890,9 +719,9 @@ describe("Staking Pool AURORA", function () {
 
       const carlAvailableAssets = await stakingManagerContract.getAvailableAssets(carl.address);
       // console.log("⚠ Available: > %s", carlAvailableAssets);
-      const carlWithdraw01 = carlAvailableAssets.sub(ethers.BigNumber.from(10_000).mul(decimals));
+      const carlWithdraw01 = carlAvailableAssets.sub(ethers.BigNumber.from(10_000).mul(DECIMALS));
       // console.log("1st half: -->> %s", carlWithdraw01);
-      // console.log("2nd half: -->> %s", ethers.BigNumber.from(10_000).mul(decimals));
+      // console.log("2nd half: -->> %s", ethers.BigNumber.from(10_000).mul(DECIMALS));
       // console.log("-----------------------------");
       // TOTAL WITHDRAW.
       // await stakedAuroraVaultContract.connect(carl).withdraw(carlAvailableAssets, carl.address, carl.address);
@@ -920,7 +749,7 @@ describe("Staking Pool AURORA", function () {
       expect(testAvailableAssets01).to.be.lessThan(testAvailableAssets02);
 
       await stakedAuroraVaultContract.connect(carl).withdraw(
-        ethers.BigNumber.from(10_000).mul(decimals), carl.address, carl.address
+        ethers.BigNumber.from(10_000).mul(DECIMALS), carl.address, carl.address
       );
 
       const testAvailableAssets03 = await stakingManagerContract.getAvailableAssets(carl.address);
@@ -942,21 +771,20 @@ describe("Staking Pool AURORA", function () {
         stakedAuroraVaultContract,
         stakingManagerContract,
         alice,
-        carl,
-        decimals
+        carl
       } = await loadFixture(depositPoolFixture);
 
-      // const carlDeposit = ethers.BigNumber.from(24_000).mul(decimals); // Original deposit
-      const carlAllowAllice = ethers.BigNumber.from(10_000).mul(decimals);
+      // const carlDeposit = ethers.BigNumber.from(24_000).mul(DECIMALS); // Original deposit
+      const carlAllowAlice = ethers.BigNumber.from(10_000).mul(DECIMALS);
       expect(await stakingManagerContract.getPendingOrderAssets(alice.address)).to.equal(0);
       expect(await stakingManagerContract.getPendingOrderAssets(carl.address)).to.equal(0);
 
-      await stakedAuroraVaultContract.connect(carl).approve(alice.address, carlAllowAllice);
+      await stakedAuroraVaultContract.connect(carl).approve(alice.address, carlAllowAlice);
 
       await expect(
-        stakedAuroraVaultContract.connect(alice).redeem(carlAllowAllice, alice.address, alice.address)
+        stakedAuroraVaultContract.connect(alice).redeem(carlAllowAlice, alice.address, alice.address)
       ).to.be.revertedWith("ERC20: burn amount exceeds balance");
-      await stakedAuroraVaultContract.connect(alice).redeem(carlAllowAllice, alice.address, carl.address);
+      await stakedAuroraVaultContract.connect(alice).redeem(carlAllowAlice, alice.address, carl.address);
 
       // Move forward: From redeem to pending.
       await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
@@ -971,6 +799,73 @@ describe("Staking Pool AURORA", function () {
 
       const carlAvailableAssets = await stakingManagerContract.getAvailableAssets(carl.address);
       await stakedAuroraVaultContract.connect(alice).withdraw(carlAvailableAssets, carl.address, carl.address);
+    });
+  });
+
+  describe("Using the Liquidity Pool 🎱 to cover users deposits (FLOW 1).", function () {
+    it("Deplete the Liquidity Pool, then deposit again.", async function () {
+      const {
+        auroraTokenContract,
+        stakedAuroraVaultContract,
+        liquidityPoolContract,
+        liquidity_provider,
+        alice,
+        bob,
+        carl
+      } = await loadFixture(liquidityPoolFixture);
+
+      // StAUR deposits to the Liquidity Pool.
+      const providerSwap = ethers.BigNumber.from(90_000).mul(DECIMALS); // The amount of stAUR the provider will swap back to AURORA.
+      await stakedAuroraVaultContract.connect(liquidity_provider).approve(liquidityPoolContract.address, providerSwap);
+      await liquidityPoolContract.connect(liquidity_provider).swapStAurforAurora(
+        providerSwap,
+        await liquidityPoolContract.previewSwapStAurForAurora(providerSwap)
+      );
+
+      var preTotalSupply = await stakedAuroraVaultContract.totalSupply();
+      var preStAurBalance = await liquidityPoolContract.stAurBalance();
+      const alicePreStAurBalance = await stakedAuroraVaultContract.balanceOf(alice.address);
+      const aliceDeposit = ethers.BigNumber.from(24_000).mul(DECIMALS);
+      await auroraTokenContract.connect(alice).approve(stakedAuroraVaultContract.address, aliceDeposit);
+      await stakedAuroraVaultContract.connect(alice).deposit(aliceDeposit, alice.address);
+      expect(preTotalSupply).to.equal(await stakedAuroraVaultContract.totalSupply());
+      expect(preStAurBalance.sub(await liquidityPoolContract.stAurBalance())).to.equal(
+        (await stakedAuroraVaultContract.balanceOf(alice.address)).sub(alicePreStAurBalance)
+      );
+
+      preTotalSupply = await stakedAuroraVaultContract.totalSupply();
+      preStAurBalance = await liquidityPoolContract.stAurBalance();
+      const bobPreStAurBalance = await stakedAuroraVaultContract.balanceOf(bob.address);
+      const bobDeposit = ethers.BigNumber.from(50_000).mul(DECIMALS);
+      await auroraTokenContract.connect(bob).approve(stakedAuroraVaultContract.address, bobDeposit);
+      await stakedAuroraVaultContract.connect(bob).deposit(bobDeposit, bob.address);
+      expect(preTotalSupply).to.equal(await stakedAuroraVaultContract.totalSupply());
+      expect(preStAurBalance.sub(await liquidityPoolContract.stAurBalance())).to.equal(
+        (await stakedAuroraVaultContract.balanceOf(bob.address)).sub(bobPreStAurBalance)
+      );
+
+      preTotalSupply = await stakedAuroraVaultContract.totalSupply();
+      preStAurBalance = await liquidityPoolContract.stAurBalance();
+      const carlPreStAurBalance = await stakedAuroraVaultContract.balanceOf(carl.address);
+      const carlDeposit = ethers.BigNumber.from(14_000).mul(DECIMALS);
+      await auroraTokenContract.connect(carl).approve(stakedAuroraVaultContract.address, carlDeposit);
+      await stakedAuroraVaultContract.connect(carl).deposit(carlDeposit, carl.address);
+      expect(preTotalSupply).to.equal(await stakedAuroraVaultContract.totalSupply());
+      expect(preStAurBalance.sub(await liquidityPoolContract.stAurBalance())).to.equal(
+        (await stakedAuroraVaultContract.balanceOf(carl.address)).sub(carlPreStAurBalance)
+      );
+
+      // StAUR in the Liquidity Pool is depleted! The vault should mint more now.
+      preTotalSupply = await stakedAuroraVaultContract.totalSupply();
+      preStAurBalance = await liquidityPoolContract.stAurBalance();
+      const depletedPreStAurBalance = await stakedAuroraVaultContract.balanceOf(alice.address);
+      const depletedDeposit = ethers.BigNumber.from(14_000).mul(DECIMALS);
+      await auroraTokenContract.connect(alice).approve(stakedAuroraVaultContract.address, depletedDeposit);
+      await stakedAuroraVaultContract.connect(alice).deposit(depletedDeposit, alice.address);
+      expect(preStAurBalance).to.equal(await liquidityPoolContract.stAurBalance());
+      expect(preTotalSupply.sub(await stakedAuroraVaultContract.totalSupply())).to.equal(
+        depletedPreStAurBalance.sub(await stakedAuroraVaultContract.balanceOf(alice.address))
+      );
     });
   });
 });

@@ -1,48 +1,27 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.9;
+pragma solidity 0.8.18;
 
+import "./interfaces/IAuroraStaking.sol";
+import "./interfaces/IStakingManager.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
-
-interface IStakingManager {
-    function stAurora() external view returns (address);
-    function auroraStaking() external view returns (address);
-    function auroraToken() external view returns (address);
-}
-
-interface IAuroraStaking {
-    function stake(uint256 _amount) external;
-
-    function unstake(uint256 _amount) external;
-    function unstakeAll() external;
-
-    function withdraw(uint256 _streamId) external;
-
-    function getPending(uint256 _streamId, address _account)
-        external
-        view
-        returns (uint256);
-
-    function moveRewardsToPending(uint256 _streamId) external;
-}
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract Depositor is Ownable {
     using SafeERC20 for IERC20;
 
     address public stakingManager;
-    address immutable public stAurora;
+    address immutable public stAurVault;
     address immutable public auroraToken;
     address immutable public auroraStaking;
 
     modifier onlyManager() {
-        require(msg.sender == stakingManager);
+        require(msg.sender == stakingManager, "ONLY_FOR_STAUR_MANAGER");
         _;
     }
 
-    modifier onlyStAurora() {
-        require(msg.sender == stAurora);
+    modifier onlyStAurVault() {
+        require(msg.sender == stAurVault, "ONLY_FOR_STAUR_VAULT");
         _;
     }
 
@@ -51,7 +30,7 @@ contract Depositor is Ownable {
         stakingManager = _stakingManager;
 
         IStakingManager manager = IStakingManager(stakingManager);
-        stAurora = manager.stAurora();
+        stAurVault = manager.stAurVault();
         auroraToken = manager.auroraToken();
         auroraStaking = manager.auroraStaking();
     }
@@ -61,9 +40,9 @@ contract Depositor is Ownable {
         stakingManager = _stakingManager;
     }
 
-    function stake(uint256 _assets) public onlyStAurora {
+    function stake(uint256 _assets) public onlyStAurVault {
         IERC20 aurora = IERC20(auroraToken);
-        aurora.safeTransferFrom(stAurora, address(this), _assets);
+        aurora.safeTransferFrom(stAurVault, address(this), _assets);
         aurora.safeIncreaseAllowance(auroraStaking, _assets);
         IAuroraStaking(auroraStaking).stake(_assets);
     }
@@ -81,11 +60,9 @@ contract Depositor is Ownable {
         IERC20(auroraToken).safeTransfer(stakingManager, _assets);
     }
 
-    function getPending(address _account)
-        external
-        view
-        returns (uint256)
-    {
+    function getPending(
+        address _account
+    ) external view returns (uint256) {
         return IAuroraStaking(auroraStaking).getPending(0, _account);
     }
 

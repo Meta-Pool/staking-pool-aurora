@@ -1,10 +1,11 @@
 {
   "name": "staking-pool-aurora",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Meta Staking pool in Aurora",
   "main": "index.js",
   "scripts": {
-    "test": "hardhat test"
+    "test": "hardhat test",
+    "compile": "hardhat compile"
   },
   "repository": {
     "type": "git",
@@ -29,7 +30,7 @@
     "@types/mocha": "^10.0.1",
     "chai": "^4.3.7",
     "ethers": "^5.7.2",
-    "hardhat": "^2.12.6",
+    "hardhat": "^2.13.0",
     "hardhat-gas-reporter": "^1.0.9",
     "solidity-coverage": "^0.8.2",
     "ts-node": "^10.9.1",
