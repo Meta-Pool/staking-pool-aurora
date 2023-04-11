@@ -107,7 +107,7 @@ contract StakingManager is AccessControl {
     }
 
     /// @notice Only in case of emergency 🦺, return all funds to users with a withdraw order.
-    /// @notice Users will not receive back the exact same amount of shares they had before.
+    /// @notice Users will NOT receive back the exact same amount of shares they had before.
     function emergencyClearWithdrawOrders() external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(
             !IStakedAuroraVault(stAurVault).fullyOperational(),
