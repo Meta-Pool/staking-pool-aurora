@@ -26,7 +26,7 @@ contract Depositor is Ownable {
     }
 
     constructor(address _stakingManager) {
-        require(_stakingManager != address(0));
+        require(_stakingManager != address(0), "INVALID_ZERO_ADDRESS");
         stakingManager = _stakingManager;
 
         IStakingManager manager = IStakingManager(stakingManager);
@@ -36,7 +36,7 @@ contract Depositor is Ownable {
     }
 
     function updateStakingManager(address _stakingManager) public onlyOwner {
-        require(_stakingManager != address(0));
+        require(_stakingManager != address(0), "INVALID_ZERO_ADDRESS");
         stakingManager = _stakingManager;
     }
 
