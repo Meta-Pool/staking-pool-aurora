@@ -366,13 +366,9 @@ describe("Emergency flow 🦺 works.", function () {
 
     it("Should clean withdraw orders.", async function () {
       const {
-        auroraTokenContract,
         stakedAuroraVaultContract,
         stakingManagerContract,
         owner,
-        alice,
-        bob,
-        carl,
         spam0,
         spam1,
         spam2,
@@ -385,9 +381,6 @@ describe("Emergency flow 🦺 works.", function () {
         spam9
       } = await loadFixture(botsHordeFixture);
 
-      // const aliceShares = await stakedAuroraVaultContract.balanceOf(alice.address);
-      // const bobShares = await stakedAuroraVaultContract.balanceOf(bob.address);
-      // const carlShares = await stakedAuroraVaultContract.balanceOf(carl.address);
       const spam0Shares = await stakedAuroraVaultContract.balanceOf(spam0.address);
       const spam1Shares = await stakedAuroraVaultContract.balanceOf(spam1.address);
       const spam2Shares = await stakedAuroraVaultContract.balanceOf(spam2.address);
@@ -402,7 +395,6 @@ describe("Emergency flow 🦺 works.", function () {
       const totalSupplyBefore = await stakedAuroraVaultContract.totalSupply();
       const totalAssetsBefore = await stakedAuroraVaultContract.totalAssets();
 
-      // await stakedAuroraVaultContract.connect(bob).redeem(bobShares, bob.address, bob.address);
       await stakedAuroraVaultContract.connect(spam0).redeem(spam0Shares, spam0.address, spam0.address);
       await stakedAuroraVaultContract.connect(spam1).redeem(spam1Shares, spam1.address, spam1.address);
       await stakedAuroraVaultContract.connect(spam2).redeem(spam2Shares, spam2.address, spam2.address);
@@ -441,7 +433,7 @@ describe("Emergency flow 🦺 works.", function () {
       expect(await stakedAuroraVaultContract.totalSupply()).to.be.greaterThan(totalSupplyBefore);
       expect(await stakedAuroraVaultContract.totalAssets()).to.be.greaterThan(totalAssetsBefore);
 
-      // ⚠️ Testing the math is tricky <<<<<<<<<<<<<<<<<<<<<<<<<<
+      // ⚠️ Testing the math is tricky, so a simple/loose check is done here! <<<<<<<<<<<<<
       expect(await stakedAuroraVaultContract.balanceOf(spam0.address)).to.be.greaterThan(0);
       expect(await stakedAuroraVaultContract.balanceOf(spam1.address)).to.be.greaterThan(0);
       expect(await stakedAuroraVaultContract.balanceOf(spam2.address)).to.be.greaterThan(0);

@@ -20,12 +20,11 @@ contract LiquidityPool is ERC4626, Ownable {
     uint256 public stAurBalance;
     uint256 public auroraBalance;
 
-    uint256 public minimumLiquidity;
     uint256 public minDepositAmount;
 
     /// @dev Fee is represented as Basis Point (100 points == 0.01%).
     uint256 public swapFeeBasisPoints;
-    uint256 public colledtedStAurFees;
+    uint256 public collectedStAurFees;
 
     bool public fullyOperational;
 
@@ -86,10 +85,6 @@ contract LiquidityPool is ERC4626, Ownable {
     /// @notice Use in case of emergency 🦺.
     function toggleFullyOperational() external onlyOwner {
         fullyOperational = !fullyOperational;
-    }
-
-    function updateMinimumLiquidity(uint256 _amount) external onlyOwner {
-        minimumLiquidity = _amount;
     }
 
     /// @dev This function will ONLY be called by the stAUR vault
@@ -199,7 +194,7 @@ contract LiquidityPool is ERC4626, Ownable {
         require(auroraToSend >= _minAuroraToReceive, "UNREACHED_MIN_SWAP_AMOUNT");
 
         stAurBalance += discountedAmount;
-        colledtedStAurFees += fee;
+        collectedStAurFees += fee;
         auroraBalance -= auroraToSend;
 
         // Step 1. Get the caller stAur tokens.
@@ -209,6 +204,13 @@ contract LiquidityPool is ERC4626, Ownable {
         IERC20(auroraToken).safeTransfer(msg.sender, auroraToSend);
 
         emit SwapStAur(msg.sender, auroraToSend, _stAurAmount, fee);
+    }
+
+    function withdrawCollectedStAurFees(address _receiver) onlyOwner external {
+        require(_receiver != address(0), "INVALID_ZERO_ADDRESS");
+        uint256 _toTransfer = collectedStAurFees;
+        collectedStAurFees = 0;
+        IStakedAuroraVault(stAurVault).safeTransfer(_receiver, _toTransfer);
     }
 
     // PRIVATE ZONE
