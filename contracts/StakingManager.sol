@@ -103,7 +103,7 @@ contract StakingManager is AccessControl {
 
     /// @dev In case of emergency 🦺, return all funds to users with a withdraw order.
     function emergencyClearWithdrawOrders() external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(!IStakedAuroraVault(stAurVault).fullyOperational(), "ONLY_FOR_EMERGENCIES");
+        require(!IStakedAuroraVault(stAurVault).fullyOperational(), "ONLY_WHEN_VAULT_IS_NOT_FULLY_OP");
         for (uint i = 0; i < withdrawOrders.length; i++) {
             IStakedAuroraVault(stAurVault).emergencyMintRecover(
                 withdrawOrders[i].receiver,
@@ -111,6 +111,7 @@ contract StakingManager is AccessControl {
             );
         }
         delete withdrawOrders;
+        totalWithdrawInQueue = 0;
     }
 
     function getWithdrawOrderAssets(address _account) public view returns (uint256) {

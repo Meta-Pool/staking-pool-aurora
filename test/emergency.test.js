@@ -319,6 +319,58 @@ describe("Emergency flow 🦺 works.", function () {
         stakingManagerContract,
         owner,
         alice,
+        bob
+      } = await loadFixture(botsHordeFixture);
+
+      const bobShares = await stakedAuroraVaultContract.balanceOf(bob.address);
+      await stakedAuroraVaultContract.connect(bob).redeem(bobShares, bob.address, bob.address);
+
+      expect(await stakedAuroraVaultContract.fullyOperational()).to.be.true;
+      await stakedAuroraVaultContract.connect(owner).toggleFullyOperational();
+      expect(await stakedAuroraVaultContract.fullyOperational()).to.be.false;
+
+      const aliceDeposit = ethers.BigNumber.from(6_000).mul(DECIMALS);
+      await auroraTokenContract.connect(alice).approve(stakedAuroraVaultContract.address, aliceDeposit);
+      await expect(
+        stakedAuroraVaultContract.connect(alice).deposit(aliceDeposit, alice.address)
+      ).to.be.revertedWith("CONTRACT_IS_NOT_FULLY_OPERATIONAL");
+
+      await expect(
+        stakedAuroraVaultContract.connect(alice).mint(
+          ethers.BigNumber.from(1).mul(DECIMALS), alice.address)
+      ).to.be.revertedWith("CONTRACT_IS_NOT_FULLY_OPERATIONAL");
+
+      await expect(
+        stakedAuroraVaultContract.connect(alice).redeem(
+          await stakedAuroraVaultContract.balanceOf(alice.address), alice.address, alice.address)
+      ).to.be.revertedWith("CONTRACT_IS_NOT_FULLY_OPERATIONAL");
+
+      // Move forward: From withdraw to pending.
+      await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
+      await stakingManagerContract.cleanOrdersQueue();
+
+      // Move forward: From pending to available.
+      await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
+      await stakingManagerContract.cleanOrdersQueue();
+
+      const nextBobBalance = (await auroraTokenContract.balanceOf(bob.address)).add(
+        await stakingManagerContract.getAvailableAssets(bob.address)
+      );
+      await stakedAuroraVaultContract.connect(bob).withdraw(
+        await stakingManagerContract.getAvailableAssets(bob.address),
+        bob.address,
+        bob.address
+      );
+      expect(await auroraTokenContract.balanceOf(bob.address)).to.equal(nextBobBalance);
+    });
+
+    it("Should clean withdraw orders.", async function () {
+      const {
+        auroraTokenContract,
+        stakedAuroraVaultContract,
+        stakingManagerContract,
+        owner,
+        alice,
         bob,
         carl,
         spam0,
@@ -347,6 +399,10 @@ describe("Emergency flow 🦺 works.", function () {
       const spam8Shares = await stakedAuroraVaultContract.balanceOf(spam8.address);
       const spam9Shares = await stakedAuroraVaultContract.balanceOf(spam9.address);
 
+      const totalSupplyBefore = await stakedAuroraVaultContract.totalSupply();
+      const totalAssetsBefore = await stakedAuroraVaultContract.totalAssets();
+
+      // await stakedAuroraVaultContract.connect(bob).redeem(bobShares, bob.address, bob.address);
       await stakedAuroraVaultContract.connect(spam0).redeem(spam0Shares, spam0.address, spam0.address);
       await stakedAuroraVaultContract.connect(spam1).redeem(spam1Shares, spam1.address, spam1.address);
       await stakedAuroraVaultContract.connect(spam2).redeem(spam2Shares, spam2.address, spam2.address);
@@ -358,71 +414,55 @@ describe("Emergency flow 🦺 works.", function () {
       await stakedAuroraVaultContract.connect(spam8).redeem(spam8Shares, spam8.address, spam8.address);
       await stakedAuroraVaultContract.connect(spam9).redeem(spam9Shares, spam9.address, spam9.address);
 
+      expect(await stakedAuroraVaultContract.balanceOf(spam0.address)).to.equal(0);
+      expect(await stakedAuroraVaultContract.balanceOf(spam1.address)).to.equal(0);
+      expect(await stakedAuroraVaultContract.balanceOf(spam2.address)).to.equal(0);
+      expect(await stakedAuroraVaultContract.balanceOf(spam3.address)).to.equal(0);
+      expect(await stakedAuroraVaultContract.balanceOf(spam4.address)).to.equal(0);
+      expect(await stakedAuroraVaultContract.balanceOf(spam5.address)).to.equal(0);
+      expect(await stakedAuroraVaultContract.balanceOf(spam6.address)).to.equal(0);
+      expect(await stakedAuroraVaultContract.balanceOf(spam7.address)).to.equal(0);
+      expect(await stakedAuroraVaultContract.balanceOf(spam8.address)).to.equal(0);
+      expect(await stakedAuroraVaultContract.balanceOf(spam9.address)).to.equal(0);
+
+      expect(await stakingManagerContract.getTotalWithdrawOrders()).to.equal(10);
       expect(await stakedAuroraVaultContract.fullyOperational()).to.be.true;
+      await expect(
+        stakingManagerContract.connect(owner).emergencyClearWithdrawOrders()
+      ).to.be.revertedWith("ONLY_WHEN_VAULT_IS_NOT_FULLY_OP");
       await stakedAuroraVaultContract.connect(owner).toggleFullyOperational();
       expect(await stakedAuroraVaultContract.fullyOperational()).to.be.false;
+      await stakingManagerContract.connect(owner).emergencyClearWithdrawOrders();
+      expect(await stakingManagerContract.getTotalWithdrawOrders()).to.equal(0);
 
-      const aliceDeposit = ethers.BigNumber.from(6_000).mul(DECIMALS);
-      await auroraTokenContract.connect(alice).approve(stakedAuroraVaultContract.address, aliceDeposit);
-      await stakedAuroraVaultContract.connect(alice).deposit(aliceDeposit, alice.address);
+      // IMPORTANT: Tests are running against a dummy Aurora Plus contract that increse the
+      // Aurora tokens each second. This implies that the totalSupply after the emergency mint
+      // should be greater, because each share reprsents now more assets than before the emergency.
+      expect(await stakedAuroraVaultContract.totalSupply()).to.be.greaterThan(totalSupplyBefore);
+      expect(await stakedAuroraVaultContract.totalAssets()).to.be.greaterThan(totalAssetsBefore);
 
-      //// WIP: start here!
+      // Shares are less
+      expect(await stakedAuroraVaultContract.balanceOf(spam0.address)).to.be.lessThan(spam0Shares);
+      expect(await stakedAuroraVaultContract.balanceOf(spam1.address)).to.be.lessThan(spam1Shares);
+      expect(await stakedAuroraVaultContract.balanceOf(spam2.address)).to.be.lessThan(spam2Shares);
+      expect(await stakedAuroraVaultContract.balanceOf(spam3.address)).to.be.lessThan(spam3Shares);
+      expect(await stakedAuroraVaultContract.balanceOf(spam4.address)).to.be.lessThan(spam4Shares);
+      expect(await stakedAuroraVaultContract.balanceOf(spam5.address)).to.be.lessThan(spam5Shares);
+      expect(await stakedAuroraVaultContract.balanceOf(spam6.address)).to.be.lessThan(spam6Shares);
+      expect(await stakedAuroraVaultContract.balanceOf(spam7.address)).to.be.lessThan(spam7Shares);
+      expect(await stakedAuroraVaultContract.balanceOf(spam8.address)).to.be.lessThan(spam8Shares);
+      expect(await stakedAuroraVaultContract.balanceOf(spam9.address)).to.be.lessThan(spam9Shares);
 
-      // // Move forward: From withdraw to pending.
-      // await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
-      // await stakingManagerContract.cleanOrdersQueue();
-
-      // await stakedAuroraVaultContract.connect(alice).redeem(aliceShares, alice.address, alice.address);
-      // await stakedAuroraVaultContract.connect(bob).redeem(bobShares, bob.address, bob.address);
-      // await stakedAuroraVaultContract.connect(carl).redeem(carlShares, carl.address, carl.address);
-
-      // // Move forward: From pending to available.
-      // await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
-      // await stakingManagerContract.cleanOrdersQueue();
-
-      // const nextSpam0Balance = (await auroraTokenContract.balanceOf(spam0.address)).add(
-      //   await stakingManagerContract.getAvailableAssets(spam0.address)
-      // );
-      // await stakedAuroraVaultContract.connect(spam0).withdraw(
-      //   await stakingManagerContract.getAvailableAssets(spam0.address),
-      //   spam0.address,
-      //   spam0.address
-      // );
-      // expect(await auroraTokenContract.balanceOf(spam0.address)).to.equal(nextSpam0Balance);
-
-      // // Move forward: From pending to available.
-      // await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
-      // await stakingManagerContract.cleanOrdersQueue();
-
-      // const nextAliceBalance = (await auroraTokenContract.balanceOf(alice.address)).add(
-      //   await stakingManagerContract.getAvailableAssets(alice.address)
-      // );
-      // await stakedAuroraVaultContract.connect(alice).withdraw(
-      //   await stakingManagerContract.getAvailableAssets(alice.address),
-      //   alice.address,
-      //   alice.address
-      // );
-      // expect(await auroraTokenContract.balanceOf(alice.address)).to.equal(nextAliceBalance);
-
-      // const nextBobBalance = (await auroraTokenContract.balanceOf(bob.address)).add(
-      //   await stakingManagerContract.getAvailableAssets(bob.address)
-      // );
-      // await stakedAuroraVaultContract.connect(bob).withdraw(
-      //   await stakingManagerContract.getAvailableAssets(bob.address),
-      //   bob.address,
-      //   bob.address
-      // );
-      // expect(await auroraTokenContract.balanceOf(bob.address)).to.equal(nextBobBalance);
-
-      // const nextCarlBalance = (await auroraTokenContract.balanceOf(carl.address)).add(
-      //   await stakingManagerContract.getAvailableAssets(carl.address)
-      // );
-      // await stakedAuroraVaultContract.connect(carl).withdraw(
-      //   await stakingManagerContract.getAvailableAssets(carl.address),
-      //   carl.address,
-      //   carl.address
-      // );
-      // expect(await auroraTokenContract.balanceOf(carl.address)).to.equal(nextCarlBalance);
+      expect(await stakedAuroraVaultContract.balanceOf(spam0.address)).to.be.greaterThan(0);
+      expect(await stakedAuroraVaultContract.balanceOf(spam1.address)).to.be.greaterThan(0);
+      expect(await stakedAuroraVaultContract.balanceOf(spam2.address)).to.be.greaterThan(0);
+      expect(await stakedAuroraVaultContract.balanceOf(spam3.address)).to.be.greaterThan(0);
+      expect(await stakedAuroraVaultContract.balanceOf(spam4.address)).to.be.greaterThan(0);
+      expect(await stakedAuroraVaultContract.balanceOf(spam5.address)).to.be.greaterThan(0);
+      expect(await stakedAuroraVaultContract.balanceOf(spam6.address)).to.be.greaterThan(0);
+      expect(await stakedAuroraVaultContract.balanceOf(spam7.address)).to.be.greaterThan(0);
+      expect(await stakedAuroraVaultContract.balanceOf(spam8.address)).to.be.greaterThan(0);
+      expect(await stakedAuroraVaultContract.balanceOf(spam9.address)).to.be.greaterThan(0);
     });
   });
 });
