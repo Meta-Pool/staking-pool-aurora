@@ -258,13 +258,12 @@ contract StakingManager is AccessControl {
         _createWithdrawOrder(_assets, _receiver);
     }
 
+    /// @dev The require is done after trying to increase the order amount.
     function _createWithdrawOrder(
         uint256 _assets,
         address _receiver
     ) private {
-        require(withdrawOrders.length < maxWithdrawOrders, "TOO_MANY_WITHDRAW_ORDERS");
         totalWithdrawInQueue += _assets;
-
         for (uint i = 0; i < withdrawOrders.length; i++) {
             if (withdrawOrders[i].receiver == _receiver) {
                 withdrawOrder storage oldOrder = withdrawOrders[i];
@@ -272,6 +271,7 @@ contract StakingManager is AccessControl {
                 return;
             }
         }
+        require(withdrawOrders.length < maxWithdrawOrders, "TOO_MANY_WITHDRAW_ORDERS");
         withdrawOrders.push(withdrawOrder(_assets, _receiver));
     }
 
