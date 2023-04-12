@@ -687,6 +687,124 @@ describe("Staking Pool AURORA", function () {
     });
   });
 
+  describe("Creating Withdraw Orders", function () {
+    it("Should FAIL when creating more orders than max.", async function () {
+      const {
+        auroraTokenContract,
+        stakedAuroraVaultContract,
+        stakingManagerContract,
+        liquidity_provider,
+        alice,
+        bob,
+        carl,
+        spam0,
+        spam1,
+        spam2,
+        spam3,
+        spam4,
+        spam5,
+        spam6,
+        spam7,
+        spam8,
+        spam9
+      } = await loadFixture(botsHordeFixture);
+
+      const aliceShares = await stakedAuroraVaultContract.balanceOf(alice.address);
+      // const bobShares = await stakedAuroraVaultContract.balanceOf(bob.address);
+      // const carlShares = await stakedAuroraVaultContract.balanceOf(carl.address);
+      // const liquidityProviderShares = await stakedAuroraVaultContract.balanceOf(liquidity_provider.address);
+      const spam0Shares = await stakedAuroraVaultContract.balanceOf(spam0.address);
+      const spam1Shares = await stakedAuroraVaultContract.balanceOf(spam1.address);
+      const spam2Shares = await stakedAuroraVaultContract.balanceOf(spam2.address);
+      const spam3Shares = await stakedAuroraVaultContract.balanceOf(spam3.address);
+      const spam4Shares = await stakedAuroraVaultContract.balanceOf(spam4.address);
+      const spam5Shares = await stakedAuroraVaultContract.balanceOf(spam5.address);
+      const spam6Shares = await stakedAuroraVaultContract.balanceOf(spam6.address);
+      const spam7Shares = await stakedAuroraVaultContract.balanceOf(spam7.address);
+      const spam8Shares = await stakedAuroraVaultContract.balanceOf(spam8.address);
+      const spam9Shares = await stakedAuroraVaultContract.balanceOf(spam9.address);
+
+      await stakedAuroraVaultContract.connect(spam0).redeem(spam0Shares, spam0.address, spam0.address);
+      await stakedAuroraVaultContract.connect(spam1).redeem(spam1Shares, spam1.address, spam1.address);
+      await stakedAuroraVaultContract.connect(spam2).redeem(spam2Shares, spam2.address, spam2.address);
+      await stakedAuroraVaultContract.connect(spam3).redeem(spam3Shares, spam3.address, spam3.address);
+      await stakedAuroraVaultContract.connect(spam4).redeem(spam4Shares, spam4.address, spam4.address);
+      await stakedAuroraVaultContract.connect(spam5).redeem(spam5Shares, spam5.address, spam5.address);
+      await stakedAuroraVaultContract.connect(spam6).redeem(spam6Shares, spam6.address, spam6.address);
+      await stakedAuroraVaultContract.connect(spam7).redeem(spam7Shares, spam7.address, spam7.address);
+      await stakedAuroraVaultContract.connect(spam8).redeem(spam8Shares, spam8.address, spam8.address);
+      await stakedAuroraVaultContract.connect(spam9).redeem(spam9Shares, spam9.address, spam9.address);
+
+      await expect(
+        stakedAuroraVaultContract.connect(alice).redeem(aliceShares, alice.address, alice.address)
+      ).to.be.revertedWith("TOO_MANY_WITHDRAW_ORDERS"); 
+
+      // Burned 🔥 tokens were reverted back to Alice.
+      expect(await stakedAuroraVaultContract.balanceOf(alice.address)).to.equal(aliceShares);
+    });
+
+    it("Should ALLOW increase the amount of an existing withdraw order.", async function () {
+      const {
+        auroraTokenContract,
+        stakedAuroraVaultContract,
+        stakingManagerContract,
+        liquidity_provider,
+        alice,
+        bob,
+        carl,
+        spam0,
+        spam1,
+        spam2,
+        spam3,
+        spam4,
+        spam5,
+        spam6,
+        spam7,
+        spam8,
+        spam9
+      } = await loadFixture(botsHordeFixture);
+
+      const aliceShares = await stakedAuroraVaultContract.balanceOf(alice.address);
+      // const bobShares = await stakedAuroraVaultContract.balanceOf(bob.address);
+      // const carlShares = await stakedAuroraVaultContract.balanceOf(carl.address);
+      // const liquidityProviderShares = await stakedAuroraVaultContract.balanceOf(liquidity_provider.address);
+      const redeemBalance = ethers.BigNumber.from(1).mul(DECIMALS);
+      const spam1Shares = await stakedAuroraVaultContract.balanceOf(spam1.address);
+      const spam2Shares = await stakedAuroraVaultContract.balanceOf(spam2.address);
+      const spam3Shares = await stakedAuroraVaultContract.balanceOf(spam3.address);
+      const spam4Shares = await stakedAuroraVaultContract.balanceOf(spam4.address);
+      const spam5Shares = await stakedAuroraVaultContract.balanceOf(spam5.address);
+      const spam6Shares = await stakedAuroraVaultContract.balanceOf(spam6.address);
+      const spam7Shares = await stakedAuroraVaultContract.balanceOf(spam7.address);
+      const spam8Shares = await stakedAuroraVaultContract.balanceOf(spam8.address);
+      const spam9Shares = await stakedAuroraVaultContract.balanceOf(spam9.address);
+
+      await stakedAuroraVaultContract.connect(spam0).redeem(redeemBalance, spam0.address, spam0.address);
+      await stakedAuroraVaultContract.connect(spam1).redeem(spam1Shares, spam1.address, spam1.address);
+      await stakedAuroraVaultContract.connect(spam2).redeem(spam2Shares, spam2.address, spam2.address);
+      await stakedAuroraVaultContract.connect(spam3).redeem(spam3Shares, spam3.address, spam3.address);
+      await stakedAuroraVaultContract.connect(spam4).redeem(spam4Shares, spam4.address, spam4.address);
+      await stakedAuroraVaultContract.connect(spam5).redeem(spam5Shares, spam5.address, spam5.address);
+      await stakedAuroraVaultContract.connect(spam6).redeem(spam6Shares, spam6.address, spam6.address);
+      await stakedAuroraVaultContract.connect(spam7).redeem(spam7Shares, spam7.address, spam7.address);
+      await stakedAuroraVaultContract.connect(spam8).redeem(spam8Shares, spam8.address, spam8.address);
+      await stakedAuroraVaultContract.connect(spam9).redeem(spam9Shares, spam9.address, spam9.address);
+
+      const spam0Shares = await stakedAuroraVaultContract.balanceOf(spam0.address);
+      const currentWithdrawOrder = await stakingManagerContract.getWithdrawOrderAssets(spam0.address);
+      expect(currentWithdrawOrder).to.be.greaterThan(0);
+
+      await expect(
+        stakedAuroraVaultContract.connect(alice).redeem(aliceShares, alice.address, alice.address)
+      ).to.be.revertedWith("TOO_MANY_WITHDRAW_ORDERS"); 
+
+      await stakedAuroraVaultContract.connect(spam0).redeem(spam0Shares, spam0.address, spam0.address);
+      expect(
+        await stakingManagerContract.getWithdrawOrderAssets(spam0.address)
+      ).to.be.greaterThan(currentWithdrawOrder);
+    });
+  });
+
   describe("Partially redeem and withdraw Aurora tokens", function () {
     it("Should allow redeem and withdraw assets from multiple users.", async function () {
       const {
