@@ -311,7 +311,7 @@ describe("Staking Pool AURORA", function () {
 
       const supply3 = await stakedAuroraVaultContract.totalSupply();
       expect(supply3).to.be.lessThan(supply2);
-      expect(await stakingManagerContract.getTotalWithdrawInQueue()).to.equal(
+      expect(await stakingManagerContract.totalWithdrawInQueue()).to.equal(
         (
           await stakingManagerContract.getWithdrawOrderAssets(alice.address)
         ).add(

@@ -43,7 +43,7 @@ contract StakingManager is AccessControl {
     uint256 maxWithdrawOrders;
     uint256 maxDepositors;
 
-    uint256 totalWithdrawInQueue;
+    uint256 public totalWithdrawInQueue;
 
     struct withdrawOrder {
         uint256 assets;
@@ -123,7 +123,8 @@ contract StakingManager is AccessControl {
         totalWithdrawInQueue = 0;
     }
 
-    function getWithdrawOrderAssets(address _account) public view returns (uint256) {
+    /// @notice Returns the amount of assets of a user in the withdraw orders.
+    function getWithdrawOrderAssets(address _account) external view returns (uint256) {
         for (uint i = 0; i < withdrawOrders.length; i++) {
             if (withdrawOrders[i].receiver == _account) {
                 return withdrawOrders[i].assets;
@@ -132,11 +133,12 @@ contract StakingManager is AccessControl {
         return 0;
     }
 
-    function getTotalWithdrawOrders() public view returns (uint256) {
+    function getTotalWithdrawOrders() external view returns (uint256) {
         return withdrawOrders.length;
     }
 
-    function getPendingOrderAssets(address _account) public view returns (uint256) {
+    /// @notice Returns the amount of assets of a user in the pending orders.
+    function getPendingOrderAssets(address _account) external view returns (uint256) {
         for (uint i = 0; i < pendingOrders.length; i++) {
             if (pendingOrders[i].receiver == _account) {
                 return pendingOrders[i].assets;
@@ -145,15 +147,16 @@ contract StakingManager is AccessControl {
         return 0;
     }
 
-    function getAvailableAssets(address _account) public view returns (uint256) {
+    /// @notice Returns the amount of available assets of a user.
+    function getAvailableAssets(address _account) external view returns (uint256) {
         return availableAssets[_account];
     }
 
-    function isAdmin(address _address) public view returns (bool) {
+    function isAdmin(address _address) external view returns (bool) {
         return hasRole(DEFAULT_ADMIN_ROLE, _address);
     }
 
-    function isDepositorsOwner(address _address) public view returns (bool) {
+    function isDepositorsOwner(address _address) external view returns (bool) {
         return hasRole(DEPOSITORS_OWNER_ROLE, _address);
     }
 
@@ -165,7 +168,7 @@ contract StakingManager is AccessControl {
         return depositorShares[_depositor];
     }
 
-    function depositorExists(address _depositor) public view returns (bool) {
+    function depositorExists(address _depositor) external view returns (bool) {
         for (uint i = 0; i < depositors.length; i++) {
             if (depositors[i] == _depositor) {
                 return true;
@@ -174,13 +177,14 @@ contract StakingManager is AccessControl {
         return false;
     }
 
-    function updateDepositorShares(address _depositor) public {
-        require(depositorExists(_depositor), "UNEXISTING_DEPOSITOR");
+    function _updateDepositorShares(address _depositor) private {
         depositorShares[_depositor] = IAuroraStaking(auroraStaking).getUserShares(_depositor);
     }
 
+    /// @dev The next depositor will always be the one with LESS shares.
+    /// @dev For tiebreaking use the one with lower index.
     function setNextDepositor() external onlyStAurVault {
-        updateDepositorShares(nextDepositor);
+        _updateDepositorShares(nextDepositor);
         address _nextDepositor = depositors[0];
         for (uint i = 0; i < depositors.length; i++) {
             // Keeping a < instead of <= allows prioritizing the deposits in lower index depositors.
@@ -191,7 +195,9 @@ contract StakingManager is AccessControl {
         nextDepositor = _nextDepositor;
     }
 
-    function getTotalAssetsFromDepositor(address _depositor) public view returns (uint256) {
+    function getTotalAssetsFromDepositor(
+        address _depositor
+    ) public view returns (uint256) {
         uint256 depositorAuroraShares = depositorShares[_depositor];
         if (depositorAuroraShares == 0) return 0;
         return _calculateStakeValue(depositorAuroraShares);
@@ -210,26 +216,15 @@ contract StakingManager is AccessControl {
         return getTotalAssetsFromDepositors() - totalWithdrawInQueue;
     }
 
-    function isAvailableToWithdraw(
-        uint256 _assets,
-        address _owner
-    ) public view returns (bool) {
-        return availableAssets[_owner] >= _assets;
-    }
-
     function transferAurora(
         address _receiver,
         address _owner,
         uint256 _assets
     ) external onlyStAurVault {
-        require(isAvailableToWithdraw(_assets, _owner), "NOT_ENOUGH_AVAILABLE_ASSETS");
+        require(availableAssets[_owner] >= _assets, "NOT_ENOUGH_AVAILABLE_ASSETS");
         availableAssets[_owner] -= _assets;
         IERC20 token = IERC20(auroraToken);
         token.safeTransfer(_receiver, _assets);
-    }
-
-    function getTotalWithdrawInQueue() public view returns (uint256) {
-        return totalWithdrawInQueue;
     }
 
     /// Unstaking Flow - Ran by ROBOT 🤖
@@ -239,7 +234,7 @@ contract StakingManager is AccessControl {
     /// 4. Move withdraw orders to Pending.
     /// 5. Remove withdraw orders.
     function cleanOrdersQueue() public {
-        require(depositors.length > 0);
+        require(depositors.length > 0, "CREATE_DEPOSITOR");
         require(nextCleanOrderQueue <= block.timestamp, "WAIT_FOR_NEXT_CLEAN_ORDER");
 
         _withdrawFromDepositor();   // Step 1.
@@ -250,7 +245,7 @@ contract StakingManager is AccessControl {
         pendingOrders = withdrawOrders; // Warning ⚠️ - Array is copied.
         delete withdrawOrders;
 
-        // Update the timestamp and totals.
+        // Update the timestamp for the next clean and total.
         (,,,,,,,,,uint256 tau,) = IAuroraStaking(auroraStaking).getStream(0);
         nextCleanOrderQueue = block.timestamp + tau;
         totalWithdrawInQueue = 0;
@@ -263,7 +258,10 @@ contract StakingManager is AccessControl {
         _createWithdrawOrder(_assets, _receiver);
     }
 
-    function _createWithdrawOrder(uint256 _assets, address _receiver) private {
+    function _createWithdrawOrder(
+        uint256 _assets,
+        address _receiver
+    ) private {
         require(withdrawOrders.length < maxWithdrawOrders, "TOO_MANY_WITHDRAW_ORDERS");
         totalWithdrawInQueue += _assets;
 
@@ -296,16 +294,13 @@ contract StakingManager is AccessControl {
     }
 
     function _unstakeWithdrawOrders() private {
-        uint256 totalWithdraw = getTotalWithdrawInQueue();
         uint256 alreadyWithdraw = 0;
-
-        // CAUTION ⛔ keep an eye on this logic.
-        if (totalWithdraw > 0) {
+        if (totalWithdrawInQueue > 0) {
             for (uint i = depositors.length; i > 0; i--) {
                 address depositor = depositors[i-1];
                 uint256 assets = getTotalAssetsFromDepositor(depositor);
                 if (assets == 0) continue;
-                uint256 nextWithdraw = totalWithdraw - alreadyWithdraw;
+                uint256 nextWithdraw = totalWithdrawInQueue - alreadyWithdraw;
 
                 if (assets >= nextWithdraw) {
                     IDepositor(depositor).unstake(nextWithdraw);
@@ -314,8 +309,8 @@ contract StakingManager is AccessControl {
                     IDepositor(depositor).unstakeAll();
                     alreadyWithdraw += assets;
                 }
-                updateDepositorShares(depositor);
-                if (alreadyWithdraw == totalWithdraw) return;
+                _updateDepositorShares(depositor);
+                if (alreadyWithdraw == totalWithdrawInQueue) return;
             }
         }
     }
