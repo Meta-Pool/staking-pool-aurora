@@ -41,7 +41,7 @@ contract StakedAuroraVault is ERC4626, Ownable {
         _;
     }
 
-    modifier checkWhitelist() {
+    modifier onlyWhitelist() {
         if (enforceWhitelist) {
             require(accountWhitelist[_msgSender()], "ACCOUNT_IS_NOT_WHITELISTED");
         }
@@ -119,6 +119,10 @@ contract StakedAuroraVault is ERC4626, Ownable {
         accountWhitelist[_account] = false;
     }
 
+    function isWhitelisted(address _account) external view returns (bool) {
+        return accountWhitelist[_account];
+    }
+
     function getStAurPrice() public view returns (uint256) {
         return convertToAssets(1 ether);
     }
@@ -131,7 +135,7 @@ contract StakedAuroraVault is ERC4626, Ownable {
     function deposit(
         uint256 _assets,
         address _receiver
-    ) public override onlyFullyOperational checkWhitelist returns (uint256) {
+    ) public override onlyFullyOperational onlyWhitelist returns (uint256) {
         require(_assets <= maxDeposit(_receiver), "ERC4626: deposit more than max");
         require(_assets >= minDepositAmount, "LESS_THAN_MIN_DEPOSIT_AMOUNT");
 
@@ -144,7 +148,7 @@ contract StakedAuroraVault is ERC4626, Ownable {
     function mint(
         uint256 _shares,
         address _receiver
-    ) public override onlyFullyOperational checkWhitelist returns (uint256) {
+    ) public override onlyFullyOperational onlyWhitelist returns (uint256) {
         require(_shares <= maxMint(_receiver), "ERC4626: mint more than max");
 
         uint256 assets = previewMint(_shares);
