@@ -87,28 +87,24 @@ contract LiquidityPool is ERC4626, Ownable {
         fullyOperational = !fullyOperational;
     }
 
+    function isAvailable(uint _amount) view external returns(bool){
+        if (stAurBalance >= _amount) return true;
+        return false;
+    }
+
     /// @dev This function will ONLY be called by the stAUR vault
     /// @dev to cover Aurora deposits (FLOW 1).
     function transferStAur(
         address _receiver,
-        uint256 _amount
-    ) external onlyStAurVault returns (bool) {
-        if (stAurBalance >= _amount) {
-            stAurBalance -= _amount;
-            IStakedAuroraVault(stAurVault).safeTransfer(_receiver, _amount);
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    /// @dev If stAUR is transfered from the LP {see transferStAur()},
-    /// @dev then Aurora MUST be claimed from the vault (FLOW 1).
-    function getAuroraFromVault(uint256 _assets) external onlyStAurVault {
+        uint256 _amount,
+        uint _assets
+    ) external onlyStAurVault {
+        stAurBalance -= _amount;
+        IStakedAuroraVault(stAurVault).safeTransfer(_receiver, _amount);
         auroraBalance += _assets;
         IERC20(auroraToken).safeTransferFrom(stAurVault, address(this), _assets);
     }
-
+    
     /// @notice The returned amount is denominated in Aurora Tokens.
     /// @dev Return the balance of Aurora and the current value in Aurora for the stAUR balance.
     function totalAssets() public view override returns (uint256) {
