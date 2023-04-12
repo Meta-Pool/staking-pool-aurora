@@ -10,7 +10,7 @@ const {
   DECIMALS
 } = require("./test_setup");
 
-describe("Emergency flow 🦺 works.", function () {
+describe("Emergency flow 🦺", function () {
   describe("Spam bot horde creating withdraw orders.", function () {
     it("Should return TOTAL withdraw orders to users.", async function () {
       const {
