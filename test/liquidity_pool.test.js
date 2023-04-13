@@ -63,7 +63,7 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
     });
   });
 
-  describe("Swap stAUR for Aurora.", function () {
+  describe("Swap stAUR for Aurora", function () {
     it("Should allow multiple swaps and keep the balances correct.", async function () {
       const {
         auroraTokenContract,

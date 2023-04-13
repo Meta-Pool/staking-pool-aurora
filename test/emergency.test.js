@@ -7,11 +7,13 @@ const {
   liquidityPoolFixture,
   botsHordeFixture,
   AURORA,
-  DECIMALS
+  DECIMALS,
+  MAX_WITHDRAW_ORDERS,
+  TOTAL_SPAMBOTS
 } = require("./test_setup");
 
 describe("Emergency flow 🦺", function () {
-  describe("Spam bot horde creating withdraw orders.", function () {
+  describe("Spam bot horde creating withdraw orders", function () {
     it("Should return TOTAL withdraw orders to users.", async function () {
       const {
         auroraTokenContract,
@@ -21,49 +23,31 @@ describe("Emergency flow 🦺", function () {
         alice,
         bob,
         carl,
-        spam0,
-        spam1,
-        spam2,
-        spam3,
-        spam4,
-        spam5,
-        spam6,
-        spam7,
-        spam8,
-        spam9
+        spambots
       } = await loadFixture(botsHordeFixture);
 
       const aliceShares = await stakedAuroraVaultContract.balanceOf(alice.address);
       const bobShares = await stakedAuroraVaultContract.balanceOf(bob.address);
       const carlShares = await stakedAuroraVaultContract.balanceOf(carl.address);
       const liquidityProviderShares = await stakedAuroraVaultContract.balanceOf(liquidity_provider.address);
-      const spam0Shares = await stakedAuroraVaultContract.balanceOf(spam0.address);
-      const spam1Shares = await stakedAuroraVaultContract.balanceOf(spam1.address);
-      const spam2Shares = await stakedAuroraVaultContract.balanceOf(spam2.address);
-      const spam3Shares = await stakedAuroraVaultContract.balanceOf(spam3.address);
-      const spam4Shares = await stakedAuroraVaultContract.balanceOf(spam4.address);
-      const spam5Shares = await stakedAuroraVaultContract.balanceOf(spam5.address);
-      const spam6Shares = await stakedAuroraVaultContract.balanceOf(spam6.address);
-      const spam7Shares = await stakedAuroraVaultContract.balanceOf(spam7.address);
-      const spam8Shares = await stakedAuroraVaultContract.balanceOf(spam8.address);
-      const spam9Shares = await stakedAuroraVaultContract.balanceOf(spam9.address);
+
+      var totalBotsShares = ethers.BigNumber.from(0);
+      var spamShares = new Array();
+      for (let i = 0; i < TOTAL_SPAMBOTS; i++) {
+        var shares = await stakedAuroraVaultContract.balanceOf(spambots[i].address);
+        spamShares.push(shares);
+        totalBotsShares = totalBotsShares.add(shares);
+      }
 
       expect(await stakedAuroraVaultContract.totalSupply()).to.equal(
-        aliceShares.add(bobShares).add(carlShares).add(liquidityProviderShares).add(spam0Shares)
-          .add(spam1Shares).add(spam2Shares).add(spam3Shares).add(spam4Shares).add(spam5Shares)
-          .add(spam6Shares).add(spam7Shares).add(spam8Shares).add(spam9Shares)
+        aliceShares.add(bobShares).add(carlShares).add(liquidityProviderShares).add(totalBotsShares)
       );
 
-      await stakedAuroraVaultContract.connect(spam0).redeem(spam0Shares, spam0.address, spam0.address);
-      await stakedAuroraVaultContract.connect(spam1).redeem(spam1Shares, spam1.address, spam1.address);
-      await stakedAuroraVaultContract.connect(spam2).redeem(spam2Shares, spam2.address, spam2.address);
-      await stakedAuroraVaultContract.connect(spam3).redeem(spam3Shares, spam3.address, spam3.address);
-      await stakedAuroraVaultContract.connect(spam4).redeem(spam4Shares, spam4.address, spam4.address);
-      await stakedAuroraVaultContract.connect(spam5).redeem(spam5Shares, spam5.address, spam5.address);
-      await stakedAuroraVaultContract.connect(spam6).redeem(spam6Shares, spam6.address, spam6.address);
-      await stakedAuroraVaultContract.connect(spam7).redeem(spam7Shares, spam7.address, spam7.address);
-      await stakedAuroraVaultContract.connect(spam8).redeem(spam8Shares, spam8.address, spam8.address);
-      await stakedAuroraVaultContract.connect(spam9).redeem(spam9Shares, spam9.address, spam9.address);
+      for (let i = 0; i < TOTAL_SPAMBOTS; i++) {
+        await stakedAuroraVaultContract.connect(spambots[i]).redeem(
+          spamShares[i], spambots[i].address, spambots[i].address
+        );
+      }
 
       await expect(
         stakedAuroraVaultContract.connect(alice).redeem(aliceShares, alice.address, alice.address)
@@ -81,15 +65,15 @@ describe("Emergency flow 🦺", function () {
       await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
       await stakingManagerContract.cleanOrdersQueue();
 
-      const nextSpam0Balance = (await auroraTokenContract.balanceOf(spam0.address)).add(
-        await stakingManagerContract.getAvailableAssets(spam0.address)
+      const nextSpamBalance = (await auroraTokenContract.balanceOf(spambots[0].address)).add(
+        await stakingManagerContract.getAvailableAssets(spambots[0].address)
       );
-      await stakedAuroraVaultContract.connect(spam0).withdraw(
-        await stakingManagerContract.getAvailableAssets(spam0.address),
-        spam0.address,
-        spam0.address
+      await stakedAuroraVaultContract.connect(spambots[0]).withdraw(
+        await stakingManagerContract.getAvailableAssets(spambots[0].address),
+        spambots[0].address,
+        spambots[0].address
       );
-      expect(await auroraTokenContract.balanceOf(spam0.address)).to.equal(nextSpam0Balance);
+      expect(await auroraTokenContract.balanceOf(spambots[0].address)).to.equal(nextSpamBalance);
 
       // Move forward: From pending to available.
       await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
@@ -134,75 +118,50 @@ describe("Emergency flow 🦺", function () {
         alice,
         bob,
         carl,
-        spam0,
-        spam1,
-        spam2,
-        spam3,
-        spam4,
-        spam5,
-        spam6,
-        spam7,
-        spam8,
-        spam9
+        spambots
       } = await loadFixture(botsHordeFixture);
 
       const redeemBalance = ethers.BigNumber.from(1).mul(DECIMALS);
 
-      await stakedAuroraVaultContract.connect(spam0).redeem(redeemBalance, spam0.address, spam0.address);
-      await stakedAuroraVaultContract.connect(spam1).redeem(redeemBalance, spam1.address, spam1.address);
-      await stakedAuroraVaultContract.connect(spam2).redeem(redeemBalance, spam2.address, spam2.address);
-      await stakedAuroraVaultContract.connect(spam3).redeem(redeemBalance, spam3.address, spam3.address);
-      await stakedAuroraVaultContract.connect(spam4).redeem(redeemBalance, spam4.address, spam4.address);
-      await stakedAuroraVaultContract.connect(spam5).redeem(redeemBalance, spam5.address, spam5.address);
-      await stakedAuroraVaultContract.connect(spam6).redeem(redeemBalance, spam6.address, spam6.address);
-      await stakedAuroraVaultContract.connect(spam7).redeem(redeemBalance, spam7.address, spam7.address);
-      await stakedAuroraVaultContract.connect(spam8).redeem(redeemBalance, spam8.address, spam8.address);
-      await stakedAuroraVaultContract.connect(spam9).redeem(redeemBalance, spam9.address, spam9.address);
+      // First redeem.
+      for (let i = 0; i < TOTAL_SPAMBOTS; i++) {
+        await stakedAuroraVaultContract.connect(spambots[i]).redeem(
+          redeemBalance, spambots[i].address, spambots[i].address
+        );
+      }
 
       // Move forward: From withdraw to pending.
       await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
       await stakingManagerContract.cleanOrdersQueue();
 
-      await stakedAuroraVaultContract.connect(spam0).redeem(redeemBalance, spam0.address, spam0.address);
-      await stakedAuroraVaultContract.connect(spam1).redeem(redeemBalance, spam1.address, spam1.address);
-      await stakedAuroraVaultContract.connect(spam2).redeem(redeemBalance, spam2.address, spam2.address);
-      await stakedAuroraVaultContract.connect(spam3).redeem(redeemBalance, spam3.address, spam3.address);
-      await stakedAuroraVaultContract.connect(spam4).redeem(redeemBalance, spam4.address, spam4.address);
-      await stakedAuroraVaultContract.connect(spam5).redeem(redeemBalance, spam5.address, spam5.address);
-      await stakedAuroraVaultContract.connect(spam6).redeem(redeemBalance, spam6.address, spam6.address);
-      await stakedAuroraVaultContract.connect(spam7).redeem(redeemBalance, spam7.address, spam7.address);
-      await stakedAuroraVaultContract.connect(spam8).redeem(redeemBalance, spam8.address, spam8.address);
-      await stakedAuroraVaultContract.connect(spam9).redeem(redeemBalance, spam9.address, spam9.address);
+      // Second redeem.
+      for (let i = 0; i < TOTAL_SPAMBOTS; i++) {
+        await stakedAuroraVaultContract.connect(spambots[i]).redeem(
+          redeemBalance, spambots[i].address, spambots[i].address
+        );
+      }
 
       // Move forward: From pending to available.
       await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
       await stakingManagerContract.cleanOrdersQueue();
 
-      await stakedAuroraVaultContract.connect(spam0).redeem(redeemBalance, spam0.address, spam0.address);
-      await stakedAuroraVaultContract.connect(spam1).redeem(redeemBalance, spam1.address, spam1.address);
-      await stakedAuroraVaultContract.connect(spam2).redeem(redeemBalance, spam2.address, spam2.address);
-      await stakedAuroraVaultContract.connect(spam3).redeem(redeemBalance, spam3.address, spam3.address);
-      await stakedAuroraVaultContract.connect(spam4).redeem(redeemBalance, spam4.address, spam4.address);
-      await stakedAuroraVaultContract.connect(spam5).redeem(redeemBalance, spam5.address, spam5.address);
-      await stakedAuroraVaultContract.connect(spam6).redeem(redeemBalance, spam6.address, spam6.address);
-      await stakedAuroraVaultContract.connect(spam7).redeem(redeemBalance, spam7.address, spam7.address);
-      await stakedAuroraVaultContract.connect(spam8).redeem(redeemBalance, spam8.address, spam8.address);
-      await stakedAuroraVaultContract.connect(spam9).redeem(redeemBalance, spam9.address, spam9.address);
+      // Third redeem.
+      for (let i = 0; i < TOTAL_SPAMBOTS; i++) {
+        await stakedAuroraVaultContract.connect(spambots[i]).redeem(
+          redeemBalance, spambots[i].address, spambots[i].address
+        );
+      }
 
       // Move forward: From pending to available.
       await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
       await stakingManagerContract.cleanOrdersQueue();
 
-      await stakedAuroraVaultContract.connect(spam0).redeem(redeemBalance, spam0.address, spam0.address);
-      await stakedAuroraVaultContract.connect(spam1).redeem(redeemBalance, spam1.address, spam1.address);
-      await stakedAuroraVaultContract.connect(spam2).redeem(redeemBalance, spam2.address, spam2.address);
-      await stakedAuroraVaultContract.connect(spam3).redeem(redeemBalance, spam3.address, spam3.address);
-      await stakedAuroraVaultContract.connect(spam4).redeem(redeemBalance, spam4.address, spam4.address);
-      await stakedAuroraVaultContract.connect(spam5).redeem(redeemBalance, spam5.address, spam5.address);
-      await stakedAuroraVaultContract.connect(spam6).redeem(redeemBalance, spam6.address, spam6.address);
-      await stakedAuroraVaultContract.connect(spam7).redeem(redeemBalance, spam7.address, spam7.address);
-      await stakedAuroraVaultContract.connect(spam8).redeem(redeemBalance, spam8.address, spam8.address);
-      await stakedAuroraVaultContract.connect(spam9).redeem(redeemBalance, spam9.address, spam9.address);
+      // Fourth redeem.
+      for (let i = 0; i < TOTAL_SPAMBOTS; i++) {
+        await stakedAuroraVaultContract.connect(spambots[i]).redeem(
+          redeemBalance, spambots[i].address, spambots[i].address
+        );
+      }
 
       // Move forward: From pending to available.
       await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
@@ -227,27 +186,14 @@ describe("Emergency flow 🦺", function () {
       const aliceShares = await stakedAuroraVaultContract.balanceOf(alice.address);
       const bobShares = await stakedAuroraVaultContract.balanceOf(bob.address);
       const carlShares = await stakedAuroraVaultContract.balanceOf(carl.address);
-      const spam0Shares = await stakedAuroraVaultContract.balanceOf(spam0.address);
-      const spam1Shares = await stakedAuroraVaultContract.balanceOf(spam1.address);
-      const spam2Shares = await stakedAuroraVaultContract.balanceOf(spam2.address);
-      const spam3Shares = await stakedAuroraVaultContract.balanceOf(spam3.address);
-      const spam4Shares = await stakedAuroraVaultContract.balanceOf(spam4.address);
-      const spam5Shares = await stakedAuroraVaultContract.balanceOf(spam5.address);
-      const spam6Shares = await stakedAuroraVaultContract.balanceOf(spam6.address);
-      const spam7Shares = await stakedAuroraVaultContract.balanceOf(spam7.address);
-      const spam8Shares = await stakedAuroraVaultContract.balanceOf(spam8.address);
-      const spam9Shares = await stakedAuroraVaultContract.balanceOf(spam9.address);
 
-      await stakedAuroraVaultContract.connect(spam0).redeem(spam0Shares, spam0.address, spam0.address);
-      await stakedAuroraVaultContract.connect(spam1).redeem(spam1Shares, spam1.address, spam1.address);
-      await stakedAuroraVaultContract.connect(spam2).redeem(spam2Shares, spam2.address, spam2.address);
-      await stakedAuroraVaultContract.connect(spam3).redeem(spam3Shares, spam3.address, spam3.address);
-      await stakedAuroraVaultContract.connect(spam4).redeem(spam4Shares, spam4.address, spam4.address);
-      await stakedAuroraVaultContract.connect(spam5).redeem(spam5Shares, spam5.address, spam5.address);
-      await stakedAuroraVaultContract.connect(spam6).redeem(spam6Shares, spam6.address, spam6.address);
-      await stakedAuroraVaultContract.connect(spam7).redeem(spam7Shares, spam7.address, spam7.address);
-      await stakedAuroraVaultContract.connect(spam8).redeem(spam8Shares, spam8.address, spam8.address);
-      await stakedAuroraVaultContract.connect(spam9).redeem(spam9Shares, spam9.address, spam9.address);
+      // Redeem ALL bots balances.
+      for (let i = 0; i < TOTAL_SPAMBOTS; i++) {
+        var shares = await stakedAuroraVaultContract.balanceOf(spambots[i].address);
+        await stakedAuroraVaultContract.connect(spambots[i]).redeem(
+          shares, spambots[i].address, spambots[i].address
+        );
+      }
 
       await expect(
         stakedAuroraVaultContract.connect(alice).redeem(aliceShares, alice.address, alice.address)
@@ -265,15 +211,16 @@ describe("Emergency flow 🦺", function () {
       await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
       await stakingManagerContract.cleanOrdersQueue();
 
-      const nextSpam0Balance = (await auroraTokenContract.balanceOf(spam0.address)).add(
-        await stakingManagerContract.getAvailableAssets(spam0.address)
+      // After the redeem, let's pull the funds out with a withdraw.
+      const nextSpamBalance = (await auroraTokenContract.balanceOf(spambots[0].address)).add(
+        await stakingManagerContract.getAvailableAssets(spambots[0].address)
       );
-      await stakedAuroraVaultContract.connect(spam0).withdraw(
-        await stakingManagerContract.getAvailableAssets(spam0.address),
-        spam0.address,
-        spam0.address
+      await stakedAuroraVaultContract.connect(spambots[0]).withdraw(
+        await stakingManagerContract.getAvailableAssets(spambots[0].address),
+        spambots[0].address,
+        spambots[0].address
       );
-      expect(await auroraTokenContract.balanceOf(spam0.address)).to.equal(nextSpam0Balance);
+      expect(await auroraTokenContract.balanceOf(spambots[0].address)).to.equal(nextSpamBalance);
 
       // Move forward: From pending to available.
       await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
@@ -311,7 +258,7 @@ describe("Emergency flow 🦺", function () {
     });
   });
 
-  describe("Contract is not longer fully operational.", function () {
+  describe("Contract is not longer fully operational", function () {
     it("Should not allow users to deposit nor redeem.", async function () {
       const {
         auroraTokenContract,
@@ -369,81 +316,40 @@ describe("Emergency flow 🦺", function () {
         stakedAuroraVaultContract,
         stakingManagerContract,
         owner,
-        spam0,
-        spam1,
-        spam2,
-        spam3,
-        spam4,
-        spam5,
-        spam6,
-        spam7,
-        spam8,
-        spam9
+        spambots
       } = await loadFixture(botsHordeFixture);
-
-      const spam0Shares = await stakedAuroraVaultContract.balanceOf(spam0.address);
-      const spam1Shares = await stakedAuroraVaultContract.balanceOf(spam1.address);
-      const spam2Shares = await stakedAuroraVaultContract.balanceOf(spam2.address);
-      const spam3Shares = await stakedAuroraVaultContract.balanceOf(spam3.address);
-      const spam4Shares = await stakedAuroraVaultContract.balanceOf(spam4.address);
-      const spam5Shares = await stakedAuroraVaultContract.balanceOf(spam5.address);
-      const spam6Shares = await stakedAuroraVaultContract.balanceOf(spam6.address);
-      const spam7Shares = await stakedAuroraVaultContract.balanceOf(spam7.address);
-      const spam8Shares = await stakedAuroraVaultContract.balanceOf(spam8.address);
-      const spam9Shares = await stakedAuroraVaultContract.balanceOf(spam9.address);
 
       const totalSupplyBefore = await stakedAuroraVaultContract.totalSupply();
       const totalAssetsBefore = await stakedAuroraVaultContract.totalAssets();
 
-      await stakedAuroraVaultContract.connect(spam0).redeem(spam0Shares, spam0.address, spam0.address);
-      await stakedAuroraVaultContract.connect(spam1).redeem(spam1Shares, spam1.address, spam1.address);
-      await stakedAuroraVaultContract.connect(spam2).redeem(spam2Shares, spam2.address, spam2.address);
-      await stakedAuroraVaultContract.connect(spam3).redeem(spam3Shares, spam3.address, spam3.address);
-      await stakedAuroraVaultContract.connect(spam4).redeem(spam4Shares, spam4.address, spam4.address);
-      await stakedAuroraVaultContract.connect(spam5).redeem(spam5Shares, spam5.address, spam5.address);
-      await stakedAuroraVaultContract.connect(spam6).redeem(spam6Shares, spam6.address, spam6.address);
-      await stakedAuroraVaultContract.connect(spam7).redeem(spam7Shares, spam7.address, spam7.address);
-      await stakedAuroraVaultContract.connect(spam8).redeem(spam8Shares, spam8.address, spam8.address);
-      await stakedAuroraVaultContract.connect(spam9).redeem(spam9Shares, spam9.address, spam9.address);
+      for (let i = 0; i < TOTAL_SPAMBOTS; i++) {
+        var shares = await stakedAuroraVaultContract.balanceOf(spambots[i].address);
+        await stakedAuroraVaultContract.connect(spambots[i]).redeem(
+          shares, spambots[i].address, spambots[i].address
+        );
+        expect(await stakedAuroraVaultContract.balanceOf(spambots[i].address)).to.equal(0);
+      }
 
-      expect(await stakedAuroraVaultContract.balanceOf(spam0.address)).to.equal(0);
-      expect(await stakedAuroraVaultContract.balanceOf(spam1.address)).to.equal(0);
-      expect(await stakedAuroraVaultContract.balanceOf(spam2.address)).to.equal(0);
-      expect(await stakedAuroraVaultContract.balanceOf(spam3.address)).to.equal(0);
-      expect(await stakedAuroraVaultContract.balanceOf(spam4.address)).to.equal(0);
-      expect(await stakedAuroraVaultContract.balanceOf(spam5.address)).to.equal(0);
-      expect(await stakedAuroraVaultContract.balanceOf(spam6.address)).to.equal(0);
-      expect(await stakedAuroraVaultContract.balanceOf(spam7.address)).to.equal(0);
-      expect(await stakedAuroraVaultContract.balanceOf(spam8.address)).to.equal(0);
-      expect(await stakedAuroraVaultContract.balanceOf(spam9.address)).to.equal(0);
-
-      expect(await stakingManagerContract.getTotalWithdrawOrders()).to.equal(10);
+      expect(await stakingManagerContract.getTotalWithdrawOrders()).to.equal(MAX_WITHDRAW_ORDERS);
       expect(await stakedAuroraVaultContract.fullyOperational()).to.be.true;
       await expect(
-        stakingManagerContract.connect(owner).emergencyClearWithdrawOrders()
+        stakingManagerContract.connect(owner).emergencyClearWithdrawOrders(1, MAX_WITHDRAW_ORDERS)
       ).to.be.revertedWith("ONLY_WHEN_VAULT_IS_NOT_FULLY_OP");
       await stakedAuroraVaultContract.connect(owner).toggleFullyOperational();
       expect(await stakedAuroraVaultContract.fullyOperational()).to.be.false;
-      await stakingManagerContract.connect(owner).emergencyClearWithdrawOrders();
+      await stakingManagerContract.connect(owner).emergencyClearWithdrawOrders(1, MAX_WITHDRAW_ORDERS);
       expect(await stakingManagerContract.getTotalWithdrawOrders()).to.equal(0);
 
       // IMPORTANT: Tests are running against a dummy Aurora Plus contract that increse the
       // Aurora tokens each second. This implies that the totalSupply after the emergency mint
       // should be greater, because each share reprsents now more assets than before the emergency.
-      expect(await stakedAuroraVaultContract.totalSupply()).to.be.greaterThan(totalSupplyBefore);
+      expect(await stakedAuroraVaultContract.totalSupply()).to.be.lessThan(totalSupplyBefore);
       expect(await stakedAuroraVaultContract.totalAssets()).to.be.greaterThan(totalAssetsBefore);
 
       // ⚠️ Testing the math is tricky, so a simple/loose check is done here! <<<<<<<<<<<<<
-      expect(await stakedAuroraVaultContract.balanceOf(spam0.address)).to.be.greaterThan(0);
-      expect(await stakedAuroraVaultContract.balanceOf(spam1.address)).to.be.greaterThan(0);
-      expect(await stakedAuroraVaultContract.balanceOf(spam2.address)).to.be.greaterThan(0);
-      expect(await stakedAuroraVaultContract.balanceOf(spam3.address)).to.be.greaterThan(0);
-      expect(await stakedAuroraVaultContract.balanceOf(spam4.address)).to.be.greaterThan(0);
-      expect(await stakedAuroraVaultContract.balanceOf(spam5.address)).to.be.greaterThan(0);
-      expect(await stakedAuroraVaultContract.balanceOf(spam6.address)).to.be.greaterThan(0);
-      expect(await stakedAuroraVaultContract.balanceOf(spam7.address)).to.be.greaterThan(0);
-      expect(await stakedAuroraVaultContract.balanceOf(spam8.address)).to.be.greaterThan(0);
-      expect(await stakedAuroraVaultContract.balanceOf(spam9.address)).to.be.greaterThan(0);
+      for (let i = 0; i < TOTAL_SPAMBOTS; i++) {
+        expect(await stakedAuroraVaultContract.balanceOf(spambots[i].address)).to.be.greaterThan(0);
+      }
     });
   });
 });

@@ -16,6 +16,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 contract StakedAuroraVault is ERC4626, Ownable {
     using SafeERC20 for IERC20;
 
+    // TODO: Use events instead.
     address[] public legacyStakingManagers;
     address[] public legacyLiquidityPools;
 
@@ -31,7 +32,6 @@ contract StakedAuroraVault is ERC4626, Ownable {
     mapping(address => bool) public accountWhitelist;
 
     modifier onlyManager() {
-        require(stakingManager != address(0), "INVALID_ZERO_ADDRESS");
         require(_msgSender() == stakingManager, "ONLY_STAKING_MANAGER");
         _;
     }
@@ -41,12 +41,14 @@ contract StakedAuroraVault is ERC4626, Ownable {
         _;
     }
 
-    modifier checkWhitelist() {
+    modifier onlyWhitelist() {
         if (enforceWhitelist) {
             require(accountWhitelist[_msgSender()], "ACCOUNT_IS_NOT_WHITELISTED");
         }
         _;
     }
+
+    // TODO: Addd events!
 
     constructor(
         address _asset,
@@ -59,7 +61,6 @@ contract StakedAuroraVault is ERC4626, Ownable {
     {
         require(_asset != address(0), "INVALID_ZERO_ADDRESS");
         minDepositAmount = _minDepositAmount;
-        fullyOperational = false;
         enforceWhitelist = true;
     }
 
@@ -119,6 +120,10 @@ contract StakedAuroraVault is ERC4626, Ownable {
         accountWhitelist[_account] = false;
     }
 
+    function isWhitelisted(address _account) external view returns (bool) {
+        return accountWhitelist[_account];
+    }
+
     function getStAurPrice() public view returns (uint256) {
         return convertToAssets(1 ether);
     }
@@ -128,10 +133,11 @@ contract StakedAuroraVault is ERC4626, Ownable {
         return IStakingManager(stakingManager).totalAssets();
     }
 
+    /// @dev Same as ERC-4626, but adding evaluation of min deposit amount.
     function deposit(
         uint256 _assets,
         address _receiver
-    ) public override onlyFullyOperational checkWhitelist returns (uint256) {
+    ) public override onlyFullyOperational onlyWhitelist returns (uint256) {
         require(_assets <= maxDeposit(_receiver), "ERC4626: deposit more than max");
         require(_assets >= minDepositAmount, "LESS_THAN_MIN_DEPOSIT_AMOUNT");
 
@@ -144,7 +150,7 @@ contract StakedAuroraVault is ERC4626, Ownable {
     function mint(
         uint256 _shares,
         address _receiver
-    ) public override onlyFullyOperational checkWhitelist returns (uint256) {
+    ) public override onlyFullyOperational onlyWhitelist returns (uint256) {
         require(_shares <= maxMint(_receiver), "ERC4626: mint more than max");
 
         uint256 assets = previewMint(_shares);

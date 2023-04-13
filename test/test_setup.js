@@ -5,6 +5,11 @@ const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 const DECIMALS = ethers.BigNumber.from(10).pow(18);
 const AURORA = ethers.BigNumber.from(1).mul(ethers.BigNumber.from(10).pow(18));
 
+const EQUAL_SPAMBOTS_WITHDRAW_ORDERS = 20;
+const TOTAL_SPAMBOTS = EQUAL_SPAMBOTS_WITHDRAW_ORDERS;
+const MAX_WITHDRAW_ORDERS = EQUAL_SPAMBOTS_WITHDRAW_ORDERS;
+const MAX_DEPOSITORS = 3;
+
 async function deployPoolFixture() {
   // Get the ContractFactory and Signers here.
   const AuroraToken = await ethers.getContractFactory("Token");
@@ -66,8 +71,8 @@ async function deployPoolFixture() {
     auroraStakingContract.address,
     depositors_owner.address,
     operator.address,
-    10,   // Max withdraw orders
-    3     // Max depositors
+    MAX_WITHDRAW_ORDERS,
+    MAX_DEPOSITORS
   );
   await stakingManagerContract.deployed();
 
@@ -298,17 +303,19 @@ async function botsHordeFixture() {
     alice,
     bob,
     carl,
-    spam0,
-    spam1,
-    spam2,
-    spam3,
-    spam4,
-    spam5,
-    spam6,
-    spam7,
-    spam8,
-    spam9
+    spam_master,
   ] = await ethers.getSigners();
+
+  var spambots = new Array();
+  for (let i = 0; i < TOTAL_SPAMBOTS; i++) {
+    // Get a new wallet
+    wallet = ethers.Wallet.createRandom();
+    // add the provider from Hardhat
+    wallet =  wallet.connect(ethers.provider);
+    // send ETH to the new wallet so it can perform a tx
+    await spam_master.sendTransaction({to: wallet.address, value: ethers.utils.parseEther("1")});
+    spambots.push(wallet);
+  }
 
   await stakedAuroraVaultContract.connect(owner).toggleEnforceWhitelist();
 
@@ -331,39 +338,12 @@ async function botsHordeFixture() {
 
   // Bots horde. ⚒️
   const botBalance = ethers.BigNumber.from(30).mul(DECIMALS);
-  await auroraTokenContract.connect(alice).transfer(spam0.address, botBalance);
-  await auroraTokenContract.connect(alice).transfer(spam1.address, botBalance);
-  await auroraTokenContract.connect(alice).transfer(spam2.address, botBalance);
-  await auroraTokenContract.connect(alice).transfer(spam3.address, botBalance);
-  await auroraTokenContract.connect(alice).transfer(spam4.address, botBalance);
-  await auroraTokenContract.connect(alice).transfer(spam5.address, botBalance);
-  await auroraTokenContract.connect(alice).transfer(spam6.address, botBalance);
-  await auroraTokenContract.connect(alice).transfer(spam7.address, botBalance);
-  await auroraTokenContract.connect(alice).transfer(spam8.address, botBalance);
-  await auroraTokenContract.connect(alice).transfer(spam9.address, botBalance);
-
   const botDeposit = ethers.BigNumber.from(10).mul(DECIMALS);
-  await auroraTokenContract.connect(spam0).approve(stakedAuroraVaultContract.address, botDeposit);
-  await auroraTokenContract.connect(spam1).approve(stakedAuroraVaultContract.address, botDeposit);
-  await auroraTokenContract.connect(spam2).approve(stakedAuroraVaultContract.address, botDeposit);
-  await auroraTokenContract.connect(spam3).approve(stakedAuroraVaultContract.address, botDeposit);
-  await auroraTokenContract.connect(spam4).approve(stakedAuroraVaultContract.address, botDeposit);
-  await auroraTokenContract.connect(spam5).approve(stakedAuroraVaultContract.address, botDeposit);
-  await auroraTokenContract.connect(spam6).approve(stakedAuroraVaultContract.address, botDeposit);
-  await auroraTokenContract.connect(spam7).approve(stakedAuroraVaultContract.address, botDeposit);
-  await auroraTokenContract.connect(spam8).approve(stakedAuroraVaultContract.address, botDeposit);
-  await auroraTokenContract.connect(spam9).approve(stakedAuroraVaultContract.address, botDeposit);
-
-  await stakedAuroraVaultContract.connect(spam0).deposit(botDeposit, spam0.address);
-  await stakedAuroraVaultContract.connect(spam1).deposit(botDeposit, spam1.address);
-  await stakedAuroraVaultContract.connect(spam2).deposit(botDeposit, spam2.address);
-  await stakedAuroraVaultContract.connect(spam3).deposit(botDeposit, spam3.address);
-  await stakedAuroraVaultContract.connect(spam4).deposit(botDeposit, spam4.address);
-  await stakedAuroraVaultContract.connect(spam5).deposit(botDeposit, spam5.address);
-  await stakedAuroraVaultContract.connect(spam6).deposit(botDeposit, spam6.address);
-  await stakedAuroraVaultContract.connect(spam7).deposit(botDeposit, spam7.address);
-  await stakedAuroraVaultContract.connect(spam8).deposit(botDeposit, spam8.address);
-  await stakedAuroraVaultContract.connect(spam9).deposit(botDeposit, spam9.address);
+  for (let i = 0; i < TOTAL_SPAMBOTS; i++) {
+    await auroraTokenContract.connect(alice).transfer(spambots[i].address, botBalance);
+    await auroraTokenContract.connect(spambots[i]).approve(stakedAuroraVaultContract.address, botDeposit);
+    await stakedAuroraVaultContract.connect(spambots[i]).deposit(botDeposit, spambots[i].address);
+  }
 
   await stakingManagerContract.cleanOrdersQueue();
 
@@ -387,16 +367,7 @@ async function botsHordeFixture() {
     alice,
     bob,
     carl,
-    spam0,
-    spam1,
-    spam2,
-    spam3,
-    spam4,
-    spam5,
-    spam6,
-    spam7,
-    spam8,
-    spam9
+    spambots
   };
 }
 
@@ -406,5 +377,8 @@ module.exports = {
   liquidityPoolFixture,
   botsHordeFixture,
   AURORA,
-  DECIMALS
+  DECIMALS,
+  TOTAL_SPAMBOTS,
+  MAX_WITHDRAW_ORDERS,
+  MAX_DEPOSITORS
 };
