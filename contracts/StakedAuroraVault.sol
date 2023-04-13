@@ -16,6 +16,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 contract StakedAuroraVault is ERC4626, Ownable {
     using SafeERC20 for IERC20;
 
+    // TODO: Use events instead.
     address[] public legacyStakingManagers;
     address[] public legacyLiquidityPools;
 
@@ -31,7 +32,6 @@ contract StakedAuroraVault is ERC4626, Ownable {
     mapping(address => bool) public accountWhitelist;
 
     modifier onlyManager() {
-        require(stakingManager != address(0), "INVALID_ZERO_ADDRESS");
         require(_msgSender() == stakingManager, "ONLY_STAKING_MANAGER");
         _;
     }
@@ -48,6 +48,8 @@ contract StakedAuroraVault is ERC4626, Ownable {
         _;
     }
 
+    // TODO: Addd events!
+
     constructor(
         address _asset,
         string memory _stAurName,
@@ -59,7 +61,6 @@ contract StakedAuroraVault is ERC4626, Ownable {
     {
         require(_asset != address(0), "INVALID_ZERO_ADDRESS");
         minDepositAmount = _minDepositAmount;
-        fullyOperational = false;
         enforceWhitelist = true;
     }
 
@@ -132,6 +133,7 @@ contract StakedAuroraVault is ERC4626, Ownable {
         return IStakingManager(stakingManager).totalAssets();
     }
 
+    /// @dev Same as ERC-4626, but adding evaluation of min deposit amount.
     function deposit(
         uint256 _assets,
         address _receiver

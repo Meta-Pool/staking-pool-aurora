@@ -110,12 +110,20 @@ contract StakingManager is AccessControl {
 
     /// @notice Only in case of emergency 🦺, return all funds to users with a withdraw order.
     /// @notice Users will NOT receive back the exact same amount of shares they had before.
-    function emergencyClearWithdrawOrders() external onlyRole(DEFAULT_ADMIN_ROLE) {
+    /// @dev The last inclusive index to process will be (from_index + limit - 1).
+    /// @param from_index The inclusive withdraw order index the clear will start (cannot be zero).
+    /// @param limit The number of orders to process.
+    function emergencyClearWithdrawOrders(
+        uint256 from_index,
+        uint256 limit
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(from_index > 0, "INVALID_INDEX_ZERO");
+        require(limit > 0, "INVALID_LIMIT_ZERO");
         require(
             !IStakedAuroraVault(stAurVault).fullyOperational(),
             "ONLY_WHEN_VAULT_IS_NOT_FULLY_OP"
         );
-        for (uint i = 1; i <= lastWithdrawOrderIndex; i++) {
+        for (uint i = from_index; i <= (from_index + limit - 1); i++) {
             uint256 _assets = withdrawOrderAmount[i];
             if (_assets > 0) {
                 address _receiver = withdrawOrderReceiver[i];
@@ -124,10 +132,12 @@ contract StakingManager is AccessControl {
                 withdrawOrderReceiver[i] = address(0);
                 IStakedAuroraVault(stAurVault).emergencyMintRecover(_receiver, _assets);
             }
+            totalWithdrawInQueue -= _assets;
         }
-        // delete withdrawOrders;
-        lastWithdrawOrderIndex = 0;
-        totalWithdrawInQueue = 0;
+        // When all the withdraw orders were cleared, then remove the last order index.
+        if (totalWithdrawInQueue == 0) {
+            lastWithdrawOrderIndex = 0;
+        }
     }
 
     /// @dev If the user do NOT have a withdraw order, expect an index of "0".
