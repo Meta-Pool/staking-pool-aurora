@@ -210,14 +210,12 @@ contract StakedAuroraVault is ERC4626, Ownable {
         IERC20 auroraToken = IERC20(asset());
         IStakingManager manager = IStakingManager(stakingManager);
         auroraToken.safeTransferFrom(_caller, address(this), _assets);
-
         ILiquidityPool pool = ILiquidityPool(liquidityPool);
-        bool stAurTransfered = pool.transferStAur(_receiver, _shares);
 
         // FLOW 1: Use the stAUR in the Liquidity Pool.
-        if (stAurTransfered) {
+        if (pool.isAvailable(_shares)) {
             auroraToken.safeIncreaseAllowance(liquidityPool, _assets);
-            pool.getAuroraFromVault(_assets);
+            pool.transferStAur(_receiver, _shares, _assets);
         // FLOW 2: Stake with the depositor to mint more stAUR.
         } else {
             address depositor = manager.nextDepositor();
