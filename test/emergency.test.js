@@ -2,11 +2,7 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { loadFixture, time } = require("@nomicfoundation/hardhat-network-helpers");
 const {
-  deployPoolFixture,
-  depositPoolFixture,
-  liquidityPoolFixture,
   botsHordeFixture,
-  AURORA,
   DECIMALS,
   MAX_WITHDRAW_ORDERS,
   TOTAL_SPAMBOTS

@@ -235,7 +235,7 @@ describe("Staking Pool AURORA", function () {
     it("Should allow redeem and withdraw assets from multiple users.", async function () {
       const {
         auroraTokenContract,
-        auroraStakingContract,
+        // auroraStakingContract,
         stakedAuroraVaultContract,
         stakingManagerContract,
         alice,
@@ -430,7 +430,7 @@ describe("Staking Pool AURORA", function () {
     it("Should allow Bob to deplete Dep 01 and redeem from Dep 00.", async function () {
       const {
         auroraTokenContract,
-        auroraStakingContract,
+        // auroraStakingContract,
         stakedAuroraVaultContract,
         stakingManagerContract,
         depositor00Contract,
