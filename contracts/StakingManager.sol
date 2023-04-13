@@ -310,7 +310,7 @@ contract StakingManager is AccessControl {
     function _withdrawFromDepositor() private {
         for (uint i = 0; i < depositors.length; i++) {
             address depositor = depositors[i];
-            uint256 pendingAmount = IDepositor(depositor).getPending(depositors[i]);
+            uint256 pendingAmount = IDepositor(depositor).getPendingAurora();
             if (pendingAmount > 0) {
                 IDepositor(depositor).withdraw(pendingAmount);
             }
