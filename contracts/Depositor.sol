@@ -4,12 +4,15 @@ pragma solidity 0.8.18;
 import "./interfaces/IAuroraStaking.sol";
 import "./interfaces/IDepositor.sol";
 import "./interfaces/IStakingManager.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-contract Depositor is Ownable, IDepositor {
+contract Depositor is AccessControl, IDepositor {
     using SafeERC20 for IERC20;
+
+    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+    bytes32 public constant COLLECT_REWARDS_ROLE = keccak256("COLLECT_REWARDS_ROLE");
 
     address public stakingManager;
     address immutable public stAurVault;
@@ -29,7 +32,10 @@ contract Depositor is Ownable, IDepositor {
         _;
     }
 
-    constructor(address _stakingManager) {
+    constructor(
+        address _stakingManager,
+        address _collectRewardsRole
+    ) {
         require(_stakingManager != address(0), "INVALID_ZERO_ADDRESS");
         stakingManager = _stakingManager;
 
@@ -37,9 +43,15 @@ contract Depositor is Ownable, IDepositor {
         stAurVault = manager.stAurVault();
         auroraToken = manager.auroraToken();
         auroraStaking = manager.auroraStaking();
+
+        _grantRole(ADMIN_ROLE, msg.sender);
+        _grantRole(COLLECT_REWARDS_ROLE, _collectRewardsRole);
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
-    function updateStakingManager(address _stakingManager) external onlyOwner {
+    function updateStakingManager(
+        address _stakingManager
+    ) external onlyRole(ADMIN_ROLE) {
         require(_stakingManager != address(0), "INVALID_ZERO_ADDRESS");
         emit NewManager(_msgSender(), stakingManager, _stakingManager);
         stakingManager = _stakingManager;
@@ -76,14 +88,16 @@ contract Depositor is Ownable, IDepositor {
     }
 
     // TODO ⛔ The next 2 functions are not testest.
-    function collectStreamReward(uint256 _streamId) external onlyOwner {
+    function moveRewardsToPending(
+        uint256 _streamId
+    ) external onlyRole(COLLECT_REWARDS_ROLE) {
         IAuroraStaking(auroraStaking).moveRewardsToPending(_streamId);
     }
 
     function withdrawRewards(
         uint256 _streamId,
         address _spender
-    ) external onlyOwner {
+    ) external onlyRole(COLLECT_REWARDS_ROLE) {
         require(_streamId > 0, "WITHDRAW_ONLY_FOR_REWARDS");
         (,address rewardToken,,,,,,,,,) = IAuroraStaking(auroraStaking).getStream(_streamId);
         IAuroraStaking staking = IAuroraStaking(auroraStaking);

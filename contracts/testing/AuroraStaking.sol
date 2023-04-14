@@ -15,6 +15,9 @@ contract AuroraStaking {
     uint256 public totalAuroraShares;
     uint256 public tauAuroraStream;
 
+    /// @dev Centauri Token for Rewards
+    address public stream1Token;
+
     mapping(address => uint256) deposits;
     mapping(address => uint256) auroraShares;
     mapping(address => mapping(uint256 => uint256)) pendings;
@@ -32,11 +35,12 @@ contract AuroraStaking {
         _;
     }
 
-    constructor(address _auroraToken) {
+    constructor(address _auroraToken, address _stream1Token) {
         auroraToken = _auroraToken;
         touchedAt = block.timestamp;
         // tauAuroraStream = 2 * 24 * 60 * 60; // 2 days in seconds.
         tauAuroraStream = 1 * 60 * 60; // 1 hour in seconds.
+        stream1Token = _stream1Token;
     }
 
     /// @dev get the stream data

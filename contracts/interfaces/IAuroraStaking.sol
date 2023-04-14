@@ -8,10 +8,7 @@ enum StreamStatus {
 }
 
 interface IAuroraStaking {
-    function getPending(uint256 _streamId, address _account)
-        external
-        view
-        returns (uint256);
+    function getPending(uint256 _streamId, address _account) external view returns (uint256);
     function getStream(uint256 streamId)
         external
         view

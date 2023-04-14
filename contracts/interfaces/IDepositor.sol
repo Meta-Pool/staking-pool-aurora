@@ -16,9 +16,9 @@ interface IDepositor {
 
     event NewManager(address indexed _sender, address _old, address _new);
 
-    function collectStreamReward(uint256 _streamId) external;
     function getPendingAurora() external view returns (uint256);
     function getPendingRewards(uint256 _streamId) external view returns (uint256);
+    function moveRewardsToPending(uint256 _streamId) external;
     function stake(uint256 _assets) external;
     function unstake(uint256 _assets) external;
     function unstakeAll() external;

@@ -18,6 +18,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 contract StakingManager is AccessControl {
     using SafeERC20 for IERC20;
 
+    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant DEPOSITORS_OWNER_ROLE = keccak256("DEPOSITORS_OWNER_ROLE");
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
 
@@ -79,9 +80,10 @@ contract StakingManager is AccessControl {
         maxDepositors = _maxDepositors;
         nextCleanOrderQueue = block.timestamp;
 
+        _grantRole(ADMIN_ROLE, msg.sender);
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(DEPOSITORS_OWNER_ROLE, _depositorOwner);
         _grantRole(OPERATOR_ROLE, _contractOperator);
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
     function insertDepositor(
@@ -116,7 +118,7 @@ contract StakingManager is AccessControl {
     function emergencyClearWithdrawOrders(
         uint256 from_index,
         uint256 limit
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    ) external onlyRole(ADMIN_ROLE) {
         require(from_index > 0, "INVALID_INDEX_ZERO");
         require(limit > 0, "INVALID_LIMIT_ZERO");
         require(
@@ -183,14 +185,6 @@ contract StakingManager is AccessControl {
     /// @notice Returns the amount of available assets of a user.
     function getAvailableAssets(address _account) external view returns (uint256) {
         return availableAssets[_account];
-    }
-
-    function isAdmin(address _address) external view returns (bool) {
-        return hasRole(DEFAULT_ADMIN_ROLE, _address);
-    }
-
-    function isDepositorsOwner(address _address) external view returns (bool) {
-        return hasRole(DEPOSITORS_OWNER_ROLE, _address);
     }
 
     function depositorsLength() external view returns (uint256) {

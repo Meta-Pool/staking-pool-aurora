@@ -10,9 +10,16 @@ const TOTAL_SPAMBOTS = EQUAL_SPAMBOTS_WITHDRAW_ORDERS;
 const MAX_WITHDRAW_ORDERS = EQUAL_SPAMBOTS_WITHDRAW_ORDERS;
 const MAX_DEPOSITORS = 3;
 
+// CONTRACT ROLES
+const ADMIN_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('ADMIN_ROLE'));
+const DEPOSITORS_OWNER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('DEPOSITORS_OWNER_ROLE'));
+const OPERATOR_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('OPERATOR_ROLE'));
+const COLLECT_REWARDS_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('COLLECT_REWARDS_ROLE'));
+
 async function deployPoolFixture() {
   // Get the ContractFactory and Signers here.
   const AuroraToken = await ethers.getContractFactory("Token");
+  const CentauriToken = await ethers.getContractFactory("Token");
   const AuroraStaking = await ethers.getContractFactory("AuroraStaking");
   const StakingManager = await ethers.getContractFactory("StakingManager");
   const Depositor = await ethers.getContractFactory("Depositor");
@@ -24,7 +31,8 @@ async function deployPoolFixture() {
     depositors_owner,
     liquidity_pool_owner,
     liquidity_provider,
-    operator,
+    manager_operator,
+    reward_collector,
     alice,
     bob,
     carl
@@ -39,6 +47,16 @@ async function deployPoolFixture() {
   );
   await auroraTokenContract.deployed();
 
+  // Centauri Token will be use as Aurora Staking "Reward".
+  const centauriInitialSupply = ethers.BigNumber.from(200).mul(DECIMALS);
+  const centauriTokenContract = await CentauriToken.deploy(
+    centauriInitialSupply,
+    "Centauri Token",
+    "CENTAURI",
+    alice.address
+  );
+  await centauriTokenContract.deployed();
+
   // Sharing total suply with Bob and Carl.
   const splitSupply = ethers.BigNumber.from(3_000_000).mul(DECIMALS);
   await auroraTokenContract.connect(alice).transfer(bob.address, splitSupply);
@@ -49,13 +67,17 @@ async function deployPoolFixture() {
   await auroraTokenContract.connect(alice).transfer(liquidity_provider.address, liquiditySupply);
 
   const auroraStakingContract = await AuroraStaking.deploy(
-    auroraTokenContract.address
+    auroraTokenContract.address,
+    centauriTokenContract.address
   );
   await auroraStakingContract.deployed();
 
   // Send Tokens to the Aurora Staking contract to pay for rewards.
   const forRewards = ethers.BigNumber.from(1_000_000).mul(DECIMALS);
   await auroraTokenContract.connect(alice).transfer(auroraStakingContract.address, forRewards);
+
+  // Send all Centauri Tokens to the Aurora Staking contract.
+  await centauriTokenContract.connect(alice).transfer(auroraStakingContract.address, centauriInitialSupply);
 
   const minDepositAmount = ethers.BigNumber.from(1).mul(DECIMALS);
   const stakedAuroraVaultContract = await StakedAuroraVault.deploy(
@@ -70,7 +92,7 @@ async function deployPoolFixture() {
     stakedAuroraVaultContract.address,
     auroraStakingContract.address,
     depositors_owner.address,
-    operator.address,
+    manager_operator.address,
     MAX_WITHDRAW_ORDERS,
     MAX_DEPOSITORS
   );
@@ -86,12 +108,14 @@ async function deployPoolFixture() {
   ).to.be.revertedWith("ALREADY_INITIALIZED");
 
   const depositor00Contract = await Depositor.connect(depositors_owner).deploy(
-    stakingManagerContract.address
+    stakingManagerContract.address,
+    reward_collector.address
   );
   await depositor00Contract.deployed();
 
   const depositor01Contract = await Depositor.connect(depositors_owner).deploy(
-    stakingManagerContract.address
+    stakingManagerContract.address,
+    reward_collector.address
   );
   await depositor01Contract.deployed();
 
@@ -140,7 +164,8 @@ async function deployPoolFixture() {
     depositors_owner,
     liquidity_pool_owner,
     liquidity_provider,
-    operator,
+    manager_operator,
+    reward_collector,
     alice,
     bob,
     carl
@@ -160,7 +185,8 @@ async function depositPoolFixture() {
     depositors_owner,
     liquidity_pool_owner,
     liquidity_provider,
-    operator,
+    manager_operator,
+    reward_collector,
     alice,
     bob,
     carl
@@ -215,7 +241,8 @@ async function depositPoolFixture() {
     depositors_owner,
     liquidity_pool_owner,
     liquidity_provider,
-    operator,
+    manager_operator,
+    reward_collector,
     alice,
     bob,
     carl
@@ -235,7 +262,8 @@ async function liquidityPoolFixture() {
     depositors_owner,
     liquidity_pool_owner,
     liquidity_provider,
-    operator,
+    manager_operator,
+    reward_collector,
     alice,
     bob,
     carl
@@ -276,7 +304,8 @@ async function liquidityPoolFixture() {
     depositors_owner,
     liquidity_pool_owner,
     liquidity_provider,
-    operator,
+    manager_operator,
+    reward_collector,
     alice,
     bob,
     carl
@@ -299,7 +328,8 @@ async function botsHordeFixture() {
     depositors_owner,
     liquidity_pool_owner,
     liquidity_provider,
-    operator,
+    manager_operator,
+    reward_collector,
     alice,
     bob,
     carl,
@@ -363,7 +393,8 @@ async function botsHordeFixture() {
     depositors_owner,
     liquidity_pool_owner,
     liquidity_provider,
-    operator,
+    manager_operator,
+    reward_collector,
     alice,
     bob,
     carl,
@@ -380,5 +411,9 @@ module.exports = {
   DECIMALS,
   TOTAL_SPAMBOTS,
   MAX_WITHDRAW_ORDERS,
-  MAX_DEPOSITORS
+  MAX_DEPOSITORS,
+  ADMIN_ROLE,
+  DEPOSITORS_OWNER_ROLE,
+  OPERATOR_ROLE,
+  COLLECT_REWARDS_ROLE
 };

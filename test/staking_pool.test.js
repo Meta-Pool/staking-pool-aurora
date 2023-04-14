@@ -8,7 +8,11 @@ const {
   botsHordeFixture,
   AURORA,
   DECIMALS,
-  TOTAL_SPAMBOTS
+  TOTAL_SPAMBOTS,
+  ADMIN_ROLE,
+  DEPOSITORS_OWNER_ROLE,
+  OPERATOR_ROLE,
+  COLLECT_REWARDS_ROLE
 } = require("./test_setup");
 
 describe("Staking Pool AURORA", function () {
@@ -22,7 +26,9 @@ describe("Staking Pool AURORA", function () {
         depositor00Contract,
         depositor01Contract,
         owner,
-        depositors_owner
+        depositors_owner,
+        manager_operator,
+        reward_collector
       } = await loadFixture(deployPoolFixture);
 
       expect(await stakedAuroraVaultContract.owner()).to.equal(owner.address);
@@ -30,21 +36,24 @@ describe("Staking Pool AURORA", function () {
       expect(await stakedAuroraVaultContract.asset()).to.equal(auroraTokenContract.address);
       expect(await stakedAuroraVaultContract.totalAssets()).to.equal(0);
 
-      expect(await stakingManagerContract.isAdmin(owner.address)).to.be.true;
-      expect(await stakingManagerContract.isDepositorsOwner(depositors_owner.address)).to.be.true;
+      expect(await stakingManagerContract.hasRole(ADMIN_ROLE, owner.address)).to.be.true;
+      expect(await stakingManagerContract.hasRole(DEPOSITORS_OWNER_ROLE, depositors_owner.address)).to.be.true;
+      expect(await stakingManagerContract.hasRole(OPERATOR_ROLE, manager_operator.address)).to.be.true;
       expect(await stakingManagerContract.stAurVault()).to.equal(stakedAuroraVaultContract.address);
       expect(await stakingManagerContract.auroraToken()).to.equal(auroraTokenContract.address);
       expect(await stakingManagerContract.auroraStaking()).to.equal(auroraStakingContract.address);
       expect(await stakingManagerContract.depositorsLength()).to.equal(2);
       expect(await stakingManagerContract.totalAssets()).to.equal(0);
 
-      expect(await depositor00Contract.owner()).to.equal(depositors_owner.address);
+      expect(await depositor00Contract.hasRole(ADMIN_ROLE, depositors_owner.address)).to.be.true;
+      expect(await depositor00Contract.hasRole(COLLECT_REWARDS_ROLE, reward_collector.address)).to.be.true;
       expect(await depositor00Contract.stakingManager()).to.equal(stakingManagerContract.address);
       expect(await depositor00Contract.stAurVault()).to.equal(stakedAuroraVaultContract.address);
       expect(await depositor00Contract.auroraToken()).to.equal(auroraTokenContract.address);
       expect(await depositor00Contract.auroraStaking()).to.equal(auroraStakingContract.address);
 
-      expect(await depositor01Contract.owner()).to.equal(depositors_owner.address);
+      expect(await depositor01Contract.hasRole(ADMIN_ROLE, depositors_owner.address)).to.be.true;
+      expect(await depositor01Contract.hasRole(COLLECT_REWARDS_ROLE, reward_collector.address)).to.be.true;
       expect(await depositor01Contract.stakingManager()).to.equal(stakingManagerContract.address);
       expect(await depositor01Contract.stAurVault()).to.equal(stakedAuroraVaultContract.address);
       expect(await depositor01Contract.auroraToken()).to.equal(auroraTokenContract.address);
