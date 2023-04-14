@@ -15,8 +15,9 @@ contract AuroraStaking {
     uint256 public totalAuroraShares;
     uint256 public tauAuroraStream;
 
-    /// @dev Centauri Token for Rewards
-    address public stream1Token;
+    /// @dev Centauri Token for Rewards >> Stream 1 <<
+    address public centauriToken;
+    uint256 public tauCentauriStream;
 
     mapping(address => uint256) deposits;
     mapping(address => uint256) auroraShares;
@@ -35,12 +36,13 @@ contract AuroraStaking {
         _;
     }
 
-    constructor(address _auroraToken, address _stream1Token) {
+    constructor(address _auroraToken, address _centauriToken) {
         auroraToken = _auroraToken;
         touchedAt = block.timestamp;
         // tauAuroraStream = 2 * 24 * 60 * 60; // 2 days in seconds.
         tauAuroraStream = 1 * 60 * 60; // 1 hour in seconds.
-        stream1Token = _stream1Token;
+        tauCentauriStream = 30 * 60; // 0.5 hour in seconds.
+        centauriToken = _centauriToken;
     }
 
     /// @dev get the stream data
@@ -65,19 +67,37 @@ contract AuroraStaking {
             StreamStatus status
         )
     {
-        return (
-            address(0),
-            address(0),
-            streamId,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            tauAuroraStream,
-            StreamStatus.ACTIVE
-        );
+        if (streamId == 0) {
+            return (
+                address(0),
+                auroraToken,
+                streamId,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                tauAuroraStream,
+                StreamStatus.ACTIVE
+            );
+        } else if (streamId == 1) {
+            return (
+                address(0),
+                centauriToken,
+                streamId,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                tauCentauriStream,
+                StreamStatus.ACTIVE
+            );
+        } else {
+            revert("INVALID_STREAM_ID");
+        }
     }
 
     /// @dev gets the total user deposit
@@ -119,6 +139,18 @@ contract AuroraStaking {
     /// @return totalAmountOfStakedAurora + latest reward schedule
     function getTotalAmountOfStakedAurora() external view returns (uint256) {
         return totalAmountOfStakedAurora + getRewardsAmount(0, touchedAt);
+    }
+
+    /// @dev gets the user's stream reward release time
+    /// @param streamId stream index
+    /// @param account user account
+    /// @return user.releaseTime[streamId]
+    function getReleaseTime(uint256 streamId, address account)
+        external
+        view
+        returns (uint256)
+    {
+        return releaseTime[account][streamId];
     }
 
     /// @dev withdraw amount in the pending pool. User should wait for
@@ -256,11 +288,21 @@ contract AuroraStaking {
     function _withdraw(uint256 streamId) internal {
         uint256 pendingAmount = pendings[msg.sender][streamId];
         pendings[msg.sender][streamId] = 0;
-        IERC20Upgradeable(auroraToken).safeTransfer(msg.sender, pendingAmount);
+        if (streamId == 0) {
+            IERC20Upgradeable(auroraToken).safeTransfer(msg.sender, pendingAmount);
+        } else if (streamId == 1) {
+            IERC20Upgradeable(centauriToken).safeTransfer(msg.sender, pendingAmount);
+        } else {
+            revert("INVALID_STREAM_ID");
+        }
     }
 
     function moveRewardsToPending(uint256 streamId) external {
-        // _before();
-        // _moveRewardsToPending(msg.sender, streamId);
+        require(auroraShares[msg.sender] != 0, "USER_DOES_NOT_HAVE_ACTUAL_STAKE");
+        _before();
+
+        // Dummy contract increase the rewards pending by 1.
+        pendings[msg.sender][streamId] += 1 ether;
+        releaseTime[msg.sender][streamId] = block.timestamp + tauCentauriStream;
     }
 }

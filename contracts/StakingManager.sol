@@ -114,7 +114,7 @@ contract StakingManager is AccessControl {
     /// @notice Users will NOT receive back the exact same amount of shares they had before.
     /// @dev The last inclusive index to process will be (from_index + limit - 1).
     /// @param from_index The inclusive withdraw order index the clear will start (cannot be zero).
-    /// @param limit The number of orders to process.
+    /// @param limit Number of orders to process.
     function emergencyClearWithdrawOrders(
         uint256 from_index,
         uint256 limit

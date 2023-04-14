@@ -154,6 +154,7 @@ async function deployPoolFixture() {
   // Fixtures can return anything you consider useful for your tests
   return {
     auroraTokenContract,
+    centauriTokenContract,
     auroraStakingContract,
     stakedAuroraVaultContract,
     stakingManagerContract,
@@ -175,6 +176,7 @@ async function deployPoolFixture() {
 async function depositPoolFixture() {
   const {
     auroraTokenContract,
+    centauriTokenContract,
     auroraStakingContract,
     stakedAuroraVaultContract,
     stakingManagerContract,
@@ -231,6 +233,7 @@ async function depositPoolFixture() {
 
   return {
     auroraTokenContract,
+    centauriTokenContract,
     auroraStakingContract,
     stakedAuroraVaultContract,
     stakingManagerContract,
@@ -252,6 +255,7 @@ async function depositPoolFixture() {
 async function liquidityPoolFixture() {
   const {
     auroraTokenContract,
+    centauriTokenContract,
     auroraStakingContract,
     stakedAuroraVaultContract,
     stakingManagerContract,
@@ -294,6 +298,7 @@ async function liquidityPoolFixture() {
 
   return {
     auroraTokenContract,
+    centauriTokenContract,
     auroraStakingContract,
     stakedAuroraVaultContract,
     stakingManagerContract,
@@ -315,6 +320,7 @@ async function liquidityPoolFixture() {
 async function botsHordeFixture() {
   const {
     auroraTokenContract,
+    centauriTokenContract,
     auroraStakingContract,
     stakedAuroraVaultContract,
     stakingManagerContract,
@@ -383,6 +389,7 @@ async function botsHordeFixture() {
 
   return {
     auroraTokenContract,
+    centauriTokenContract,
     auroraStakingContract,
     stakedAuroraVaultContract,
     stakingManagerContract,

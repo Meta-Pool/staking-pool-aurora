@@ -935,4 +935,48 @@ describe("Staking Pool AURORA", function () {
       );
     });
   });
+
+  describe("Get the Aurora Plus 💚 rewards (Centauri Token 🪐)", function () {
+    it("Should get pending and move to pending rewards.", async function () {
+      const {
+        depositor00Contract,
+        alice,
+        reward_collector
+      } = await loadFixture(depositPoolFixture);
+
+      expect(await depositor00Contract.getPendingRewards(1)).to.equal(0);
+      await expect(
+        depositor00Contract.connect(alice).moveRewardsToPending(1)
+      ).to.be.revertedWith("AccessControl: account 0x976ea74026e726554db657fa54763abd0c3a0aa9 is missing role 0x131c12305311744a3f7cfa41d985c1cd8592681deca082296d27adcfcc21a0b8");
+      await depositor00Contract.connect(reward_collector).moveRewardsToPending(1);
+      expect(await depositor00Contract.getPendingRewards(1)).to.be.greaterThan(0);
+    });
+
+    it("Should withdraw pending rewards and give the allowance to a 3rd party.", async function () {
+      const {
+        depositor00Contract,
+        centauriTokenContract,
+        alice,
+        reward_collector
+      } = await loadFixture(depositPoolFixture);
+
+      await depositor00Contract.connect(reward_collector).moveRewardsToPending(1);
+      await expect(
+        depositor00Contract.connect(reward_collector).withdrawRewards(1, alice.address)
+      ).to.be.revertedWith("INVALID_RELEASE_TIME");
+
+      // Move forward: From pending to available.
+      await time.increaseTo(await depositor00Contract.getReleaseTime(1));
+
+      expect(await centauriTokenContract.balanceOf(depositor00Contract.address)).to.equal(0);
+      await depositor00Contract.connect(reward_collector).withdrawRewards(1, alice.address);
+
+      const transferedRewards = await centauriTokenContract.balanceOf(depositor00Contract.address);
+      expect(transferedRewards).to.be.greaterThan(0);
+
+      expect(await centauriTokenContract.balanceOf(alice.address)).to.equal(0);
+      await centauriTokenContract.connect(alice).transferFrom(depositor00Contract.address, alice.address, transferedRewards);
+      expect(await centauriTokenContract.balanceOf(alice.address)).to.equal(transferedRewards);
+    });
+  });
 });

@@ -8,6 +8,8 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+// import "hardhat/console.sol";
+
 contract Depositor is AccessControl, IDepositor {
     using SafeERC20 for IERC20;
 
@@ -72,22 +74,25 @@ contract Depositor is AccessControl, IDepositor {
         IAuroraStaking(auroraStaking).unstakeAll();
     }
 
+    /// @dev The param of 0 in withdraw refers the streamId for the Aurora Token.
     function withdraw(uint256 _assets) external onlyManager {
         IAuroraStaking(auroraStaking).withdraw(0);
         IERC20(auroraToken).safeTransfer(stakingManager, _assets);
     }
 
+    function getReleaseTime(uint256 _streamId) external view returns (uint256) {
+        return IAuroraStaking(auroraStaking).getReleaseTime(_streamId, address(this));
+    }
+
+    /// @dev The param of 0 in getPendings refers the streamId for the Aurora Token.
     function getPendingAurora() external view returns (uint256) {
         return IAuroraStaking(auroraStaking).getPending(0, address(this));
     }
-
-    /// Reward functions, for streamId greater than 0.
 
     function getPendingRewards(uint256 _streamId) external view returns (uint256) {
         return IAuroraStaking(auroraStaking).getPending(_streamId, address(this));
     }
 
-    // TODO ⛔ The next 2 functions are not testest.
     function moveRewardsToPending(
         uint256 _streamId
     ) external onlyRole(COLLECT_REWARDS_ROLE) {
