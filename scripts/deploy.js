@@ -2,10 +2,11 @@
 
 async function main() {
 
-  const MAINNET_AURORA_PLUS = "0xccc2b1aD21666A5847A804a73a41F904C4a4A0Ec";
-  const MAINNET_AURORA_TOKEN = "0x8BEc47865aDe3B172A928df8f990Bc7f2A3b9f79";
-  const decimals = ethers.BigNumber.from(10).pow(18);
+  const USE_DUMMY_TOKENS = true;
 
+  const decimals = ethers.BigNumber.from(10).pow(18);
+  const AURORA_PLUS_CONTRACT = "0xccc2b1aD21666A5847A804a73a41F904C4a4A0Ec";
+  const AURORA_TOKEN_CONTRACT = "0x8BEc47865aDe3B172A928df8f990Bc7f2A3b9f79";
   const AuroraToken = await ethers.getContractFactory("Token");
   const AuroraStaking = await ethers.getContractFactory("AuroraStaking");
   const StakingManager = await ethers.getContractFactory("StakingManager");
