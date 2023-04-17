@@ -9,8 +9,6 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
-// import "hardhat/console.sol";
-
 // NOTE: SafeMath is no longer needed starting with Solidity 0.8. The compiler now has built in overflow checking.
 
 contract StakedAuroraVault is ERC4626, Ownable {
@@ -179,7 +177,6 @@ contract StakedAuroraVault is ERC4626, Ownable {
         address _receiver,
         address _owner
     ) public override onlyFullyOperational returns (uint256) {
-        // TODO: ⛔ This might be a solution for the allowance. But please test it.
         if (_msgSender() != _owner) {
             _spendAllowance(_owner, _msgSender(), _shares);
         }

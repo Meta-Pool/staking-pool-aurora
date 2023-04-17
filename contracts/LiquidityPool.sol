@@ -187,6 +187,7 @@ contract LiquidityPool is ERC4626, Ownable, ILiquidityPool {
         emit SwapStAur(_msgSender(), auroraToSend, _stAurAmount, fee);
     }
 
+    // TODO: Fees are selfish 🐡
     function withdrawCollectedStAurFees(address _receiver) onlyOwner external {
         require(_receiver != address(0), "INVALID_ZERO_ADDRESS");
         uint256 _toTransfer = collectedStAurFees;
