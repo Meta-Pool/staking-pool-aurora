@@ -45,13 +45,7 @@ npx hardhat run scripts/check_status.js --network aurora_mainnet
 # bob AUROR: 5000000000000000000
 ```
 
-
-
-
-
 # Deployment in Goerli
-
-The branch that is deployed
 
 First, the contracts will be deployed in ETH Goerli, using the two `testing/` contracts for the Aurora Staking service and the Aurora token.
 

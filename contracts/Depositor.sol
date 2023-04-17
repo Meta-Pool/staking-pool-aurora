@@ -8,8 +8,6 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-// import "hardhat/console.sol";
-
 contract Depositor is AccessControl, IDepositor {
     using SafeERC20 for IERC20;
 
@@ -20,9 +18,6 @@ contract Depositor is AccessControl, IDepositor {
     address immutable public stAurVault;
     address immutable public auroraToken;
     address immutable public auroraStaking;
-
-    // TODO: Eventos!!! Revisar si conviene duplicar eventos o no?
-    // xq los eventos de stake y unstake ya los ejecuta la vault.
 
     modifier onlyManager() {
         require(msg.sender == stakingManager, "ONLY_FOR_STAUR_MANAGER");
@@ -64,27 +59,31 @@ contract Depositor is AccessControl, IDepositor {
         aurora.safeTransferFrom(stAurVault, address(this), _assets);
         aurora.safeIncreaseAllowance(auroraStaking, _assets);
         IAuroraStaking(auroraStaking).stake(_assets);
+        emit StakeThroughDepositor(address(this), _assets);
     }
 
     function unstake(uint256 _assets) external onlyManager {
         IAuroraStaking(auroraStaking).unstake(_assets);
+        emit UnstakeThroughDepositor(address(this), _assets);
     }
 
     function unstakeAll() external onlyManager {
         IAuroraStaking(auroraStaking).unstakeAll();
+        emit UnstakeAllThroughDepositor(address(this));
     }
 
-    /// @dev The param of 0 in withdraw refers the streamId for the Aurora Token.
+    /// @dev The param of 0 in withdraw refers to the streamId for the Aurora Token.
     function withdraw(uint256 _assets) external onlyManager {
         IAuroraStaking(auroraStaking).withdraw(0);
         IERC20(auroraToken).safeTransfer(stakingManager, _assets);
+        emit WithdrawThroughDepositor(address(this), stakingManager, _assets);
     }
 
     function getReleaseTime(uint256 _streamId) external view returns (uint256) {
         return IAuroraStaking(auroraStaking).getReleaseTime(_streamId, address(this));
     }
 
-    /// @dev The param of 0 in getPendings refers the streamId for the Aurora Token.
+    /// @dev The param of 0 in getPendings refers to the streamId for the Aurora Token.
     function getPendingAurora() external view returns (uint256) {
         return IAuroraStaking(auroraStaking).getPending(0, address(this));
     }
@@ -97,6 +96,7 @@ contract Depositor is AccessControl, IDepositor {
         uint256 _streamId
     ) external onlyRole(COLLECT_REWARDS_ROLE) {
         IAuroraStaking(auroraStaking).moveRewardsToPending(_streamId);
+        emit MoveRewardsToPending(address(this), _streamId);
     }
 
     function withdrawRewards(
@@ -110,6 +110,7 @@ contract Depositor is AccessControl, IDepositor {
         if (_amount > 0) {
             staking.withdraw(_streamId);
             IERC20(rewardToken).safeIncreaseAllowance(_spender, _amount);
+            emit WithdrawRewards(address(this), _streamId, _spender);
         }
     }
 }
