@@ -54,7 +54,7 @@ contract StakingManager is AccessControl {
     uint256 maxDepositors;
 
     modifier onlyStAurVault() {
-        require(msg.sender == stAurVault, "ONLY_FOR_STAUR_VAULT");
+        require(_msgSender() == stAurVault, "ONLY_FOR_STAUR_VAULT");
         _;
     }
 
@@ -80,8 +80,8 @@ contract StakingManager is AccessControl {
         maxDepositors = _maxDepositors;
         nextCleanOrderQueue = block.timestamp;
 
-        _grantRole(ADMIN_ROLE, msg.sender);
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(ADMIN_ROLE, _msgSender());
+        _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _grantRole(DEPOSITORS_OWNER_ROLE, _depositorOwner);
         _grantRole(OPERATOR_ROLE, _contractOperator);
     }

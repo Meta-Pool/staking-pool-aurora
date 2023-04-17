@@ -125,7 +125,8 @@ contract StakedAuroraVault is ERC4626, Ownable {
     }
 
     function getStAurPrice() public view returns (uint256) {
-        return convertToAssets(1 ether);
+        uint256 ONE_AURORA = 1 ether;
+        return convertToAssets(ONE_AURORA);
     }
 
     function totalAssets() public view override returns (uint256) {
@@ -213,7 +214,7 @@ contract StakedAuroraVault is ERC4626, Ownable {
         ILiquidityPool pool = ILiquidityPool(liquidityPool);
 
         // FLOW 1: Use the stAUR in the Liquidity Pool.
-        if (pool.isAvailable(_shares)) {
+        if (pool.isStAurBalanceAvailable(_shares)) {
             auroraToken.safeIncreaseAllowance(liquidityPool, _assets);
             pool.transferStAur(_receiver, _shares, _assets);
         // FLOW 2: Stake with the depositor to mint more stAUR.

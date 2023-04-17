@@ -1,15 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.18;
 
+import "./interfaces/ILiquidityPool.sol";
 import "./interfaces/IStakedAuroraVault.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
-// import "hardhat/console.sol";
+/// @notice Liquidity Pool that allows the fast convertion of stAUR to AURORA tokens.
 
-contract LiquidityPool is ERC4626, Ownable {
+contract LiquidityPool is ERC4626, Ownable, ILiquidityPool {
     using SafeERC20 for IERC20;
     using SafeERC20 for IStakedAuroraVault;
 
@@ -28,30 +29,8 @@ contract LiquidityPool is ERC4626, Ownable {
 
     bool public fullyOperational;
 
-    event AddLiquidity(
-        address indexed _user,
-        address indexed _receiver,
-        uint256 _shares,
-        uint256 _auroraAmount
-    );
-
-    event RemoveLiquidity(
-        address indexed _user,
-        address indexed _receiver,
-        uint256 _shares,
-        uint256 _auroraAmount,
-        uint256 _stAurAmount
-    );
-
-    event SwapStAur(
-        address indexed _user,
-        uint256 _auroraAmount,
-        uint256 _stAurAmount,
-        uint256 _fee
-    );
-
     modifier onlyStAurVault() {
-        require(msg.sender == stAurVault, "ONLY_FOR_STAUR_VAULT");
+        require(_msgSender() == stAurVault, "ONLY_FOR_STAUR_VAULT");
         _;
     }
 
@@ -87,13 +66,13 @@ contract LiquidityPool is ERC4626, Ownable {
         fullyOperational = !fullyOperational;
     }
 
-    function isAvailable(uint _amount) view external returns(bool){
+    function isStAurBalanceAvailable(uint _amount) external view returns(bool) {
         if (stAurBalance >= _amount) return true;
         return false;
     }
 
     /// @dev This function will ONLY be called by the stAUR vault
-    /// @dev to cover Aurora deposits (FLOW 1).
+    /// to cover Aurora deposits (FLOW 1).
     function transferStAur(
         address _receiver,
         uint256 _amount,
@@ -114,6 +93,7 @@ contract LiquidityPool is ERC4626, Ownable {
         );
     }
 
+    /// @notice The deposit flow is used to **Add** liquidity to the Liquidity Pool.
     function deposit(
         uint256 _assets,
         address _receiver
@@ -127,12 +107,13 @@ contract LiquidityPool is ERC4626, Ownable {
         return _shares;
     }
 
+    /// @notice The redeem flow is used to **Remove** liquidity from the Liquidity Pool.
+    /// @return The pool percentage of shares that were burned.
     function redeem(
         uint256 _shares,
         address _receiver,
         address _owner
     ) public override returns (uint256) {
-        // TODO: test the allowance.
         if (_msgSender() != _owner) {
             _spendAllowance(_owner, _msgSender(), _shares);
         }
@@ -158,6 +139,7 @@ contract LiquidityPool is ERC4626, Ownable {
         emit RemoveLiquidity(
             _msgSender(),
             _receiver,
+            _owner,
             _shares,
             auroraToSend,
             stAurToSend
@@ -165,10 +147,12 @@ contract LiquidityPool is ERC4626, Ownable {
         return poolPercentage;
     }
 
+    /// @dev Use deposit fn instead.
     function mint(uint256, address) public override pure returns (uint256) {
         revert("UNAVAILABLE_FUNCTION");
     }
 
+    /// @dev Use redeem fn instead.
     function withdraw(uint256, address, address) public override pure returns (uint256) {
         revert("UNAVAILABLE_FUNCTION");
     }
@@ -178,7 +162,8 @@ contract LiquidityPool is ERC4626, Ownable {
         return IStakedAuroraVault(stAurVault).convertToAssets(discountedAmount);
     }
 
-    function swapStAurforAurora(
+    /// @notice Used for fast swaps to get AURORA tokens back without the unstake delay.
+    function swapStAurForAurora(
         uint256 _stAurAmount,
         uint256 _minAuroraToReceive
     ) external {
@@ -194,12 +179,12 @@ contract LiquidityPool is ERC4626, Ownable {
         auroraBalance -= auroraToSend;
 
         // Step 1. Get the caller stAur tokens.
-        vault.safeTransferFrom(msg.sender, address(this), _stAurAmount);
+        vault.safeTransferFrom(_msgSender(), address(this), _stAurAmount);
 
         // Step 2. Transfer the Aurora tokens to the caller.
-        IERC20(auroraToken).safeTransfer(msg.sender, auroraToSend);
+        IERC20(auroraToken).safeTransfer(_msgSender(), auroraToSend);
 
-        emit SwapStAur(msg.sender, auroraToSend, _stAurAmount, fee);
+        emit SwapStAur(_msgSender(), auroraToSend, _stAurAmount, fee);
     }
 
     function withdrawCollectedStAurFees(address _receiver) onlyOwner external {
@@ -209,8 +194,6 @@ contract LiquidityPool is ERC4626, Ownable {
         IStakedAuroraVault(stAurVault).safeTransfer(_receiver, _toTransfer);
     }
 
-    // PRIVATE ZONE
-
     function _calculatePoolFees(uint256 _amount)
         private
         view
@@ -219,6 +202,7 @@ contract LiquidityPool is ERC4626, Ownable {
         return (_amount - fee, fee);
     }
 
+    /// @dev The Deposit event is used to indicate more liquidity.
     function _deposit(
         address _caller,
         address _receiver,
@@ -229,6 +213,6 @@ contract LiquidityPool is ERC4626, Ownable {
         IERC20(asset()).safeTransferFrom(_caller, address(this), _assets);
         _mint(_receiver, _shares);
 
-        emit AddLiquidity(_caller, _receiver, _shares, _assets);
+        emit AddLiquidity(_caller, _receiver, _assets, _shares);
     }
 }

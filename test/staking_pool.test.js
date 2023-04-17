@@ -884,7 +884,7 @@ describe("Staking Pool AURORA", function () {
       // StAUR deposits to the Liquidity Pool.
       const providerSwap = ethers.BigNumber.from(90_000).mul(DECIMALS); // The amount of stAUR the provider will swap back to AURORA.
       await stakedAuroraVaultContract.connect(liquidity_provider).approve(liquidityPoolContract.address, providerSwap);
-      await liquidityPoolContract.connect(liquidity_provider).swapStAurforAurora(
+      await liquidityPoolContract.connect(liquidity_provider).swapStAurForAurora(
         providerSwap,
         await liquidityPoolContract.previewSwapStAurForAurora(providerSwap)
       );

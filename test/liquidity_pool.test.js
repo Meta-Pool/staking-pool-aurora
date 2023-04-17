@@ -84,7 +84,7 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
       await stakedAuroraVaultContract.connect(liquidity_provider).approve(liquidityPoolContract.address, providerSwap);
 
       const providerPreBalance = await auroraTokenContract.balanceOf(liquidity_provider.address);
-      await liquidityPoolContract.connect(liquidity_provider).swapStAurforAurora(
+      await liquidityPoolContract.connect(liquidity_provider).swapStAurForAurora(
         providerSwap,
         await liquidityPoolContract.previewSwapStAurForAurora(providerSwap)
       );
@@ -102,7 +102,7 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
       await stakedAuroraVaultContract.connect(alice).approve(liquidityPoolContract.address, aliceSwap);
 
       const alicePreBalance = await auroraTokenContract.balanceOf(alice.address);
-      await liquidityPoolContract.connect(alice).swapStAurforAurora(
+      await liquidityPoolContract.connect(alice).swapStAurForAurora(
         aliceSwap,
         await liquidityPoolContract.previewSwapStAurForAurora(aliceSwap)
       );
@@ -120,7 +120,7 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
       await stakedAuroraVaultContract.connect(bob).approve(liquidityPoolContract.address, bobSwap);
 
       const bobPreBalance = await auroraTokenContract.balanceOf(bob.address);
-      await liquidityPoolContract.connect(bob).swapStAurforAurora(
+      await liquidityPoolContract.connect(bob).swapStAurForAurora(
         bobSwap,
         await liquidityPoolContract.previewSwapStAurForAurora(bobSwap)
       );
@@ -138,7 +138,7 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
       await stakedAuroraVaultContract.connect(carl).approve(liquidityPoolContract.address, carlSwap);
 
       const carlPreBalance = await auroraTokenContract.balanceOf(carl.address);
-      await liquidityPoolContract.connect(carl).swapStAurforAurora(
+      await liquidityPoolContract.connect(carl).swapStAurForAurora(
         carlSwap,
         await liquidityPoolContract.previewSwapStAurForAurora(carlSwap)
       );
@@ -168,7 +168,7 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
       const providerSwap = ethers.BigNumber.from(90_000).mul(DECIMALS); // The amount of stAUR the provider will swap back to AURORA.
       await stakedAuroraVaultContract.connect(liquidity_provider).approve(liquidityPoolContract.address, providerSwap);
 
-      await liquidityPoolContract.connect(liquidity_provider).swapStAurforAurora(
+      await liquidityPoolContract.connect(liquidity_provider).swapStAurForAurora(
         providerSwap,
         await liquidityPoolContract.previewSwapStAurForAurora(providerSwap)
       );
@@ -180,7 +180,7 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
       const aliceSwap = ethers.BigNumber.from(200).mul(DECIMALS);
       await stakedAuroraVaultContract.connect(alice).approve(liquidityPoolContract.address, aliceSwap);
 
-      await liquidityPoolContract.connect(alice).swapStAurforAurora(
+      await liquidityPoolContract.connect(alice).swapStAurForAurora(
         aliceSwap,
         await liquidityPoolContract.previewSwapStAurForAurora(aliceSwap)
       );
@@ -192,7 +192,7 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
       const bobSwap = ethers.BigNumber.from(3_400).mul(DECIMALS);
       await stakedAuroraVaultContract.connect(bob).approve(liquidityPoolContract.address, bobSwap);
 
-      await liquidityPoolContract.connect(bob).swapStAurforAurora(
+      await liquidityPoolContract.connect(bob).swapStAurForAurora(
         bobSwap,
         await liquidityPoolContract.previewSwapStAurForAurora(bobSwap)
       );
@@ -204,7 +204,7 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
       const carlSwap = ethers.BigNumber.from(132).mul(DECIMALS);
       await stakedAuroraVaultContract.connect(carl).approve(liquidityPoolContract.address, carlSwap);
 
-      await liquidityPoolContract.connect(carl).swapStAurforAurora(
+      await liquidityPoolContract.connect(carl).swapStAurForAurora(
         carlSwap,
         await liquidityPoolContract.previewSwapStAurForAurora(carlSwap)
       );

@@ -16,7 +16,6 @@ interface IDepositor {
     function stake(uint256 _assets) external;
     function unstake(uint256 _assets) external;
     function unstakeAll() external;
-    function updateStakingManager(address _stakingManager) external;
     function withdraw(uint _assets) external;
     function withdrawRewards(uint256 _streamId, address _spender) external;
 }
