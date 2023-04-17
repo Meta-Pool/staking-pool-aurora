@@ -25,9 +25,8 @@ interface ILiquidityPool {
         uint256 _fee
     );
 
-
-    function transferStAur(address _receiver, uint256 _amount, uint _assets) external;
     function isStAurBalanceAvailable(uint _amount) external view returns(bool);
     function previewSwapStAurForAurora(uint256 _amount) external view returns (uint256);
     function swapStAurForAurora(uint256 _stAurAmount, uint256 _minAuroraToReceive) external;
+    function transferStAur(address _receiver, uint256 _amount, uint _assets) external;
 }

@@ -4,18 +4,17 @@ pragma solidity 0.8.18;
 import "./interfaces/IAuroraStaking.sol";
 import "./interfaces/IDepositor.sol";
 import "./interfaces/IStakedAuroraVault.sol";
+import "./interfaces/IStakingManager.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-// import "hardhat/console.sol";
-
 /// @notice Staking Manager Logic 🤖:
 /// Deposits will always go to the depositor with LESS staked amount.
 /// Withdraws will always be taken from the depositor with the greatest index.
 
-contract StakingManager is AccessControl {
+contract StakingManager is AccessControl, IStakingManager {
     using SafeERC20 for IERC20;
 
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
@@ -41,7 +40,7 @@ contract StakingManager is AccessControl {
     uint256 lastWithdrawOrderIndex;
     uint256 public totalWithdrawInQueue;
 
-    /// @dev The Index "0" MUST remain empty of any withdraw order.
+    /// @dev The Index "0" MUST remain empty of any pending order.
     mapping(uint256 => uint256) pendingOrderAmount;
     mapping(uint256 => address) pendingOrderReceiver;
     uint256 lastPendingOrderIndex;
@@ -92,6 +91,8 @@ contract StakingManager is AccessControl {
         require(depositors.length < maxDepositors, "DEPOSITORS_LIMIT_REACHED");
         depositors.push(_depositor);
         nextDepositor = _depositor;
+
+        emit NewDepositorAdded(_msgSender(), _depositor);
     }
 
     function changeMaxDepositors(
@@ -100,6 +101,8 @@ contract StakingManager is AccessControl {
         require(_maxDepositors != maxDepositors, "INVALID_CHANGE");
         require(_maxDepositors >= depositors.length, "BELOW_CURRENT_LENGTH");
         maxDepositors = _maxDepositors;
+
+        emit MaxDepositorsUpdate(_msgSender(), _maxDepositors);
     }
 
     function changeMaxWithdrawOrders(
@@ -108,24 +111,26 @@ contract StakingManager is AccessControl {
         require(_maxWithdrawOrders != maxWithdrawOrders, "INVALID_CHANGE");
         require(_maxWithdrawOrders >= lastWithdrawOrderIndex, "BELOW_CURRENT_LENGTH");
         maxWithdrawOrders = _maxWithdrawOrders;
+
+        emit MaxWithdrawOrdersUpdate(_msgSender(), _maxWithdrawOrders);
     }
 
     /// @notice Only in case of emergency 🦺, return all funds to users with a withdraw order.
     /// @notice Users will NOT receive back the exact same amount of shares they had before.
-    /// @dev The last inclusive index to process will be (from_index + limit - 1).
-    /// @param from_index The inclusive withdraw order index the clear will start (cannot be zero).
-    /// @param limit Number of orders to process.
+    /// @dev The last inclusive index to process will be (_from_index + _limit - 1).
+    /// @param _from_index The inclusive withdraw order index the clear will start (cannot be zero).
+    /// @param _limit Number of orders to process.
     function emergencyClearWithdrawOrders(
-        uint256 from_index,
-        uint256 limit
+        uint256 _from_index,
+        uint256 _limit
     ) external onlyRole(ADMIN_ROLE) {
-        require(from_index > 0, "INVALID_INDEX_ZERO");
-        require(limit > 0, "INVALID_LIMIT_ZERO");
+        require(_from_index > 0, "INVALID_INDEX_ZERO");
+        require(_limit > 0, "INVALID_LIMIT_ZERO");
         require(
             !IStakedAuroraVault(stAurVault).fullyOperational(),
             "ONLY_WHEN_VAULT_IS_NOT_FULLY_OP"
         );
-        for (uint i = from_index; i <= (from_index + limit - 1); i++) {
+        for (uint i = _from_index; i <= (_from_index + _limit - 1); i++) {
             uint256 _assets = withdrawOrderAmount[i];
             if (_assets > 0) {
                 address _receiver = withdrawOrderReceiver[i];
@@ -140,6 +145,14 @@ contract StakingManager is AccessControl {
         if (totalWithdrawInQueue == 0) {
             lastWithdrawOrderIndex = 0;
         }
+
+        emit EmergencyClearWithdrawOrders(
+            _msgSender(),
+            _from_index,
+            _limit,
+            totalWithdrawInQueue,
+            lastWithdrawOrderIndex
+        );
     }
 
     /// @dev If the user do NOT have a withdraw order, expect an index of "0".
@@ -273,6 +286,8 @@ contract StakingManager is AccessControl {
         (,,,,,,,,,uint256 tau,) = IAuroraStaking(auroraStaking).getStream(0);
         nextCleanOrderQueue = block.timestamp + tau;
         totalWithdrawInQueue = 0;
+
+        emit CleanOrdersQueue(_msgSender(), block.timestamp);
     }
 
     function createWithdrawOrder(

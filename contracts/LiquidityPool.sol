@@ -118,7 +118,7 @@ contract LiquidityPool is ERC4626, Ownable, ILiquidityPool {
             _spendAllowance(_owner, _msgSender(), _shares);
         }
 
-        // IMPORTANT NOTE: run the burn 🔥 before the calculations.
+        // IMPORTANT NOTE: run the burn 🔥 BEFORE the calculations.
         _burn(_msgSender(), _shares);
 
         // Core Calculations.

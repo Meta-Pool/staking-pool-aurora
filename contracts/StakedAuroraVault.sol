@@ -14,10 +14,6 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 contract StakedAuroraVault is ERC4626, Ownable {
     using SafeERC20 for IERC20;
 
-    // TODO: Use events instead.
-    address[] public legacyStakingManagers;
-    address[] public legacyLiquidityPools;
-
     address public stakingManager;
     address public liquidityPool;
     uint256 public minDepositAmount;
@@ -28,6 +24,16 @@ contract StakedAuroraVault is ERC4626, Ownable {
     bool public enforceWhitelist;
 
     mapping(address => bool) public accountWhitelist;
+
+    event NewManagerUpdate(address indexed _sender, address _old, address _new);
+    event NewLiquidityPoolUpdate(address indexed _sender, address _old, address _new);
+    event WithdrawOrderCreated(
+        address indexed _sender,
+        address indexed _receiver,
+        address indexed _owner,
+        uint256 _shares,
+        uint256 _assets
+    );
 
     modifier onlyManager() {
         require(_msgSender() == stakingManager, "ONLY_STAKING_MANAGER");
@@ -45,8 +51,6 @@ contract StakedAuroraVault is ERC4626, Ownable {
         }
         _;
     }
-
-    // TODO: Addd events!
 
     constructor(
         address _asset,
@@ -84,7 +88,7 @@ contract StakedAuroraVault is ERC4626, Ownable {
         require(_stakingManager != address(0), "INVALID_ZERO_ADDRESS");
         require(stakingManager != address(0), "NOT_INITIALIZED");
 
-        legacyStakingManagers.push(stakingManager);
+        emit NewManagerUpdate(_msgSender(), stakingManager, _stakingManager);
         stakingManager = _stakingManager;
     }
 
@@ -92,7 +96,7 @@ contract StakedAuroraVault is ERC4626, Ownable {
         require(_liquidityPool != address(0), "INVALID_ZERO_ADDRESS");
         require(liquidityPool != address(0), "NOT_INITIALIZED");
 
-        legacyLiquidityPools.push(liquidityPool);
+        emit NewLiquidityPoolUpdate(_msgSender(), liquidityPool, _liquidityPool);
         liquidityPool = _liquidityPool;
     }
 
@@ -181,11 +185,13 @@ contract StakedAuroraVault is ERC4626, Ownable {
             _spendAllowance(_owner, _msgSender(), _shares);
         }
 
-        // IMPORTANT NOTE: run the _burn fn after the asset calculation.
+        // IMPORTANT NOTE: run the burn 🔥 AFTER the calculations.
         uint256 assets = previewRedeem(_shares);
         _burn(_owner, _shares);
 
         IStakingManager(stakingManager).createWithdrawOrder(assets, _receiver);
+
+        emit WithdrawOrderCreated(_msgSender(), _receiver, _owner, _shares, assets);
 
         return assets;
     }

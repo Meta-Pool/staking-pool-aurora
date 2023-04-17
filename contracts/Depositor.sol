@@ -50,7 +50,7 @@ contract Depositor is AccessControl, IDepositor {
         address _stakingManager
     ) external onlyRole(ADMIN_ROLE) {
         require(_stakingManager != address(0), "INVALID_ZERO_ADDRESS");
-        emit NewManager(_msgSender(), stakingManager, _stakingManager);
+        emit NewManagerUpdate(_msgSender(), stakingManager, _stakingManager);
         stakingManager = _stakingManager;
     }
 
