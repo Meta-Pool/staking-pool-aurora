@@ -2,6 +2,7 @@
 
 async function main() {
 
+  const TEST_RELEASE = " v0.1.0-a2"
   const MAX_WITHDRAW_ORDERS = 20;
   const MAX_DEPOSITORS = 3;
   const DECIMALS = ethers.BigNumber.from(10).pow(18);
@@ -11,6 +12,7 @@ async function main() {
   const StakingManager = await ethers.getContractFactory("StakingManager");
   const Depositor = await ethers.getContractFactory("Depositor");
   const StakedAuroraVault = await ethers.getContractFactory("StakedAuroraVault");
+  const LiquidityPool = await ethers.getContractFactory("LiquidityPool");
   const [
     alice,
     bob
@@ -21,8 +23,8 @@ async function main() {
   const initialSupply = ethers.BigNumber.from(10_000_000).mul(DECIMALS);
   const auroraTokenContract = await AuroraToken.connect(alice).deploy(
     initialSupply,
-    "Aurora Token",
-    "AURORA",
+    "Aurora Token".concat(TEST_RELEASE),
+    "AURORA".concat(TEST_RELEASE),
     alice.address
   );
   await auroraTokenContract.deployed();
@@ -37,8 +39,8 @@ async function main() {
   const centauriInitialSupply = ethers.BigNumber.from(200_000).mul(DECIMALS);
   const centauriTokenContract = await CentauriToken.connect(alice).deploy(
     centauriInitialSupply,
-    "Centauri Token",
-    "CENTAURI",
+    "Centauri Token".concat(TEST_RELEASE),
+    "CENTAURI".concat(TEST_RELEASE),
     alice.address
   );
   await centauriTokenContract.deployed();
@@ -65,8 +67,8 @@ async function main() {
   const minDepositAmount = ethers.BigNumber.from(1).mul(DECIMALS);
   const stakedAuroraVaultContract = await StakedAuroraVault.connect(alice).deploy(
     auroraTokenContract.address,
-    "Staked Aurora Token",
-    "stAUR",
+    "Staked Aurora Token".concat(TEST_RELEASE),
+    "stAUR".concat(TEST_RELEASE),
     minDepositAmount
   );
   await stakedAuroraVaultContract.deployed();
@@ -85,11 +87,32 @@ async function main() {
   await stakingManagerContract.deployed();
   console.log("       ...done!");
 
+   // ----------------- Step 6. Deploying the MUTABLE Liquidity Pool contract.
+   console.log("Step 6. Deploying LiquidityPool...")
+   const liquidityPoolContract = await LiquidityPool.connect(alice).deploy(
+    stakedAuroraVaultContract.address,
+    auroraTokenContract.address,
+    "stAUR/AURORA LP Token".concat(TEST_RELEASE),
+    "stAUR/AUR".concat(TEST_RELEASE),
+    minDepositAmount,
+    200 // Swap fee basis points
+  );
+  await liquidityPoolContract.deployed();
+   console.log("       ...done!");
+
   // Insert/update the staking manager in the ERC-4626
   await stakedAuroraVaultContract.initializeStakingManager(stakingManagerContract.address);
+  await stakedAuroraVaultContract.initializeLiquidityPool(liquidityPoolContract.address);
 
-  // ----------------- Step 6. Deploying the multiple Depositor contracts.
-  console.log("Step 6. Deploying 2 Depositor contracts...")
+  // Whitelist all.
+  await stakedAuroraVaultContract.toggleEnforceWhitelist();
+
+  // Staking Aurora Vault should be fully operational by now.
+  expect(await stakedAuroraVaultContract.fullyOperational()).to.be.true;
+  expect(await stakedAuroraVaultContract.enforceWhitelist()).to.be.false;
+
+  // ----------------- Step 7. Deploying the multiple Depositor contracts.
+  console.log("Step 7. Deploying 2 Depositor contracts...")
   const depositor00Contract = await Depositor.connect(bob).deploy(
     stakingManagerContract.address,
     bob.address
@@ -107,13 +130,14 @@ async function main() {
   await stakingManagerContract.connect(bob).insertDepositor(depositor01Contract.address);
 
   console.log("Addresses of the deployed contracts:")
-  console.log(" - AuroraToken 💚:    %s", auroraTokenContract.address);
-  console.log(" - CentauriToken 🪐:  %s", centauriTokenContract.address);
-  console.log(" - AuroraStaking:     %s", auroraStakingContract.address);
-  console.log(" - StakingManager:    %s", stakingManagerContract.address);
-  console.log(" - Depositor 00:      %s", depositor00Contract.address);
-  console.log(" - Depositor 01:      %s", depositor01Contract.address);
-  console.log(" - StakedAuroraVault: %s", stakedAuroraVaultContract.address);
+  console.log(" - AuroraToken 💚: ----- %s", auroraTokenContract.address);
+  console.log(" - CentauriToken 🪐: --- %s", centauriTokenContract.address);
+  console.log(" - AuroraStaking: ------ %s", auroraStakingContract.address);
+  console.log(" - StakingManager: ----- %s", stakingManagerContract.address);
+  console.log(" - Depositor 00: ------- %s", depositor00Contract.address);
+  console.log(" - Depositor 01: ------- %s", depositor01Contract.address);
+  console.log(" - StakedAuroraVault: -- %s", stakedAuroraVaultContract.address);
+  console.log(" - LiquidityPool: ------ %s", liquidityPoolContract.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

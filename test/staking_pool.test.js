@@ -752,6 +752,24 @@ describe("Staking Pool AURORA", function () {
         await stakingManagerContract.getWithdrawOrderAssets(spambots[0].address)
       ).to.be.greaterThan(currentWithdrawOrder);
     });
+
+    it("Should FAIL when creating withdraw order with 0 shares.", async function () {
+      const {
+        stakedAuroraVaultContract,
+        stakingManagerContract,
+        alice
+      } = await loadFixture(depositPoolFixture);
+
+      const aliceShares = await stakedAuroraVaultContract.balanceOf(alice.address);
+      expect(aliceShares).to.be.greaterThan(0);
+      expect(await stakingManagerContract.getTotalWithdrawOrders()).to.equal(0);
+
+      const zero = ethers.BigNumber.from(0);
+      await expect(
+        stakedAuroraVaultContract.connect(alice).redeem(zero, alice.address, alice.address)
+      ).to.be.revertedWith("CANNOT_REDEEM_ZERO_SHARES");
+      expect(await stakingManagerContract.getTotalWithdrawOrders()).to.equal(0);
+    });
   });
 
   describe("Partially redeem and withdraw Aurora tokens", function () {

@@ -181,6 +181,7 @@ contract StakedAuroraVault is ERC4626, Ownable {
         address _receiver,
         address _owner
     ) public override onlyFullyOperational returns (uint256) {
+        require(_shares > 0, "CANNOT_REDEEM_ZERO_SHARES");
         if (_msgSender() != _owner) {
             _spendAllowance(_owner, _msgSender(), _shares);
         }
