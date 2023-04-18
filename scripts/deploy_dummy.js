@@ -3,6 +3,7 @@ const { expect } = require("chai");
 async function main() {
 
   const TEST_RELEASE = " v0.1.0-a2"
+  const TEST_RELEASE_SHORT = "a2"
   const MAX_WITHDRAW_ORDERS = 20;
   const MAX_DEPOSITORS = 3;
   const DECIMALS = ethers.BigNumber.from(10).pow(18);
@@ -24,7 +25,7 @@ async function main() {
   const auroraTokenContract = await AuroraToken.connect(alice).deploy(
     initialSupply,
     "Aurora Token".concat(TEST_RELEASE),
-    "AURORA".concat(TEST_RELEASE),
+    "AURORA".concat(TEST_RELEASE_SHORT),
     alice.address
   );
   await auroraTokenContract.deployed();
@@ -40,7 +41,7 @@ async function main() {
   const centauriTokenContract = await CentauriToken.connect(alice).deploy(
     centauriInitialSupply,
     "Centauri Token".concat(TEST_RELEASE),
-    "CENTAURI".concat(TEST_RELEASE),
+    "CENTAURI".concat(TEST_RELEASE_SHORT),
     alice.address
   );
   await centauriTokenContract.deployed();
@@ -68,7 +69,7 @@ async function main() {
   const stakedAuroraVaultContract = await StakedAuroraVault.connect(alice).deploy(
     auroraTokenContract.address,
     "Staked Aurora Token".concat(TEST_RELEASE),
-    "stAUR".concat(TEST_RELEASE),
+    "stAUR".concat(TEST_RELEASE_SHORT),
     minDepositAmount
   );
   await stakedAuroraVaultContract.deployed();
@@ -93,7 +94,7 @@ async function main() {
     stakedAuroraVaultContract.address,
     auroraTokenContract.address,
     "stAUR/AURORA LP Token".concat(TEST_RELEASE),
-    "stAUR/AUR".concat(TEST_RELEASE),
+    "stAUR/AUR".concat(TEST_RELEASE_SHORT),
     minDepositAmount,
     200 // Swap fee basis points
   );
