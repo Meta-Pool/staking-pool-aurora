@@ -50,10 +50,11 @@ npx hardhat run scripts/check_status.js --network aurora_mainnet
 First, the contracts will be deployed in ETH Goerli, using the two `testing/` contracts for the Aurora Staking service and the Aurora token.
 
 Addresses of the deployed contracts:
- - AuroraToken 💚:    0xAEb674aa3b8758aEdb22477F3176365CEBE8942E
- - CentauriToken 🪐:  0x18D1975B2c4FcDFc121cFfCBfDe50634c69255a3
- - AuroraStaking:     0x2f8fc08dd8c7fdF3e35d778E8D15bF1da42dA40B
- - StakingManager:    0xbFeAAc062E72a19bEE26B9F30FDd9201de7CAdFc
- - Depositor 00:      0x6fA37581EBA252C08240c85f30fA8A5e3462c09d
- - Depositor 01:      0x31e0752Deb99f1fCE9701Dc5611A1652189dEdC3
- - StakedAuroraVault: 0x6c41Dc70556E0C2e8Fcb105e4BfAc23B000029F7
+ - AuroraToken 💚: ----- 0xCca0C26Be4169d7963fEC984F6EAd5F6e630B288
+ - CentauriToken 🪐: --- 0x6f2c4ee43D89b904e62f5F0acF68A37100C968D0
+ - AuroraStaking: ------ 0x8e6aA7a602042879074334bB6c02c40A9385F522
+ - StakingManager: ----- 0xd44b2eC72C39538294d6e2735DcAc7BB5Ebf2cC6
+ - Depositor 00: ------- 0xF01d1060Fe27D69D143EB237dbC8235ED3e4FA4f
+ - Depositor 01: ------- 0x0C32f3824B02EC9B82598Cfe487162463579242F
+ - StakedAuroraVault: -- 0xD6a1BEB40523A91B8424C02517219875A5D95c01
+ - LiquidityPool: ------ 0x9156273eE2684BE1C9F1064cCE43f30E766c8496

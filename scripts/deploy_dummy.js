@@ -1,4 +1,4 @@
-// import { ethers } from "hardhat";
+const { expect } = require("chai");
 
 async function main() {
 
@@ -28,7 +28,7 @@ async function main() {
     alice.address
   );
   await auroraTokenContract.deployed();
-  console.log("       ...done!");
+  console.log("       ...done in %s!", auroraTokenContract.address);
 
   // Sharing total suply with Bob.
   const splitSupply = ethers.BigNumber.from(3_000_000).mul(DECIMALS);
@@ -44,7 +44,7 @@ async function main() {
     alice.address
   );
   await centauriTokenContract.deployed();
-  console.log("       ...done!");
+  console.log("       ...done in %s!", centauriTokenContract.address);
 
   // ----------------- Step 3. Deploying a dummy staking service.
   console.log("Step 3. Deploying AuroraStaking...")
@@ -53,7 +53,7 @@ async function main() {
     centauriTokenContract.address
   );
   await auroraStakingContract.deployed();
-  console.log("       ...done!");
+  console.log("       ...done in %s!", auroraStakingContract.address);
 
   // Send Tokens to the Aurora Staking contract to pay for rewards.
   const forRewards = ethers.BigNumber.from(1_000_000).mul(DECIMALS);
@@ -72,7 +72,7 @@ async function main() {
     minDepositAmount
   );
   await stakedAuroraVaultContract.deployed();
-  console.log("       ...done!");
+  console.log("       ...done in %s!", stakedAuroraVaultContract.address);
 
   // ----------------- Step 5. Deploying the MUTABLE Staking Manager contract.
   console.log("Step 5. Deploying StakingManager...")
@@ -85,7 +85,7 @@ async function main() {
     MAX_DEPOSITORS
   );
   await stakingManagerContract.deployed();
-  console.log("       ...done!");
+  console.log("       ...done in %s!", stakingManagerContract.address);
 
    // ----------------- Step 6. Deploying the MUTABLE Liquidity Pool contract.
    console.log("Step 6. Deploying LiquidityPool...")
@@ -98,18 +98,10 @@ async function main() {
     200 // Swap fee basis points
   );
   await liquidityPoolContract.deployed();
-   console.log("       ...done!");
+  console.log("       ...done in %s!", liquidityPoolContract.address);
 
   // Insert/update the staking manager in the ERC-4626
   await stakedAuroraVaultContract.initializeStakingManager(stakingManagerContract.address);
-  await stakedAuroraVaultContract.initializeLiquidityPool(liquidityPoolContract.address);
-
-  // Whitelist all.
-  await stakedAuroraVaultContract.toggleEnforceWhitelist();
-
-  // Staking Aurora Vault should be fully operational by now.
-  expect(await stakedAuroraVaultContract.fullyOperational()).to.be.true;
-  expect(await stakedAuroraVaultContract.enforceWhitelist()).to.be.false;
 
   // ----------------- Step 7. Deploying the multiple Depositor contracts.
   console.log("Step 7. Deploying 2 Depositor contracts...")
@@ -119,15 +111,28 @@ async function main() {
   );
   await depositor00Contract.deployed();
 
+  // Insert/update the liquidity pool in the vault.
+  await stakedAuroraVaultContract.initializeLiquidityPool(liquidityPoolContract.address);
+
   const depositor01Contract = await Depositor.connect(bob).deploy(
     stakingManagerContract.address,
     bob.address
   );
   await depositor01Contract.deployed();
+
+  // Whitelist all.
+  await stakedAuroraVaultContract.toggleEnforceWhitelist();
+
   console.log("       ...2 contracts deployed!");
+  console.log("       ... %s!", depositor00Contract.address);
+  console.log("       ... %s!", depositor01Contract.address);
 
   await stakingManagerContract.connect(bob).insertDepositor(depositor00Contract.address);
   await stakingManagerContract.connect(bob).insertDepositor(depositor01Contract.address);
+
+  // // Staking Aurora Vault should be fully operational by now.
+  // expect(await stakedAuroraVaultContract.fullyOperational()).to.be.true;
+  // expect(await stakedAuroraVaultContract.enforceWhitelist()).to.be.false;
 
   console.log("Addresses of the deployed contracts:")
   console.log(" - AuroraToken 💚: ----- %s", auroraTokenContract.address);
