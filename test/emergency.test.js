@@ -255,7 +255,7 @@ describe("Emergency flow 🦺", function () {
   });
 
   describe("Contract is not longer fully operational", function () {
-    it("Should not allow users to deposit nor redeem.", async function () {
+    it("Should pause all deposits and redeems from the StakedAuroraVault contract.", async function () {
       const {
         auroraTokenContract,
         stakedAuroraVaultContract,
@@ -307,45 +307,109 @@ describe("Emergency flow 🦺", function () {
       expect(await auroraTokenContract.balanceOf(bob.address)).to.equal(nextBobBalance);
     });
 
-    it("Should clean withdraw orders.", async function () {
+    it ("Should clean all orders, stopWithdrawOrders 🛑", async function () {
       const {
+        auroraTokenContract,
         stakedAuroraVaultContract,
         stakingManagerContract,
         owner,
+        alice,
+        bob,
+        carl,
         spambots
       } = await loadFixture(botsHordeFixture);
 
-      const totalSupplyBefore = await stakedAuroraVaultContract.totalSupply();
-      const totalAssetsBefore = await stakedAuroraVaultContract.totalAssets();
+      const aliceShares = await stakedAuroraVaultContract.balanceOf(alice.address);
+      const bobShares = await stakedAuroraVaultContract.balanceOf(bob.address);
+      const carlShares = await stakedAuroraVaultContract.balanceOf(carl.address);
 
       for (let i = 0; i < TOTAL_SPAMBOTS; i++) {
         var shares = await stakedAuroraVaultContract.balanceOf(spambots[i].address);
         await stakedAuroraVaultContract.connect(spambots[i]).redeem(
           shares, spambots[i].address, spambots[i].address
         );
-        expect(await stakedAuroraVaultContract.balanceOf(spambots[i].address)).to.equal(0);
       }
 
-      expect(await stakingManagerContract.getTotalWithdrawOrders()).to.equal(MAX_WITHDRAW_ORDERS);
-      expect(await stakedAuroraVaultContract.fullyOperational()).to.be.true;
-      await expect(
-        stakingManagerContract.connect(owner).emergencyClearWithdrawOrders(1, MAX_WITHDRAW_ORDERS)
-      ).to.be.revertedWith("ONLY_WHEN_VAULT_IS_NOT_FULLY_OP");
-      await stakedAuroraVaultContract.connect(owner).updateContractOperation(false);
-      expect(await stakedAuroraVaultContract.fullyOperational()).to.be.false;
-      await stakingManagerContract.connect(owner).emergencyClearWithdrawOrders(1, MAX_WITHDRAW_ORDERS);
-      expect(await stakingManagerContract.getTotalWithdrawOrders()).to.equal(0);
+      // Move forward: From withdraw to pending.
+      await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
+      await stakingManagerContract.cleanOrdersQueue();
 
-      // IMPORTANT: Tests are running against a dummy Aurora Plus contract that increse the
-      // Aurora tokens each second. This implies that the totalSupply after the emergency mint
-      // should be greater, because each share reprsents now more assets than before the emergency.
-      expect(await stakedAuroraVaultContract.totalSupply()).to.be.lessThan(totalSupplyBefore);
-      expect(await stakedAuroraVaultContract.totalAssets()).to.be.greaterThan(totalAssetsBefore);
+      await stakedAuroraVaultContract.connect(alice).redeem(aliceShares, alice.address, alice.address);
+      await stakedAuroraVaultContract.connect(bob).redeem(bobShares, bob.address, bob.address);
+      await stakedAuroraVaultContract.connect(carl).redeem(carlShares, carl.address, carl.address);
 
-      // ⚠️ Testing the math is tricky, so a simple/loose check is done here! <<<<<<<<<<<<<
-      for (let i = 0; i < TOTAL_SPAMBOTS; i++) {
-        expect(await stakedAuroraVaultContract.balanceOf(spambots[i].address)).to.be.greaterThan(0);
-      }
+      alicePending0 = await stakingManagerContract.getWithdrawOrderAssets(alice.address);
+      bobPending0 = await stakingManagerContract.getWithdrawOrderAssets(bob.address);
+      carlPending0 = await stakingManagerContract.getWithdrawOrderAssets(carl.address);
+
+      // STOP Processing Withdraw Orders.
+      await stakingManagerContract.connect(owner).stopProcessingWithdrawOrders(true);
+      expect(await stakingManagerContract.getTotalWithdrawOrders()).to.equal(3);
+      expect(await stakingManagerContract.getTotalPendingOrders()).to.equal(MAX_WITHDRAW_ORDERS);
+
+      // Move forward: From pending to available.
+      await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
+      await stakingManagerContract.cleanOrdersQueue();
+
+      // expect(await stakingManagerContract.getTotalWithdrawOrders()).to.equal(3);
+      expect(await stakingManagerContract.getTotalPendingOrders()).to.equal(0);
+
+      // await stakingManagerContract.connect(owner).stopProcessingWithdrawOrders(false);
+
+      // // Move forward: From pending to available.
+      // await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
+      // await stakingManagerContract.cleanOrdersQueue();
+
+      // expect(await stakingManagerContract.getTotalWithdrawOrders()).to.equal(0);
+      // expect(await stakingManagerContract.getTotalPendingOrders()).to.equal(3);
+
+      // // Move forward: From pending to available.
+      // await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
+      // await stakingManagerContract.cleanOrdersQueue();
+
+      // expect(await stakingManagerContract.getTotalWithdrawOrders()).to.equal(0);
+      // expect(await stakingManagerContract.getTotalPendingOrders()).to.equal(0);
     });
+
+    // it("Should clean withdraw orders.", async function () {
+    //   const {
+    //     stakedAuroraVaultContract,
+    //     stakingManagerContract,
+    //     owner,
+    //     spambots
+    //   } = await loadFixture(botsHordeFixture);
+
+    //   const totalSupplyBefore = await stakedAuroraVaultContract.totalSupply();
+    //   const totalAssetsBefore = await stakedAuroraVaultContract.totalAssets();
+
+    //   for (let i = 0; i < TOTAL_SPAMBOTS; i++) {
+    //     var shares = await stakedAuroraVaultContract.balanceOf(spambots[i].address);
+    //     await stakedAuroraVaultContract.connect(spambots[i]).redeem(
+    //       shares, spambots[i].address, spambots[i].address
+    //     );
+    //     expect(await stakedAuroraVaultContract.balanceOf(spambots[i].address)).to.equal(0);
+    //   }
+
+    //   expect(await stakingManagerContract.getTotalWithdrawOrders()).to.equal(MAX_WITHDRAW_ORDERS);
+    //   expect(await stakedAuroraVaultContract.fullyOperational()).to.be.true;
+    //   await expect(
+    //     stakingManagerContract.connect(owner).emergencyClearWithdrawOrders(1, MAX_WITHDRAW_ORDERS)
+    //   ).to.be.revertedWith("ONLY_WHEN_VAULT_IS_NOT_FULLY_OP");
+    //   await stakedAuroraVaultContract.connect(owner).updateContractOperation(false);
+    //   expect(await stakedAuroraVaultContract.fullyOperational()).to.be.false;
+    //   await stakingManagerContract.connect(owner).emergencyClearWithdrawOrders(1, MAX_WITHDRAW_ORDERS);
+    //   expect(await stakingManagerContract.getTotalWithdrawOrders()).to.equal(0);
+
+    //   // IMPORTANT: Tests are running against a dummy Aurora Plus contract that increse the
+    //   // Aurora tokens each second. This implies that the totalSupply after the emergency mint
+    //   // should be greater, because each share reprsents now more assets than before the emergency.
+    //   expect(await stakedAuroraVaultContract.totalSupply()).to.be.lessThan(totalSupplyBefore);
+    //   expect(await stakedAuroraVaultContract.totalAssets()).to.be.greaterThan(totalAssetsBefore);
+
+    //   // ⚠️ Testing the math is tricky, so a simple/loose check is done here! <<<<<<<<<<<<<
+    //   for (let i = 0; i < TOTAL_SPAMBOTS; i++) {
+    //     expect(await stakedAuroraVaultContract.balanceOf(spambots[i].address)).to.be.greaterThan(0);
+    //   }
+    // });
   });
 });

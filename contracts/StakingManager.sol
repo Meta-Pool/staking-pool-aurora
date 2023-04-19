@@ -27,14 +27,20 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 /// **Steps in case of Emergency** 🛟:
 /// 1. Keep calm.
 /// 2. Pause all deposits and redeems from the StakedAuroraVault contract.
-///    
+///    StakedAuroraVault.updateContractOperation(false)
+/// 3. Keep running the cleanOrdersQueue fn until all orders (withdraw, pending) are processed
+///    and available. If there is an issue, you could relief the load of the 🤖 by stop
+///    the processing of the Withdraw orders. This will allow the process the pending orders,
+///    and when those are available, then process the rest.
+/// 4. Deploy a new Manager and update the address in the Vault and in Depositors.
+/// 5. Pending tokens could be removed from the old Manager with the alternativeWithdraw.
 
 contract StakingManager is AccessControl, IStakingManager {
     using SafeERC20 for IERC20;
 
     ///@dev If there are problems with the clean-orders,
     /// you can temporally stop processing withdraw orders.
-    bool stopProcessingWithdrawOrders;
+    bool stopWithdrawOrders;
 
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant DEPOSITORS_OWNER_ROLE = keccak256("DEPOSITORS_OWNER_ROLE");
@@ -60,15 +66,11 @@ contract StakingManager is AccessControl, IStakingManager {
     /// @dev WithdrawOrder -> PendingOrders -> AvailableAssets
     /// @dev The Index "0" MUST remain empty of any withdraw order.
     mapping(uint256 => Order) withdrawOrder;
-    // mapping(uint256 => uint256) withdrawOrderAmount;
-    // mapping(uint256 => address) withdrawOrderReceiver;
     uint256 lastWithdrawOrderIndex;
     uint256 public totalWithdrawInQueue;
 
     /// @dev The Index "0" MUST remain empty of any pending order.
     mapping(uint256 => Order) pendingOrder;
-    // mapping(uint256 => uint256) pendingOrderAmount;
-    // mapping(uint256 => address) pendingOrderReceiver;
     uint256 lastPendingOrderIndex;
 
     mapping(address => uint256) availableAssets;
@@ -140,48 +142,13 @@ contract StakingManager is AccessControl, IStakingManager {
 
         emit MaxWithdrawOrdersUpdate(_msgSender(), _maxWithdrawOrders);
     }
-    
-    // TODO: Users can withdraw directly in here as well.
 
-    // /// @notice Only in case of emergency 🦺, return all funds to users with a withdraw order.
-    // /// @notice Users will NOT receive back the exact same amount of shares they had before.
-    // /// @dev The last inclusive index to process will be (_from_index + _limit - 1).
-    // /// @param _from_index The inclusive withdraw order index the clear will start (cannot be zero).
-    // /// @param _limit Number of orders to process.
-    // function emergencyClearWithdrawOrders(
-    //     uint256 _from_index,
-    //     uint256 _limit
-    // ) external onlyRole(ADMIN_ROLE) {
-    //     require(_from_index > 0, "INVALID_INDEX_ZERO");
-    //     require(_limit > 0, "INVALID_LIMIT_ZERO");
-    //     require(
-    //         !IStakedAuroraVault(stAurVault).fullyOperational(),
-    //         "ONLY_WHEN_VAULT_IS_NOT_FULLY_OP"
-    //     );
-    //     for (uint i = _from_index; i <= (_from_index + _limit - 1); i++) {
-    //         uint256 _assets = withdrawOrder[i].amount;
-    //         if (_assets > 0) {
-    //             address _receiver = withdrawOrderReceiver[i];
-    //             // Removing withdraw order.
-    //             withdrawOrderAmount[i] = 0;
-    //             withdrawOrderReceiver[i] = address(0);
-    //             IStakedAuroraVault(stAurVault).emergencyMintRecover(_receiver, _assets);
-    //         }
-    //         totalWithdrawInQueue -= _assets;
-    //     }
-    //     // When all the withdraw orders were cleared, then remove the last order index.
-    //     if (totalWithdrawInQueue == 0) {
-    //         lastWithdrawOrderIndex = 0;
-    //     }
-
-    //     emit EmergencyClearWithdrawOrders(
-    //         _msgSender(),
-    //         _from_index,
-    //         _limit,
-    //         totalWithdrawInQueue,
-    //         lastWithdrawOrderIndex
-    //     );
-    // }
+    function stopProcessingWithdrawOrders(
+        bool _isProcessStopped
+    ) external onlyRole(ADMIN_ROLE) {
+        stopWithdrawOrders = _isProcessStopped;
+        emit UpdateProcessWithdrawOrders(_msgSender(), _isProcessStopped);
+    }
 
     /// @dev If the user do NOT have a withdraw order, expect an index of "0".
     function _getUserWithdrawOrderIndex(address _account) private view returns (uint256) {
@@ -289,17 +256,27 @@ contract StakingManager is AccessControl, IStakingManager {
         address _owner,
         uint256 _assets
     ) external onlyStAurVault {
-        require(availableAssets[_owner] >= _assets, "NOT_ENOUGH_AVAILABLE_ASSETS");
-        availableAssets[_owner] -= _assets;
-        IERC20 token = IERC20(auroraToken);
-        token.safeTransfer(_receiver, _assets);
+        _transferAurora(_receiver, _owner, _assets);
+    }
+
+    /// @notice This is an ALTERNATIVE withdraw, the regular flow should be using the
+    /// StakedAuroraVault contract. However, in case of emergency 🛟, if this Manager
+    /// contract is detached from the Vault, then users could recover remaining funds.
+    function alternativeWithdraw(
+        uint256 _assets,
+        address _receiver
+    ) external {
+        if (IStakedAuroraVault(stAurVault).stakingManager() != address(this)) {
+            _transferAurora(_receiver, _msgSender(), _assets);
+            emit AltWithdraw(_msgSender(), _receiver, _msgSender(), _assets);
+        }
     }
 
     /// Unstaking Flow - Ran by ROBOT 🤖
     /// 1. Withdraw pending Aurora from depositors.
     /// 2. Move previous pending amount to Available.
     /// 3. Unstake withdraw orders. In case of emergency 🛟,
-    ///    withdraw orders process could be temporally stoped.
+    ///    withdraw orders process could be temporally stopped (3, 4, 5 steps).
     /// 4. Move withdraw orders to Pending.
     /// 5. Remove withdraw orders.
     function cleanOrdersQueue() public {
@@ -308,13 +285,16 @@ contract StakingManager is AccessControl, IStakingManager {
 
         _withdrawFromDepositor();       // Step 1.
         _movePendingToAvailable();      // Step 2.
-        _unstakeWithdrawOrders();       // Step 3.
-        _moveAndRemoveWithdrawOrders(); // Step 4 & 5.
+
+        if (!stopWithdrawOrders) {
+            _unstakeWithdrawOrders();       // Step 3.
+            _moveAndRemoveWithdrawOrders(); // Step 4 & 5.
+            totalWithdrawInQueue = 0;
+        }
 
         // Update the timestamp for the next clean and total.
         (,,,,,,,,,uint256 tau,) = IAuroraStaking(auroraStaking).getStream(0);
         nextCleanOrderQueue = block.timestamp + tau;
-        totalWithdrawInQueue = 0;
 
         emit CleanOrdersQueue(_msgSender(), block.timestamp);
     }
@@ -368,7 +348,7 @@ contract StakingManager is AccessControl, IStakingManager {
     /// withdraw orders will not be unstaked to allow users to get funds back.
     function _unstakeWithdrawOrders() private {
         uint256 alreadyWithdraw = 0;
-        if (totalWithdrawInQueue > 0 && !stopProcessingWithdrawOrders) {
+        if (totalWithdrawInQueue > 0) {
             for (uint i = depositors.length; i > 0; i--) {
                 address depositor = depositors[i-1];
                 uint256 assets = getTotalAssetsFromDepositor(depositor);
@@ -411,5 +391,16 @@ contract StakingManager is AccessControl, IStakingManager {
         uint256 numerator = _shares * aurora.getTotalAmountOfStakedAurora();
         uint256 stakeValue = numerator / denominator;
         return stakeValue;
+    }
+
+    function _transferAurora(
+        address _receiver,
+        address _owner,
+        uint256 _assets
+    ) private {
+        require(_assets > 0, "INVALID_ZERO_ASSETS_WITHDRAW");
+        require(availableAssets[_owner] >= _assets, "NOT_ENOUGH_AVAILABLE_ASSETS");
+        availableAssets[_owner] -= _assets;
+        IERC20(auroraToken).safeTransfer(_receiver, _assets);
     }
 }

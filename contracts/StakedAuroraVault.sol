@@ -4,6 +4,7 @@ pragma solidity 0.8.18;
 import "./interfaces/IDepositor.sol";
 import "./interfaces/ILiquidityPool.sol";
 import "./interfaces/IStakingManager.sol";
+import "./interfaces/IStakedAuroraVaultEvents.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -11,7 +12,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
 // NOTE: SafeMath is no longer needed starting with Solidity 0.8. The compiler now has built in overflow checking.
 
-contract StakedAuroraVault is ERC4626, Ownable {
+contract StakedAuroraVault is ERC4626, Ownable, IStakedAuroraVaultEvents {
     using SafeERC20 for IERC20;
 
     address public stakingManager;
@@ -25,17 +26,6 @@ contract StakedAuroraVault is ERC4626, Ownable {
 
     mapping(address => bool) public accountWhitelist;
 
-    event ContractInitialized(address indexed _sender, address _stakingManager, address _liquidityPool);
-    event NewManagerUpdate(address indexed _sender, address _old, address _new);
-    event NewLiquidityPoolUpdate(address indexed _sender, address _old, address _new);
-    event WithdrawOrderCreated(
-        address indexed _sender,
-        address indexed _receiver,
-        address indexed _owner,
-        uint256 _shares,
-        uint256 _assets
-    );
-
     modifier onlyManager() {
         require(_msgSender() == stakingManager, "ONLY_STAKING_MANAGER");
         _;
@@ -46,9 +36,9 @@ contract StakedAuroraVault is ERC4626, Ownable {
         _;
     }
 
-    modifier onlyWhitelist() {
+    modifier checkWhitelist() {
         if (enforceWhitelist) {
-            require(accountWhitelist[_msgSender()], "ACCOUNT_IS_NOT_WHITELISTED");
+            require(isWhitelisted(_msgSender()), "ACCOUNT_IS_NOT_WHITELISTED");
         }
         _;
     }
@@ -72,7 +62,7 @@ contract StakedAuroraVault is ERC4626, Ownable {
         address _liquidityPool
     ) external onlyOwner {
         require(liquidityPool == address(0) || stakingManager == address(0), "ALREADY_INITIALIZED");
-        require(_liquidityPool == address(0) || _stakingManager == address(0), "INVALID_ZERO_ADDRESS");
+        require(_liquidityPool != address(0) || _stakingManager != address(0), "INVALID_ZERO_ADDRESS");
         stakingManager = _stakingManager;
         liquidityPool = _liquidityPool;
 
@@ -111,21 +101,25 @@ contract StakedAuroraVault is ERC4626, Ownable {
             );
         }
         fullyOperational = _isFullyOperational;
+        emit ContractUpdateOperation(_msgSender(), _isFullyOperational);
     }
 
-    function toggleEnforceWhitelist() external onlyOwner {
-        enforceWhitelist = !enforceWhitelist;
+    function updateEnforceWhitelist(bool _isWhitelistRequired) external onlyOwner {
+        enforceWhitelist = _isWhitelistRequired;
+        emit ContractUpdateWhitelist(_msgSender(), _isWhitelistRequired);
     }
 
     function whitelistAccount(address _account) external onlyOwner {
         accountWhitelist[_account] = true;
+        emit AccountWhitelisted(_msgSender(), _account);
     }
 
     function blacklistAccount(address _account) external onlyOwner {
         accountWhitelist[_account] = false;
+        emit AccountBlacklisted(_msgSender(), _account);
     }
 
-    function isWhitelisted(address _account) external view returns (bool) {
+    function isWhitelisted(address _account) public view returns (bool) {
         return accountWhitelist[_account];
     }
 
@@ -135,7 +129,6 @@ contract StakedAuroraVault is ERC4626, Ownable {
     }
 
     function totalAssets() public view override returns (uint256) {
-        if (liquidityPool == address(0) || stakingManager == address(0)) return 0;
         return IStakingManager(stakingManager).totalAssets();
     }
 
@@ -143,7 +136,7 @@ contract StakedAuroraVault is ERC4626, Ownable {
     function deposit(
         uint256 _assets,
         address _receiver
-    ) public override onlyFullyOperational onlyWhitelist returns (uint256) {
+    ) public override onlyFullyOperational checkWhitelist returns (uint256) {
         require(_assets <= maxDeposit(_receiver), "ERC4626: deposit more than max");
         require(_assets >= minDepositAmount, "LESS_THAN_MIN_DEPOSIT_AMOUNT");
 
@@ -156,7 +149,7 @@ contract StakedAuroraVault is ERC4626, Ownable {
     function mint(
         uint256 _shares,
         address _receiver
-    ) public override onlyFullyOperational onlyWhitelist returns (uint256) {
+    ) public override onlyFullyOperational checkWhitelist returns (uint256) {
         require(_shares <= maxMint(_receiver), "ERC4626: mint more than max");
 
         uint256 assets = previewMint(_shares);

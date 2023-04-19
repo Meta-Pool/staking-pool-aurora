@@ -9,4 +9,5 @@ interface IStakedAuroraVault is IERC20 {
     function fullyOperational() external view returns (bool);
     function previewRedeem(uint256 _shares) external view returns (uint256);
     function previewWithdraw(uint256 _assets) external view returns (uint256);
+    function stakingManager() external view returns (address);
 }

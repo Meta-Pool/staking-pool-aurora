@@ -122,7 +122,7 @@ async function main() {
   await depositor01Contract.deployed();
 
   // Whitelist all.
-  await stakedAuroraVaultContract.toggleEnforceWhitelist();
+  await stakedAuroraVaultContract.updateEnforceWhitelist(false);
 
   console.log("       ...2 contracts deployed!");
   console.log("       ... %s!", depositor00Contract.address);

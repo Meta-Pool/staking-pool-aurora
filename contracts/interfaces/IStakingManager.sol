@@ -6,6 +6,8 @@ interface IStakingManager {
     event MaxDepositorsUpdate(address indexed _sender, uint256 _maxDepositors);
     event MaxWithdrawOrdersUpdate(address indexed _sender, uint256 _maxWithdrawOrders);
     event NewDepositorAdded(address indexed _sender, address _depositor);
+    event UpdateProcessWithdrawOrders(address indexed _sender, bool _isProcessStopped);
+    event AltWithdraw(address indexed sender, address indexed receiver, address indexed owner, uint256 assets);
 
     function auroraStaking() external view returns (address);
     function auroraToken() external view returns (address);

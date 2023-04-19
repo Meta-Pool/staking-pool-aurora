@@ -853,18 +853,42 @@ describe("Staking Pool AURORA", function () {
   describe("Give the allowance to a 3rd party 🦅 to withdraw/redeem", function () {
     it("Alice will redeem and withdraw Carl assets.", async function () {
       const {
+        auroraTokenContract,
         stakedAuroraVaultContract,
         stakingManagerContract,
         alice,
         carl
       } = await loadFixture(depositPoolFixture);
 
+      // FIRST EMPTY ALICE STACK.
+      const aliceShares = await stakedAuroraVaultContract.balanceOf(alice.address);
+      await stakedAuroraVaultContract.connect(alice).redeem(aliceShares, alice.address, alice.address);
+
+      // Move forward: From withdraw to pending.
+      await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
+      await stakingManagerContract.cleanOrdersQueue();
+
+      // Move forward: From pending to available.
+      await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
+      await stakingManagerContract.cleanOrdersQueue();
+
+      const aliceBalance0 = await auroraTokenContract.balanceOf(alice.address);
+      const aliceAvailable = await stakingManagerContract.getAvailableAssets(alice.address);
+      expect(aliceAvailable).to.be.greaterThan(0);
+      await stakedAuroraVaultContract.connect(alice).withdraw(aliceAvailable, alice.address, alice.address);
+      expect(await auroraTokenContract.balanceOf(alice.address)).to.equal(aliceBalance0.add(aliceAvailable));
+      expect(await stakedAuroraVaultContract.balanceOf(alice.address)).to.equal(0);
+
       // const carlDeposit = ethers.BigNumber.from(24_000).mul(DECIMALS); // Original deposit
       const carlAllowAlice = ethers.BigNumber.from(10_000).mul(DECIMALS);
       expect(await stakingManagerContract.getPendingOrderAssets(alice.address)).to.equal(0);
       expect(await stakingManagerContract.getPendingOrderAssets(carl.address)).to.equal(0);
 
+      // Check the allowance: IERC20 -> allowance(address owner, address spender) -> uint256
       await stakedAuroraVaultContract.connect(carl).approve(alice.address, carlAllowAlice);
+      expect(
+        await stakedAuroraVaultContract.connect(carl).allowance(carl.address, alice.address)
+      ).to.equal(carlAllowAlice);
 
       await expect(
         stakedAuroraVaultContract.connect(alice).redeem(carlAllowAlice, alice.address, alice.address)
@@ -882,8 +906,10 @@ describe("Staking Pool AURORA", function () {
       await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
       await stakingManagerContract.cleanOrdersQueue();
 
-      const carlAvailableAssets = await stakingManagerContract.getAvailableAssets(carl.address);
-      await stakedAuroraVaultContract.connect(alice).withdraw(carlAvailableAssets, carl.address, carl.address);
+      const aliceBalance1 = await auroraTokenContract.balanceOf(alice.address);
+      const aliceAvailableAssets = await stakingManagerContract.getAvailableAssets(alice.address);
+      await stakedAuroraVaultContract.connect(alice).withdraw(aliceAvailableAssets, alice.address, alice.address);
+      expect(await auroraTokenContract.balanceOf(alice.address)).to.be.greaterThan(aliceBalance1);
     });
   });
 

@@ -215,13 +215,13 @@ async function depositPoolFixture() {
   await stakedAuroraVaultContract.connect(owner).whitelistAccount(alice.address);
   await stakedAuroraVaultContract.connect(alice).deposit(aliceDeposit, alice.address);
 
-  await stakedAuroraVaultContract.connect(owner).toggleEnforceWhitelist();
+  await stakedAuroraVaultContract.connect(owner).updateEnforceWhitelist(false);
 
   const bobDeposit = ethers.BigNumber.from(100_000).mul(DECIMALS);
   await auroraTokenContract.connect(bob).approve(stakedAuroraVaultContract.address, bobDeposit);
   await stakedAuroraVaultContract.connect(bob).deposit(bobDeposit, bob.address);
 
-  await stakedAuroraVaultContract.connect(owner).toggleEnforceWhitelist();
+  await stakedAuroraVaultContract.connect(owner).updateEnforceWhitelist(true);
   await stakedAuroraVaultContract.connect(owner).whitelistAccount(bob.address);
   await stakedAuroraVaultContract.connect(owner).whitelistAccount(carl.address);
 
@@ -353,7 +353,7 @@ async function botsHordeFixture() {
     spambots.push(wallet);
   }
 
-  await stakedAuroraVaultContract.connect(owner).toggleEnforceWhitelist();
+  await stakedAuroraVaultContract.connect(owner).updateEnforceWhitelist(false);
 
   // AURORA deposits to the Vault.
   const aliceDeposit = ethers.BigNumber.from(6_000).mul(DECIMALS);
