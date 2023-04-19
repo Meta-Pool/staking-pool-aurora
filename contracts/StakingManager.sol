@@ -266,30 +266,32 @@ contract StakingManager is AccessControl, IStakingManager {
         uint256 _assets,
         address _receiver
     ) external {
-        if (IStakedAuroraVault(stAurVault).stakingManager() != address(this)) {
-            _transferAurora(_receiver, _msgSender(), _assets);
-            emit AltWithdraw(_msgSender(), _receiver, _msgSender(), _assets);
-        }
+        require(
+            IStakedAuroraVault(stAurVault).stakingManager() != address(this),
+            "VAULT_AND_MANAGER_STILL_ATTACHED"
+        );
+        _transferAurora(_receiver, _msgSender(), _assets);
+        emit AltWithdraw(_msgSender(), _receiver, _msgSender(), _assets);
     }
 
-    /// Unstaking Flow - Ran by ROBOT 🤖
+    /// @notice Unstaking Flow - Ran by ROBOT 🤖
     /// 1. Withdraw pending Aurora from depositors.
     /// 2. Move previous pending amount to Available.
-    /// 3. Unstake withdraw orders. In case of emergency 🛟,
-    ///    withdraw orders process could be temporally stopped (3, 4, 5 steps).
+    /// 3. Unstake withdraw orders.
     /// 4. Move withdraw orders to Pending.
     /// 5. Remove withdraw orders.
+    /// @dev In case of emergency 🛟,
+    /// the withdraw-orders process could be temporally stopped (3, 4, 5 steps).
     function cleanOrdersQueue() public {
         require(depositors.length > 0, "CREATE_DEPOSITOR");
         require(nextCleanOrderQueue <= block.timestamp, "WAIT_FOR_NEXT_CLEAN_ORDER");
 
-        _withdrawFromDepositor();       // Step 1.
-        _movePendingToAvailable();      // Step 2.
+        _withdrawFromDepositor();           // Step 1.
+        _movePendingToAvailable();          // Step 2.
 
         if (!stopWithdrawOrders) {
             _unstakeWithdrawOrders();       // Step 3.
             _moveAndRemoveWithdrawOrders(); // Step 4 & 5.
-            totalWithdrawInQueue = 0;
         }
 
         // Update the timestamp for the next clean and total.
@@ -382,6 +384,7 @@ contract StakingManager is AccessControl, IStakingManager {
         }
         lastPendingOrderIndex = lastWithdrawOrderIndex;
         lastWithdrawOrderIndex = 0;        
+        totalWithdrawInQueue = 0;
     }
 
     function _calculateStakeValue(uint256 _shares) private view returns (uint256) {
