@@ -25,6 +25,7 @@ contract StakedAuroraVault is ERC4626, Ownable {
 
     mapping(address => bool) public accountWhitelist;
 
+    event ContractInitialized(address indexed _sender, address _stakingManager, address _liquidityPool);
     event NewManagerUpdate(address indexed _sender, address _old, address _new);
     event NewLiquidityPoolUpdate(address indexed _sender, address _old, address _new);
     event WithdrawOrderCreated(
@@ -66,22 +67,18 @@ contract StakedAuroraVault is ERC4626, Ownable {
         enforceWhitelist = true;
     }
 
-    function initializeStakingManager(address _stakingManager) external onlyOwner {
-        require(_stakingManager != address(0), "INVALID_ZERO_ADDRESS");
-        require(stakingManager == address(0), "ALREADY_INITIALIZED");
-
-        // Get fully operational for the first time.
-        if (liquidityPool != address(0)) { fullyOperational = true; }
+    function initializeLiquidStaking(
+        address _stakingManager,
+        address _liquidityPool
+    ) external onlyOwner {
+        require(liquidityPool == address(0) || stakingManager == address(0), "ALREADY_INITIALIZED");
+        require(_liquidityPool == address(0) || _stakingManager == address(0), "INVALID_ZERO_ADDRESS");
         stakingManager = _stakingManager;
-    }
-
-    function initializeLiquidityPool(address _liquidityPool) external onlyOwner {
-        require(_liquidityPool != address(0), "INVALID_ZERO_ADDRESS");
-        require(liquidityPool == address(0), "ALREADY_INITIALIZED");
+        liquidityPool = _liquidityPool;
 
         // Get fully operational for the first time.
-        if (stakingManager != address(0)) { fullyOperational = true; }
-        liquidityPool = _liquidityPool;
+        updateContractOperation(true);
+        emit ContractInitialized(_msgSender(), _stakingManager, _liquidityPool);
     }
 
     function updateStakingManager(address _stakingManager) external onlyOwner {
@@ -105,9 +102,15 @@ contract StakedAuroraVault is ERC4626, Ownable {
     }
 
     /// @notice Use in case of emergency 🦺.
-    function toggleFullyOperational() external onlyOwner {
-        require(liquidityPool != address(0) && stakingManager != address(0), "CONTRACT_NOT_INITIALIZED");
-        fullyOperational = !fullyOperational;
+    /// @dev Check if the contract is initialized when the change is to true.
+    function updateContractOperation(bool _isFullyOperational) public onlyOwner {
+        if (_isFullyOperational) {
+            require(
+                liquidityPool != address(0) && stakingManager != address(0),
+                "CONTRACT_NOT_INITIALIZED"
+            );
+        }
+        fullyOperational = _isFullyOperational;
     }
 
     function toggleEnforceWhitelist() external onlyOwner {

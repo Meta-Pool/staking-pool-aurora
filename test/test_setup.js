@@ -98,15 +98,6 @@ async function deployPoolFixture() {
   );
   await stakingManagerContract.deployed();
 
-  // Initialize/update the staking manager in the ERC-4626
-  await expect(
-    stakedAuroraVaultContract.updateStakingManager(stakingManagerContract.address)
-  ).to.be.revertedWith("NOT_INITIALIZED");
-  await stakedAuroraVaultContract.initializeStakingManager(stakingManagerContract.address);
-  await expect(
-    stakedAuroraVaultContract.initializeStakingManager(stakingManagerContract.address)
-  ).to.be.revertedWith("ALREADY_INITIALIZED");
-
   const depositor00Contract = await Depositor.connect(depositors_owner).deploy(
     stakingManagerContract.address,
     reward_collector.address
@@ -133,13 +124,22 @@ async function deployPoolFixture() {
   );
   await liquidityPoolContract.deployed();
 
-  // Initialize/update the liquidity pool in the ERC-4626
+  // Initialize the Liquid Staking service.
+  await expect(
+    stakedAuroraVaultContract.updateStakingManager(stakingManagerContract.address)
+  ).to.be.revertedWith("NOT_INITIALIZED");
   await expect(
     stakedAuroraVaultContract.updateLiquidityPool(liquidityPoolContract.address)
   ).to.be.revertedWith("NOT_INITIALIZED");
-  await stakedAuroraVaultContract.initializeLiquidityPool(liquidityPoolContract.address);
+  await stakedAuroraVaultContract.initializeLiquidStaking(
+    stakingManagerContract.address,
+    liquidityPoolContract.address
+  );
   await expect(
-    stakedAuroraVaultContract.initializeLiquidityPool(liquidityPoolContract.address)
+    stakedAuroraVaultContract.initializeLiquidStaking(
+      stakingManagerContract.address,
+      liquidityPoolContract.address
+    )
   ).to.be.revertedWith("ALREADY_INITIALIZED");
 
   // Staking Aurora Vault should be fully operational by now.
@@ -202,11 +202,11 @@ async function depositPoolFixture() {
   // Test deposit with a not fully operational contract.
   const aliceDeposit = ethers.BigNumber.from(6_000).mul(DECIMALS);
   await auroraTokenContract.connect(alice).approve(stakedAuroraVaultContract.address, aliceDeposit);
-  await stakedAuroraVaultContract.connect(owner).toggleFullyOperational();
+  await stakedAuroraVaultContract.connect(owner).updateContractOperation(false);
   await expect(
     stakedAuroraVaultContract.connect(alice).deposit(aliceDeposit, alice.address)
   ).to.be.revertedWith("CONTRACT_IS_NOT_FULLY_OPERATIONAL");
-  await stakedAuroraVaultContract.connect(owner).toggleFullyOperational();
+  await stakedAuroraVaultContract.connect(owner).updateContractOperation(true);
 
   await expect(
     stakedAuroraVaultContract.connect(alice).deposit(aliceDeposit, alice.address)

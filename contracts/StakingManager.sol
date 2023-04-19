@@ -14,6 +14,21 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 /// Deposits will always go to the depositor with LESS staked amount.
 /// Withdraws will always be taken from the depositor with the greatest index.
 
+/// **Security Considerations**:
+/// - The StakedAuroraVault contract manage the ledger of the stAUR token. The logic
+///   should never be upgraded.
+/// - The Depositor(s) contract have the control of all the AURORA tokens. The logic
+///   should never be upgraded.
+/// - The StakingManager contract manage most of the logic for the "Liquid Staking Protocol".
+///   This contract only briefly holds the AURORA tokens that were withdraw using an Order.
+///   So, in case of an emergency, the logic of this contract can be updated, deploying a NEW
+///   contract Manager, leaving the stAUR ledger and the AURORA tokens safely.
+
+/// **Steps in case of Emergency** 🛟:
+/// 1. Keep calm.
+/// 2. Pause all deposits and redeems from the StakedAuroraVault contract.
+///    
+
 contract StakingManager is AccessControl, IStakingManager {
     using SafeERC20 for IERC20;
 
@@ -125,6 +140,8 @@ contract StakingManager is AccessControl, IStakingManager {
 
         emit MaxWithdrawOrdersUpdate(_msgSender(), _maxWithdrawOrders);
     }
+    
+    // TODO: Users can withdraw directly in here as well.
 
     // /// @notice Only in case of emergency 🦺, return all funds to users with a withdraw order.
     // /// @notice Users will NOT receive back the exact same amount of shares they had before.

@@ -101,8 +101,11 @@ async function main() {
   await liquidityPoolContract.deployed();
   console.log("       ...done in %s!", liquidityPoolContract.address);
 
-  // Insert/update the staking manager in the ERC-4626
-  await stakedAuroraVaultContract.initializeStakingManager(stakingManagerContract.address);
+  // Initialize the Liquid Staking Service.
+  await stakedAuroraVaultContract.initializeLiquidStaking(
+    stakingManagerContract.address,
+    liquidityPoolContract.address
+  )
 
   // ----------------- Step 7. Deploying the multiple Depositor contracts.
   console.log("Step 7. Deploying 2 Depositor contracts...")
@@ -111,9 +114,6 @@ async function main() {
     bob.address
   );
   await depositor00Contract.deployed();
-
-  // Insert/update the liquidity pool in the vault.
-  await stakedAuroraVaultContract.initializeLiquidityPool(liquidityPoolContract.address);
 
   const depositor01Contract = await Depositor.connect(bob).deploy(
     stakingManagerContract.address,

@@ -32,8 +32,6 @@ async function main() {
   const StakedAuroraVaultContract = await StakedAuroraVault.attach(StakedAuroraVaultAddress);
   const liquidityPoolContract = await LiquidityPool.attach(LiquidityPoolAddress);
 
-  // console.log("%s", await StakedAuroraVaultContract.initializeLiquidityPool(liquidityPoolContract.address));
-
   console.log("ALICE Balance: %s", await AuroraTokenContract.balanceOf(alice.address));
 
   console.log("StAUR Vault:");

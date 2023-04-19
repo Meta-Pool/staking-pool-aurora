@@ -269,7 +269,7 @@ describe("Emergency flow 🦺", function () {
       await stakedAuroraVaultContract.connect(bob).redeem(bobShares, bob.address, bob.address);
 
       expect(await stakedAuroraVaultContract.fullyOperational()).to.be.true;
-      await stakedAuroraVaultContract.connect(owner).toggleFullyOperational();
+      await stakedAuroraVaultContract.connect(owner).updateContractOperation(false);
       expect(await stakedAuroraVaultContract.fullyOperational()).to.be.false;
 
       const aliceDeposit = ethers.BigNumber.from(6_000).mul(DECIMALS);
@@ -331,7 +331,7 @@ describe("Emergency flow 🦺", function () {
       await expect(
         stakingManagerContract.connect(owner).emergencyClearWithdrawOrders(1, MAX_WITHDRAW_ORDERS)
       ).to.be.revertedWith("ONLY_WHEN_VAULT_IS_NOT_FULLY_OP");
-      await stakedAuroraVaultContract.connect(owner).toggleFullyOperational();
+      await stakedAuroraVaultContract.connect(owner).updateContractOperation(false);
       expect(await stakedAuroraVaultContract.fullyOperational()).to.be.false;
       await stakingManagerContract.connect(owner).emergencyClearWithdrawOrders(1, MAX_WITHDRAW_ORDERS);
       expect(await stakingManagerContract.getTotalWithdrawOrders()).to.equal(0);
