@@ -163,19 +163,22 @@ contract StakedAuroraVault is ERC4626, Ownable {
         return assets;
     }
 
-    /// @dev It can only be called after the redeem of the stAUR and the waiting period.
+    /// @notice It can only be called after the redeem of the stAUR and the waiting period.
+    /// @dev The withdraw can only be run by the owner, that's why the 3rd param is not required.
+    /// @return Zero shares were burned during the withdraw.
     function withdraw(
         uint256 _assets,
         address _receiver,
-        address _owner
+        address
     ) public override returns (uint256) {
-        uint256 shares = previewWithdraw(_assets);
-        _withdraw(_msgSender(), _receiver, _owner, _assets, shares);
+        IStakingManager(stakingManager).transferAurora(_receiver, _msgSender(), _assets);
 
-        return shares;
+        emit Withdraw(_msgSender(), _receiver, _msgSender(), _assets, 0);
+
+        return 0;
     }
 
-    /// @dev The redeem fn starts the release of tokens from the Aurora staking contract.
+    /// @notice The redeem fn starts the release of tokens from the Aurora staking contract.
     function redeem(
         uint256 _shares,
         address _receiver,
@@ -195,15 +198,6 @@ contract StakedAuroraVault is ERC4626, Ownable {
         emit WithdrawOrderCreated(_msgSender(), _receiver, _owner, _shares, assets);
 
         return assets;
-    }
-
-    /// @dev Only called when the withdraw orders are cleared for emergency.
-    function emergencyMintRecover(
-        address _receiver,
-        uint256 _assets
-    ) external onlyManager {
-        uint256 shares = previewDeposit(_assets);
-        _mint(_receiver, shares);
     }
 
     function _deposit(
@@ -232,21 +226,5 @@ contract StakedAuroraVault is ERC4626, Ownable {
         }
 
         emit Deposit(_caller, _receiver, _assets, _shares);
-    }
-
-    function _withdraw(
-        address _caller,
-        address _receiver,
-        address _owner,
-        uint256 _assets,
-        uint256 _shares
-    ) internal override {
-        if (_caller != _owner) {
-            _spendAllowance(_owner, _caller, _shares);
-        }
-
-        IStakingManager(stakingManager).transferAurora(_receiver, _owner, _assets);
-
-        emit Withdraw(_caller, _receiver, _owner, _assets, _shares);
     }
 }

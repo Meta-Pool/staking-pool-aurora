@@ -8,6 +8,8 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+/// @dev In case of emergency, keep the Depositors alive and update the Staking Manager logic.
+
 contract Depositor is AccessControl, IDepositor {
     using SafeERC20 for IERC20;
 
