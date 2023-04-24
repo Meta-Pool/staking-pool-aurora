@@ -120,7 +120,8 @@ async function deployPoolFixture() {
     "stAUR/AURORA LP Token",
     "stAUR/AUR",
     minDepositAmount,
-    200 // Swap fee basis points
+    200,    // Swap fee basis points
+    8000    // Liquidity Providers fee cut basis points
   );
   await liquidityPoolContract.deployed();
 

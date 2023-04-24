@@ -14,6 +14,9 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
     using SafeERC20 for IERC20;
     using SafeERC20 for IStakedAuroraVault;
 
+    /// @dev 100% represented as Basis Points.
+    uint256 public constant ONE_HUNDRED_PERCENT = 10_000;
+
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant FEE_COLLECTOR_ROLE = keccak256("FEE_COLLECTOR_ROLE");
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
@@ -48,6 +51,11 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
         _;
     }
 
+    modifier checkBasisPoints(uint256 _basisPoints) {
+        require(_basisPoints <= ONE_HUNDRED_PERCENT, "INVALID_BASIS_POINTS");
+        _;
+    }
+
     constructor(
         address _stAurVault,
         address _auroraToken,
@@ -59,6 +67,8 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
     )
         ERC4626(IERC20(_auroraToken))
         ERC20(_lpTokenName, _lpTokenSymbol)
+        checkBasisPoints(_swapFeeBasisPoints)
+        checkBasisPoints(_liqProvFeeCutBasisPoints)
     {
         require(_stAurVault != address(0), "INVALID_ZERO_ADDRESS");
         require(_auroraToken != address(0), "INVALID_ZERO_ADDRESS");
@@ -81,14 +91,14 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
 
     function updateFeeBasisPoints(
         uint256 _feeBasisPoints
-    ) external onlyRole(OPERATOR_ROLE) {
+    ) external onlyRole(OPERATOR_ROLE) checkBasisPoints(_feeBasisPoints) {
         emit UpdateFeeBasisPoints(_msgSender(), swapFeeBasisPoints, _feeBasisPoints);
         swapFeeBasisPoints = _feeBasisPoints;
     }
 
     function updateLiqProvFeeBasisPoints(
         uint256 _feeBasisPoints
-    ) external onlyRole(OPERATOR_ROLE) {
+    ) external onlyRole(OPERATOR_ROLE) checkBasisPoints(_feeBasisPoints) {
         emit UpdateLiqProvFeeBasisPoints(_msgSender(), liqProvFeeCutBasisPoints, _feeBasisPoints);
         liqProvFeeCutBasisPoints = _feeBasisPoints;
     }
@@ -247,10 +257,10 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
     function _calculatePoolFees(
         uint256 _amount
     ) private view returns (uint256, uint256) {
-        uint256 totalFee = (_amount * swapFeeBasisPoints) / 10_000;
+        uint256 totalFee = (_amount * swapFeeBasisPoints) / ONE_HUNDRED_PERCENT;
 
         // The cut of the fee destinated to the Liquidity Providers.
-        uint256 _lpFeeCut = (totalFee * liqProvFeeCutBasisPoints) / 10_000;
+        uint256 _lpFeeCut = (totalFee * liqProvFeeCutBasisPoints) / ONE_HUNDRED_PERCENT;
 
         return (_amount - totalFee, totalFee - _lpFeeCut);
     }
