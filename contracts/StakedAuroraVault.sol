@@ -142,6 +142,7 @@ contract StakedAuroraVault is ERC4626, Ownable, IStakedAuroraVaultEvents {
     ) public override onlyFullyOperational checkWhitelist returns (uint256) {
         require(_assets <= maxDeposit(_receiver), "ERC4626: deposit more than max");
         require(_assets >= minDepositAmount, "LESS_THAN_MIN_DEPOSIT_AMOUNT");
+        require(_receiver != address(0), "INVALID_ZERO_ADDRESS");
 
         uint256 shares = previewDeposit(_assets);
         _deposit(_msgSender(), _receiver, _assets, shares);
@@ -154,7 +155,7 @@ contract StakedAuroraVault is ERC4626, Ownable, IStakedAuroraVaultEvents {
         address _receiver
     ) public override onlyFullyOperational checkWhitelist returns (uint256) {
         require(_shares <= maxMint(_receiver), "ERC4626: mint more than max");
-
+        require(_receiver != address(0), "INVALID_ZERO_ADDRESS");
         uint256 assets = previewMint(_shares);
         require(assets >= minDepositAmount, "LESS_THAN_MIN_DEPOSIT_AMOUNT");
         _deposit(_msgSender(), _receiver, assets, _shares);
@@ -170,6 +171,7 @@ contract StakedAuroraVault is ERC4626, Ownable, IStakedAuroraVaultEvents {
         address _receiver,
         address
     ) public override returns (uint256) {
+        require(_receiver != address(0), "INVALID_ZERO_ADDRESS");
         IStakingManager(stakingManager).transferAurora(_receiver, _msgSender(), _assets);
 
         emit Withdraw(_msgSender(), _receiver, _msgSender(), _assets, 0);
@@ -184,6 +186,7 @@ contract StakedAuroraVault is ERC4626, Ownable, IStakedAuroraVaultEvents {
         address _owner
     ) public override onlyFullyOperational returns (uint256) {
         require(_shares > 0, "CANNOT_REDEEM_ZERO_SHARES");
+        require(_receiver != address(0), "INVALID_ZERO_ADDRESS");
         if (_msgSender() != _owner) {
             _spendAllowance(_owner, _msgSender(), _shares);
         }
