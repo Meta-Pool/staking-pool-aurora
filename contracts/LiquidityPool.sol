@@ -21,7 +21,7 @@ contract LiquidityPool is ERC4626, Ownable, ILiquidityPool {
     uint256 public stAurBalance;
     uint256 public auroraBalance;
 
-    /// @dev Fee is represented as Basis Point (100 points == 0.01%).
+    /// @dev Fee is represented as Basis Points (100 points == 1.00%).
     uint256 public swapFeeBasisPoints;
     uint256 public collectedStAurFees;
     uint256 public minDepositAmount;
