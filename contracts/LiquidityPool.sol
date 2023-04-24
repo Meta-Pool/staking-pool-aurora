@@ -59,6 +59,8 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
     constructor(
         address _stAurVault,
         address _auroraToken,
+        address _feeCollectorRole,
+        address _contractOperatorRole,
         string memory _lpTokenName,
         string memory _lpTokenSymbol,
         uint256 _minDepositAmount,
@@ -70,14 +72,24 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
         checkBasisPoints(_swapFeeBasisPoints)
         checkBasisPoints(_liqProvFeeCutBasisPoints)
     {
-        require(_stAurVault != address(0), "INVALID_ZERO_ADDRESS");
-        require(_auroraToken != address(0), "INVALID_ZERO_ADDRESS");
+        require(
+            _stAurVault != address(0)
+                && _auroraToken != address(0)
+                && _feeCollectorRole != address(0)
+                && _contractOperatorRole != address(0),
+            "INVALID_ZERO_ADDRESS"
+        );
         stAurVault = _stAurVault;
         auroraToken = _auroraToken;
         minDepositAmount = _minDepositAmount;
         swapFeeBasisPoints = _swapFeeBasisPoints;
         liqProvFeeCutBasisPoints = _liqProvFeeCutBasisPoints;
         fullyOperational = true;
+
+        _grantRole(ADMIN_ROLE, _msgSender());
+        _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _grantRole(FEE_COLLECTOR_ROLE, _feeCollectorRole);
+        _grantRole(OPERATOR_ROLE, _contractOperatorRole);
     }
 
     receive() external payable {}

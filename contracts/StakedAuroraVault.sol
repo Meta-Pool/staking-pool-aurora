@@ -5,17 +5,18 @@ import "./interfaces/IDepositor.sol";
 import "./interfaces/ILiquidityPool.sol";
 import "./interfaces/IStakingManager.sol";
 import "./interfaces/IStakedAuroraVaultEvents.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
 // NOTE: SafeMath is no longer needed starting with Solidity 0.8. The compiler now has built in overflow checking.
 
-contract StakedAuroraVault is ERC4626, Ownable, IStakedAuroraVaultEvents {
+contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
     using SafeERC20 for IERC20;
 
-    // TODO: Consider using istead of a single Owner, and AccessControl.
+    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+    bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
 
     address public stakingManager;
     address public liquidityPool;
@@ -47,6 +48,7 @@ contract StakedAuroraVault is ERC4626, Ownable, IStakedAuroraVaultEvents {
 
     constructor(
         address _asset,
+        address _contractOperatorRole,
         string memory _stAurName,
         string memory _stAurSymbol,
         uint256 _minDepositAmount
@@ -54,15 +56,23 @@ contract StakedAuroraVault is ERC4626, Ownable, IStakedAuroraVaultEvents {
         ERC4626(IERC20(_asset))
         ERC20(_stAurName, _stAurSymbol)
     {
-        require(_asset != address(0), "INVALID_ZERO_ADDRESS");
+        require(
+            _asset != address(0)
+                && _contractOperatorRole != address(0),
+            "INVALID_ZERO_ADDRESS"
+        );
         minDepositAmount = _minDepositAmount;
         enforceWhitelist = true;
+
+        _grantRole(ADMIN_ROLE, _msgSender());
+        _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _grantRole(OPERATOR_ROLE, _contractOperatorRole);
     }
 
     function initializeLiquidStaking(
         address _stakingManager,
         address _liquidityPool
-    ) external onlyOwner {
+    ) external onlyRole(ADMIN_ROLE) {
         require(liquidityPool == address(0) || stakingManager == address(0), "ALREADY_INITIALIZED");
         require(_liquidityPool != address(0) || _stakingManager != address(0), "INVALID_ZERO_ADDRESS");
         stakingManager = _stakingManager;
@@ -73,7 +83,7 @@ contract StakedAuroraVault is ERC4626, Ownable, IStakedAuroraVaultEvents {
         emit ContractInitialized(_msgSender(), _stakingManager, _liquidityPool);
     }
 
-    function updateStakingManager(address _stakingManager) external onlyOwner {
+    function updateStakingManager(address _stakingManager) external onlyRole(ADMIN_ROLE) {
         require(_stakingManager != address(0), "INVALID_ZERO_ADDRESS");
         require(stakingManager != address(0), "NOT_INITIALIZED");
 
@@ -81,7 +91,7 @@ contract StakedAuroraVault is ERC4626, Ownable, IStakedAuroraVaultEvents {
         stakingManager = _stakingManager;
     }
 
-    function updateLiquidityPool(address _liquidityPool) external onlyOwner {
+    function updateLiquidityPool(address _liquidityPool) external onlyRole(ADMIN_ROLE) {
         require(_liquidityPool != address(0), "INVALID_ZERO_ADDRESS");
         require(liquidityPool != address(0), "NOT_INITIALIZED");
 
@@ -89,14 +99,14 @@ contract StakedAuroraVault is ERC4626, Ownable, IStakedAuroraVaultEvents {
         liquidityPool = _liquidityPool;
     }
 
-    function updateMinDepositAmount(uint256 _amount) external onlyOwner {
+    function updateMinDepositAmount(uint256 _amount) external onlyRole(OPERATOR_ROLE) {
         emit UpdateMinDepositAmount(_msgSender(), minDepositAmount, _amount);
         minDepositAmount = _amount;
     }
 
     /// @notice Use in case of emergency 🦺.
     /// @dev Check if the contract is initialized when the change is to true.
-    function updateContractOperation(bool _isFullyOperational) public onlyOwner {
+    function updateContractOperation(bool _isFullyOperational) public onlyRole(ADMIN_ROLE) {
         if (_isFullyOperational) {
             require(
                 liquidityPool != address(0) && stakingManager != address(0),
@@ -107,17 +117,19 @@ contract StakedAuroraVault is ERC4626, Ownable, IStakedAuroraVaultEvents {
         emit ContractUpdateOperation(_msgSender(), _isFullyOperational);
     }
 
-    function updateEnforceWhitelist(bool _isWhitelistRequired) external onlyOwner {
+    function updateEnforceWhitelist(
+        bool _isWhitelistRequired
+    ) external onlyRole(OPERATOR_ROLE) {
         enforceWhitelist = _isWhitelistRequired;
         emit ContractUpdateWhitelist(_msgSender(), _isWhitelistRequired);
     }
 
-    function whitelistAccount(address _account) external onlyOwner {
+    function whitelistAccount(address _account) external onlyRole(OPERATOR_ROLE) {
         accountWhitelist[_account] = true;
         emit AccountWhitelisted(_msgSender(), _account);
     }
 
-    function blacklistAccount(address _account) external onlyOwner {
+    function blacklistAccount(address _account) external onlyRole(OPERATOR_ROLE) {
         accountWhitelist[_account] = false;
         emit AccountBlacklisted(_msgSender(), _account);
     }

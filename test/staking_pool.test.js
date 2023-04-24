@@ -27,18 +27,19 @@ describe("Staking Pool AURORA", function () {
         depositor01Contract,
         owner,
         depositors_owner,
-        manager_operator,
+        operator,
         reward_collector
       } = await loadFixture(deployPoolFixture);
 
-      expect(await stakedAuroraVaultContract.owner()).to.equal(owner.address);
+      expect(await stakedAuroraVaultContract.hasRole(ADMIN_ROLE, owner.address)).to.be.true;
+      expect(await stakedAuroraVaultContract.hasRole(OPERATOR_ROLE, operator.address)).to.be.true;
       expect(await stakedAuroraVaultContract.stakingManager()).to.equal(stakingManagerContract.address);
       expect(await stakedAuroraVaultContract.asset()).to.equal(auroraTokenContract.address);
       expect(await stakedAuroraVaultContract.totalAssets()).to.equal(0);
 
       expect(await stakingManagerContract.hasRole(ADMIN_ROLE, owner.address)).to.be.true;
       expect(await stakingManagerContract.hasRole(DEPOSITORS_OWNER_ROLE, depositors_owner.address)).to.be.true;
-      expect(await stakingManagerContract.hasRole(OPERATOR_ROLE, manager_operator.address)).to.be.true;
+      expect(await stakingManagerContract.hasRole(OPERATOR_ROLE, operator.address)).to.be.true;
       expect(await stakingManagerContract.stAurVault()).to.equal(stakedAuroraVaultContract.address);
       expect(await stakingManagerContract.auroraToken()).to.equal(auroraTokenContract.address);
       expect(await stakingManagerContract.auroraStaking()).to.equal(auroraStakingContract.address);
@@ -991,7 +992,7 @@ describe("Staking Pool AURORA", function () {
       expect(await depositor00Contract.getPendingRewards(1)).to.equal(0);
       await expect(
         depositor00Contract.connect(alice).moveRewardsToPending(1)
-      ).to.be.revertedWith("AccessControl: account 0x976ea74026e726554db657fa54763abd0c3a0aa9 is missing role 0x131c12305311744a3f7cfa41d985c1cd8592681deca082296d27adcfcc21a0b8");
+      ).to.be.revertedWith("AccessControl: account 0x14dc79964da2c08b23698b3d3cc7ca32193d9955 is missing role 0x131c12305311744a3f7cfa41d985c1cd8592681deca082296d27adcfcc21a0b8");
       await depositor00Contract.connect(reward_collector).moveRewardsToPending(1);
       expect(await depositor00Contract.getPendingRewards(1)).to.be.greaterThan(0);
     });

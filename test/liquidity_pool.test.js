@@ -1,7 +1,14 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { loadFixture, time } = require("@nomicfoundation/hardhat-network-helpers");
-const { deployPoolFixture, liquidityPoolFixture, DECIMALS } = require("./test_setup");
+const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
+const {
+  deployPoolFixture,
+  liquidityPoolFixture,
+  DECIMALS,
+  FEE_COLLECTOR_ROLE,
+  ADMIN_ROLE,
+  OPERATOR_ROLE
+} = require("./test_setup");
 
 describe("Liquidity Pool StAUR <> AURORA", function () {
   describe("Deployment", function () {
@@ -10,15 +17,20 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
         auroraTokenContract,
         liquidityPoolContract,
         liquidity_pool_owner,
-        stakedAuroraVaultContract
+        stakedAuroraVaultContract,
+        fee_collector,
+        operator
       } = await loadFixture(deployPoolFixture);
 
-      expect(await liquidityPoolContract.owner()).to.equal(liquidity_pool_owner.address);
+      expect(await liquidityPoolContract.hasRole(ADMIN_ROLE, liquidity_pool_owner.address)).to.be.true;
+      expect(await liquidityPoolContract.hasRole(FEE_COLLECTOR_ROLE, fee_collector.address)).to.be.true;
+      expect(await liquidityPoolContract.hasRole(OPERATOR_ROLE, operator.address)).to.be.true;
       expect(await liquidityPoolContract.stAurVault()).to.equal(stakedAuroraVaultContract.address);
       expect(await liquidityPoolContract.auroraToken()).to.equal(auroraTokenContract.address);
       expect(await liquidityPoolContract.stAurBalance()).to.equal(0);
       expect(await liquidityPoolContract.auroraBalance()).to.equal(0);
       expect(await liquidityPoolContract.swapFeeBasisPoints()).to.equal(200);
+      expect(await liquidityPoolContract.liqProvFeeCutBasisPoints()).to.equal(8000);
     });
 
     it("Should assign the total supply of Aurora tokens to Alice, Bob, Carl and Liq Provider.", async function () {
@@ -141,7 +153,7 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
         liquidityPoolContract,
         stakedAuroraVaultContract,
         liquidity_provider,
-        liquidity_pool_owner,
+        fee_collector,
         alice,
         bob,
         carl
@@ -158,7 +170,7 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
         await liquidityPoolContract.previewSwapStAurForAurora(providerSwap)
       );
 
-      var collectedStAurFeesTracker = ethers.BigNumber.from("1800000000000000000000");
+      var collectedStAurFeesTracker = ethers.BigNumber.from("360000000000000000000");
       expect(await liquidityPoolContract.collectedStAurFees()).to.equal(collectedStAurFeesTracker);
 
       // Alice swap.
@@ -170,7 +182,7 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
         await liquidityPoolContract.previewSwapStAurForAurora(aliceSwap)
       );
 
-      var collectedStAurFeesTracker = collectedStAurFeesTracker.add(ethers.BigNumber.from("4000000000000000000"));
+      var collectedStAurFeesTracker = collectedStAurFeesTracker.add(ethers.BigNumber.from("800000000000000000"));
       expect(await liquidityPoolContract.collectedStAurFees()).to.equal(collectedStAurFeesTracker);
 
       // Bob swap.
@@ -182,7 +194,7 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
         await liquidityPoolContract.previewSwapStAurForAurora(bobSwap)
       );
 
-      var collectedStAurFeesTracker = collectedStAurFeesTracker.add(ethers.BigNumber.from("68000000000000000000"));
+      var collectedStAurFeesTracker = collectedStAurFeesTracker.add(ethers.BigNumber.from("13600000000000000000"));
       expect(await liquidityPoolContract.collectedStAurFees()).to.equal(collectedStAurFeesTracker);
 
       // Carl swap.
@@ -194,14 +206,14 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
         await liquidityPoolContract.previewSwapStAurForAurora(carlSwap)
       );
 
-      var collectedStAurFeesTracker = collectedStAurFeesTracker.add(ethers.BigNumber.from("2640000000000000000"));
+      var collectedStAurFeesTracker = collectedStAurFeesTracker.add(ethers.BigNumber.from("528000000000000000"));
       expect(await liquidityPoolContract.collectedStAurFees()).to.equal(collectedStAurFeesTracker);
 
       const aliceBalancePre = await stakedAuroraVaultContract.balanceOf(alice.address);
       await expect(
         liquidityPoolContract.connect(alice).withdrawCollectedStAurFees(alice.address)
-      ).to.be.revertedWith("Ownable: caller is not the owner");
-      await liquidityPoolContract.connect(liquidity_pool_owner).withdrawCollectedStAurFees(alice.address);
+      ).to.be.revertedWith("AccessControl: account 0x14dc79964da2c08b23698b3d3cc7ca32193d9955 is missing role 0x2dca0f5ce7e75a4b43fe2b0d6f5d0b7a2bf92ecf89f8f0aa17b8308b67038821");
+      await liquidityPoolContract.connect(fee_collector).withdrawCollectedStAurFees(alice.address);
       expect(await liquidityPoolContract.collectedStAurFees()).to.equal(0);
       expect(await stakedAuroraVaultContract.balanceOf(alice.address)).to.equal(
         aliceBalancePre.add(collectedStAurFeesTracker)

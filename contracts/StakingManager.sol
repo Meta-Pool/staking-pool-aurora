@@ -88,16 +88,16 @@ contract StakingManager is AccessControl, IStakingManager {
     constructor(
         address _stAurVault,
         address _auroraStaking,
-        address _depositorOwner,
-        address _contractOperator,
+        address _depositorOwnerRole,
+        address _contractOperatorRole,
         uint256 _maxWithdrawOrders,
         uint256 _maxDepositors
     ) {
         require(
             _stAurVault != address(0)
                 && _auroraStaking != address(0)
-                && _depositorOwner != address(0)
-                && _contractOperator != address(0),
+                && _depositorOwnerRole != address(0)
+                && _contractOperatorRole != address(0),
             "INVALID_ZERO_ADDRESS"
         );
         stAurVault = _stAurVault;
@@ -109,8 +109,8 @@ contract StakingManager is AccessControl, IStakingManager {
 
         _grantRole(ADMIN_ROLE, _msgSender());
         _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        _grantRole(DEPOSITORS_OWNER_ROLE, _depositorOwner);
-        _grantRole(OPERATOR_ROLE, _contractOperator);
+        _grantRole(DEPOSITORS_OWNER_ROLE, _depositorOwnerRole);
+        _grantRole(OPERATOR_ROLE, _contractOperatorRole);
     }
 
     function insertDepositor(
