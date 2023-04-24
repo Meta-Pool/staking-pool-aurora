@@ -42,7 +42,7 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
     bool public fullyOperational;
 
     modifier onlyStAurVault() {
-        require(_msgSender() == stAurVault, "ONLY_FOR_STAUR_VAULT");
+        require(msg.sender == stAurVault, "ONLY_FOR_STAUR_VAULT");
         _;
     }
 
@@ -86,8 +86,8 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
         liqProvFeeCutBasisPoints = _liqProvFeeCutBasisPoints;
         fullyOperational = true;
 
-        _grantRole(ADMIN_ROLE, _msgSender());
-        _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _grantRole(ADMIN_ROLE, msg.sender);
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(FEE_COLLECTOR_ROLE, _feeCollectorRole);
         _grantRole(OPERATOR_ROLE, _contractOperatorRole);
     }
@@ -97,21 +97,21 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
     function updateMinDepositAmount(
         uint256 _amount
     ) external onlyRole(OPERATOR_ROLE) {
-        emit UpdateMinDepositAmount(_msgSender(), minDepositAmount, _amount);
+        emit UpdateMinDepositAmount(msg.sender, minDepositAmount, _amount);
         minDepositAmount = _amount;
     }
 
     function updateFeeBasisPoints(
         uint256 _feeBasisPoints
     ) external onlyRole(OPERATOR_ROLE) checkBasisPoints(_feeBasisPoints) {
-        emit UpdateFeeBasisPoints(_msgSender(), swapFeeBasisPoints, _feeBasisPoints);
+        emit UpdateFeeBasisPoints(msg.sender, swapFeeBasisPoints, _feeBasisPoints);
         swapFeeBasisPoints = _feeBasisPoints;
     }
 
     function updateLiqProvFeeBasisPoints(
         uint256 _feeBasisPoints
     ) external onlyRole(OPERATOR_ROLE) checkBasisPoints(_feeBasisPoints) {
-        emit UpdateLiqProvFeeBasisPoints(_msgSender(), liqProvFeeCutBasisPoints, _feeBasisPoints);
+        emit UpdateLiqProvFeeBasisPoints(msg.sender, liqProvFeeCutBasisPoints, _feeBasisPoints);
         liqProvFeeCutBasisPoints = _feeBasisPoints;
     }
 
@@ -120,7 +120,7 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
         bool _isFullyOperational
     ) public onlyRole(ADMIN_ROLE) {
         fullyOperational = _isFullyOperational;
-        emit ContractUpdateOperation(_msgSender(), _isFullyOperational);
+        emit ContractUpdateOperation(msg.sender, _isFullyOperational);
     }
 
     function isStAurBalanceAvailable(uint _amount) external view returns(bool) {
@@ -158,7 +158,7 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
         require(_assets >= minDepositAmount, "LESS_THAN_MIN_DEPOSIT_AMOUNT");
 
         uint256 _shares = previewDeposit(_assets);
-        _deposit(_msgSender(), _receiver, _assets, _shares);
+        _deposit(msg.sender, _receiver, _assets, _shares);
 
         return _shares;
     }
@@ -171,8 +171,8 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
         address _owner
     ) public override returns (uint256) {
         require(_shares > 0, "CANNOT_REDEEM_ZERO_SHARES");
-        if (_msgSender() != _owner) {
-            _spendAllowance(_owner, _msgSender(), _shares);
+        if (msg.sender != _owner) {
+            _spendAllowance(_owner, msg.sender, _shares);
         }
 
         // Core Calculations.
@@ -185,7 +185,7 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
         stAurBalance -= stAurToSend;
 
         // IMPORTANT NOTE: run the burn 🔥 AFTER the calculations.
-        _burn(_msgSender(), _shares);
+        _burn(msg.sender, _shares);
 
         // Send Aurora tokens.
         IERC20(asset()).safeTransfer(_receiver, auroraToSend);
@@ -194,7 +194,7 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
         IStakedAuroraVault(stAurVault).safeTransfer(_receiver, stAurToSend);
 
         emit RemoveLiquidity(
-            _msgSender(),
+            msg.sender,
             _receiver,
             _owner,
             _shares,
@@ -241,12 +241,12 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
         auroraBalance -= auroraToSend;
 
         // Step 1. Get the caller stAUR tokens.
-        vault.safeTransferFrom(_msgSender(), address(this), _stAurAmount);
+        vault.safeTransferFrom(msg.sender, address(this), _stAurAmount);
 
         // Step 2. Transfer the Aurora tokens to the caller.
-        IERC20(auroraToken).safeTransfer(_msgSender(), auroraToSend);
+        IERC20(auroraToken).safeTransfer(msg.sender, auroraToSend);
 
-        emit SwapStAur(_msgSender(), auroraToSend, _stAurAmount, _collectedFee);
+        emit SwapStAur(msg.sender, auroraToSend, _stAurAmount, _collectedFee);
     }
 
     /// @notice The collected stAUR fees are owned by Meta Pool.
@@ -258,7 +258,7 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
         collectedStAurFees = 0;
         IStakedAuroraVault(stAurVault).safeTransfer(_receiver, _toTransfer);
 
-        emit WithdrawCollectedFees(_msgSender(), _receiver, _toTransfer);
+        emit WithdrawCollectedFees(msg.sender, _receiver, _toTransfer);
     }
 
     /// @notice The fee is splited in two: first, for the liquidity providers, and

@@ -22,12 +22,12 @@ contract Depositor is AccessControl, IDepositor {
     address immutable public auroraStaking;
 
     modifier onlyManager() {
-        require(_msgSender() == stakingManager, "ONLY_FOR_STAUR_MANAGER");
+        require(msg.sender == stakingManager, "ONLY_FOR_STAUR_MANAGER");
         _;
     }
 
     modifier onlyStAurVault() {
-        require(_msgSender() == stAurVault, "ONLY_FOR_STAUR_VAULT");
+        require(msg.sender == stAurVault, "ONLY_FOR_STAUR_VAULT");
         _;
     }
 
@@ -43,16 +43,16 @@ contract Depositor is AccessControl, IDepositor {
         auroraToken = manager.auroraToken();
         auroraStaking = manager.auroraStaking();
 
-        _grantRole(ADMIN_ROLE, _msgSender());
+        _grantRole(ADMIN_ROLE, msg.sender);
         _grantRole(COLLECT_REWARDS_ROLE, _collectRewardsRole);
-        _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
     function updateStakingManager(
         address _stakingManager
     ) external onlyRole(ADMIN_ROLE) {
         require(_stakingManager != address(0), "INVALID_ZERO_ADDRESS");
-        emit NewManagerUpdate(_msgSender(), stakingManager, _stakingManager);
+        emit NewManagerUpdate(msg.sender, stakingManager, _stakingManager);
         stakingManager = _stakingManager;
     }
 

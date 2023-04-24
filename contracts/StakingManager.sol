@@ -81,7 +81,7 @@ contract StakingManager is AccessControl, IStakingManager {
     uint256 maxDepositors;
 
     modifier onlyStAurVault() {
-        require(_msgSender() == stAurVault, "ONLY_FOR_STAUR_VAULT");
+        require(msg.sender == stAurVault, "ONLY_FOR_STAUR_VAULT");
         _;
     }
 
@@ -107,8 +107,8 @@ contract StakingManager is AccessControl, IStakingManager {
         maxDepositors = _maxDepositors;
         nextCleanOrderQueue = block.timestamp;
 
-        _grantRole(ADMIN_ROLE, _msgSender());
-        _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _grantRole(ADMIN_ROLE, msg.sender);
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(DEPOSITORS_OWNER_ROLE, _depositorOwnerRole);
         _grantRole(OPERATOR_ROLE, _contractOperatorRole);
     }
@@ -120,7 +120,7 @@ contract StakingManager is AccessControl, IStakingManager {
         depositors.push(_depositor);
         nextDepositor = _depositor;
 
-        emit NewDepositorAdded(_msgSender(), _depositor);
+        emit NewDepositorAdded(msg.sender, _depositor);
     }
 
     function changeMaxDepositors(
@@ -130,7 +130,7 @@ contract StakingManager is AccessControl, IStakingManager {
         require(_maxDepositors >= depositors.length, "BELOW_CURRENT_LENGTH");
         maxDepositors = _maxDepositors;
 
-        emit MaxDepositorsUpdate(_msgSender(), _maxDepositors);
+        emit MaxDepositorsUpdate(msg.sender, _maxDepositors);
     }
 
     function changeMaxWithdrawOrders(
@@ -140,14 +140,14 @@ contract StakingManager is AccessControl, IStakingManager {
         require(_maxWithdrawOrders >= lastWithdrawOrderIndex, "BELOW_CURRENT_LENGTH");
         maxWithdrawOrders = _maxWithdrawOrders;
 
-        emit MaxWithdrawOrdersUpdate(_msgSender(), _maxWithdrawOrders);
+        emit MaxWithdrawOrdersUpdate(msg.sender, _maxWithdrawOrders);
     }
 
     function stopProcessingWithdrawOrders(
         bool _isProcessStopped
     ) external onlyRole(ADMIN_ROLE) {
         stopWithdrawOrders = _isProcessStopped;
-        emit UpdateProcessWithdrawOrders(_msgSender(), _isProcessStopped);
+        emit UpdateProcessWithdrawOrders(msg.sender, _isProcessStopped);
     }
 
     /// @dev If the user do NOT have a withdraw order, expect an index of "0".
@@ -270,8 +270,8 @@ contract StakingManager is AccessControl, IStakingManager {
             IStakedAuroraVault(stAurVault).stakingManager() != address(this),
             "VAULT_AND_MANAGER_STILL_ATTACHED"
         );
-        _transferAurora(_receiver, _msgSender(), _assets);
-        emit AltWithdraw(_msgSender(), _receiver, _msgSender(), _assets);
+        _transferAurora(_receiver, msg.sender, _assets);
+        emit AltWithdraw(msg.sender, _receiver, msg.sender, _assets);
     }
 
     /// @notice Unstaking Flow - Ran by ROBOT 🤖
@@ -298,7 +298,7 @@ contract StakingManager is AccessControl, IStakingManager {
         (,,,,,,,,,uint256 tau,) = IAuroraStaking(auroraStaking).getStream(0);
         nextCleanOrderQueue = block.timestamp + tau;
 
-        emit CleanOrdersQueue(_msgSender(), tau, nextCleanOrderQueue);
+        emit CleanOrdersQueue(msg.sender, tau, nextCleanOrderQueue);
     }
 
     function createWithdrawOrder(

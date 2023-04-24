@@ -30,7 +30,7 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
     mapping(address => bool) public accountWhitelist;
 
     modifier onlyManager() {
-        require(_msgSender() == stakingManager, "ONLY_STAKING_MANAGER");
+        require(msg.sender == stakingManager, "ONLY_STAKING_MANAGER");
         _;
     }
 
@@ -41,7 +41,7 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
 
     modifier checkWhitelist() {
         if (enforceWhitelist) {
-            require(isWhitelisted(_msgSender()), "ACCOUNT_IS_NOT_WHITELISTED");
+            require(isWhitelisted(msg.sender), "ACCOUNT_IS_NOT_WHITELISTED");
         }
         _;
     }
@@ -64,8 +64,8 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
         minDepositAmount = _minDepositAmount;
         enforceWhitelist = true;
 
-        _grantRole(ADMIN_ROLE, _msgSender());
-        _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _grantRole(ADMIN_ROLE, msg.sender);
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(OPERATOR_ROLE, _contractOperatorRole);
     }
 
@@ -80,14 +80,14 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
 
         // Get fully operational for the first time.
         updateContractOperation(true);
-        emit ContractInitialized(_msgSender(), _stakingManager, _liquidityPool);
+        emit ContractInitialized(msg.sender, _stakingManager, _liquidityPool);
     }
 
     function updateStakingManager(address _stakingManager) external onlyRole(ADMIN_ROLE) {
         require(_stakingManager != address(0), "INVALID_ZERO_ADDRESS");
         require(stakingManager != address(0), "NOT_INITIALIZED");
 
-        emit NewManagerUpdate(_msgSender(), stakingManager, _stakingManager);
+        emit NewManagerUpdate(msg.sender, stakingManager, _stakingManager);
         stakingManager = _stakingManager;
     }
 
@@ -95,12 +95,12 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
         require(_liquidityPool != address(0), "INVALID_ZERO_ADDRESS");
         require(liquidityPool != address(0), "NOT_INITIALIZED");
 
-        emit NewLiquidityPoolUpdate(_msgSender(), liquidityPool, _liquidityPool);
+        emit NewLiquidityPoolUpdate(msg.sender, liquidityPool, _liquidityPool);
         liquidityPool = _liquidityPool;
     }
 
     function updateMinDepositAmount(uint256 _amount) external onlyRole(OPERATOR_ROLE) {
-        emit UpdateMinDepositAmount(_msgSender(), minDepositAmount, _amount);
+        emit UpdateMinDepositAmount(msg.sender, minDepositAmount, _amount);
         minDepositAmount = _amount;
     }
 
@@ -114,24 +114,24 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
             );
         }
         fullyOperational = _isFullyOperational;
-        emit ContractUpdateOperation(_msgSender(), _isFullyOperational);
+        emit ContractUpdateOperation(msg.sender, _isFullyOperational);
     }
 
     function updateEnforceWhitelist(
         bool _isWhitelistRequired
     ) external onlyRole(OPERATOR_ROLE) {
         enforceWhitelist = _isWhitelistRequired;
-        emit ContractUpdateWhitelist(_msgSender(), _isWhitelistRequired);
+        emit ContractUpdateWhitelist(msg.sender, _isWhitelistRequired);
     }
 
     function whitelistAccount(address _account) external onlyRole(OPERATOR_ROLE) {
         accountWhitelist[_account] = true;
-        emit AccountWhitelisted(_msgSender(), _account);
+        emit AccountWhitelisted(msg.sender, _account);
     }
 
     function blacklistAccount(address _account) external onlyRole(OPERATOR_ROLE) {
         accountWhitelist[_account] = false;
-        emit AccountBlacklisted(_msgSender(), _account);
+        emit AccountBlacklisted(msg.sender, _account);
     }
 
     function isWhitelisted(address _account) public view returns (bool) {
@@ -156,7 +156,7 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
         require(_assets >= minDepositAmount, "LESS_THAN_MIN_DEPOSIT_AMOUNT");
 
         uint256 shares = previewDeposit(_assets);
-        _deposit(_msgSender(), _receiver, _assets, shares);
+        _deposit(msg.sender, _receiver, _assets, shares);
 
         return shares;
     }
@@ -169,7 +169,7 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
 
         uint256 assets = previewMint(_shares);
         require(assets >= minDepositAmount, "LESS_THAN_MIN_DEPOSIT_AMOUNT");
-        _deposit(_msgSender(), _receiver, assets, _shares);
+        _deposit(msg.sender, _receiver, assets, _shares);
 
         return assets;
     }
@@ -182,9 +182,9 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
         address _receiver,
         address
     ) public override returns (uint256) {
-        IStakingManager(stakingManager).transferAurora(_receiver, _msgSender(), _assets);
+        IStakingManager(stakingManager).transferAurora(_receiver, msg.sender, _assets);
 
-        emit Withdraw(_msgSender(), _receiver, _msgSender(), _assets, 0);
+        emit Withdraw(msg.sender, _receiver, msg.sender, _assets, 0);
 
         return 0;
     }
@@ -196,8 +196,8 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
         address _owner
     ) public override onlyFullyOperational returns (uint256) {
         require(_shares > 0, "CANNOT_REDEEM_ZERO_SHARES");
-        if (_msgSender() != _owner) {
-            _spendAllowance(_owner, _msgSender(), _shares);
+        if (msg.sender != _owner) {
+            _spendAllowance(_owner, msg.sender, _shares);
         }
 
         // IMPORTANT NOTE: run the burn 🔥 AFTER the calculations.
@@ -206,7 +206,7 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
 
         IStakingManager(stakingManager).createWithdrawOrder(assets, _receiver);
 
-        emit WithdrawOrderCreated(_msgSender(), _receiver, _owner, _shares, assets);
+        emit WithdrawOrderCreated(msg.sender, _receiver, _owner, _shares, assets);
 
         return assets;
     }
