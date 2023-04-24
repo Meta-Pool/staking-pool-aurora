@@ -25,7 +25,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 ///   contract Manager, leaving the stAUR ledger and the AURORA tokens safely.
 
 /// **Steps in case of Emergency** 🛟:
-/// 1. Keep calm.
+/// 1. Keep calm. Find the ADMIN_ROLE account(s) to operate emergency functions.
 /// 2. Pause all deposits and redeems from the StakedAuroraVault contract.
 ///    StakedAuroraVault.updateContractOperation(false)
 /// 3. Keep running the cleanOrdersQueue fn until all orders (withdraw, pending) are processed
@@ -38,7 +38,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 contract StakingManager is AccessControl, IStakingManager {
     using SafeERC20 for IERC20;
 
-    ///@dev If there are problems with the clean-orders,
+    /// @dev If there are problems with the clean-orders,
     /// you can temporally stop processing withdraw orders.
     bool stopWithdrawOrders;
 

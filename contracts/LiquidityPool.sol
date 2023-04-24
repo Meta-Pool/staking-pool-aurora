@@ -3,28 +3,38 @@ pragma solidity 0.8.18;
 
 import "./interfaces/ILiquidityPool.sol";
 import "./interfaces/IStakedAuroraVault.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
 /// @notice Liquidity Pool that allows the fast convertion of stAUR to AURORA tokens.
 
-contract LiquidityPool is ERC4626, Ownable, ILiquidityPool {
+contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
     using SafeERC20 for IERC20;
     using SafeERC20 for IStakedAuroraVault;
 
+    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+    bytes32 public constant FEE_COLLECTOR_ROLE = keccak256("FEE_COLLECTOR_ROLE");
+    bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
+
+    /// @dev Contract addresses of the stAUR vault and the AURORA token.
     address immutable public stAurVault;
     address immutable public auroraToken;
 
     /// @dev Internal accounting for the two vault assets.
     uint256 public stAurBalance;
     uint256 public auroraBalance;
+    uint256 public minDepositAmount;
 
     /// @dev Fee is represented as Basis Points (100 points == 1.00%).
     uint256 public swapFeeBasisPoints;
+
+    /// @dev How much of the Swap Fee, the liquidity providers will keep.
+    uint256 public liqProvFeeCutBasisPoints;
+
+    /// @dev The remaining Fees will be available to be collected by Meta Pool.
     uint256 public collectedStAurFees;
-    uint256 public minDepositAmount;
 
     bool public fullyOperational;
 
@@ -44,7 +54,8 @@ contract LiquidityPool is ERC4626, Ownable, ILiquidityPool {
         string memory _lpTokenName,
         string memory _lpTokenSymbol,
         uint256 _minDepositAmount,
-        uint256 _swapFeeBasisPoints
+        uint256 _swapFeeBasisPoints,
+        uint256 _liqProvFeeCutBasisPoints
     )
         ERC4626(IERC20(_auroraToken))
         ERC20(_lpTokenName, _lpTokenSymbol)
@@ -55,23 +66,37 @@ contract LiquidityPool is ERC4626, Ownable, ILiquidityPool {
         auroraToken = _auroraToken;
         minDepositAmount = _minDepositAmount;
         swapFeeBasisPoints = _swapFeeBasisPoints;
+        liqProvFeeCutBasisPoints = _liqProvFeeCutBasisPoints;
         fullyOperational = true;
     }
 
     receive() external payable {}
 
-    function updateMinDepositAmount(uint256 _amount) external onlyOwner {
+    function updateMinDepositAmount(
+        uint256 _amount
+    ) external onlyRole(OPERATOR_ROLE) {
         emit UpdateMinDepositAmount(_msgSender(), minDepositAmount, _amount);
         minDepositAmount = _amount;
     }
 
-    function updateFeeBasisPoints(uint256 _feeBasisPoints) external onlyOwner {
+    function updateFeeBasisPoints(
+        uint256 _feeBasisPoints
+    ) external onlyRole(OPERATOR_ROLE) {
         emit UpdateFeeBasisPoints(_msgSender(), swapFeeBasisPoints, _feeBasisPoints);
         swapFeeBasisPoints = _feeBasisPoints;
     }
 
+    function updateLiqProvFeeBasisPoints(
+        uint256 _feeBasisPoints
+    ) external onlyRole(OPERATOR_ROLE) {
+        emit UpdateLiqProvFeeBasisPoints(_msgSender(), liqProvFeeCutBasisPoints, _feeBasisPoints);
+        liqProvFeeCutBasisPoints = _feeBasisPoints;
+    }
+
     /// @notice Use in case of emergency 🦺.
-    function updateContractOperation(bool _isFullyOperational) public onlyOwner {
+    function updateContractOperation(
+        bool _isFullyOperational
+    ) public onlyRole(ADMIN_ROLE) {
         fullyOperational = _isFullyOperational;
         emit ContractUpdateOperation(_msgSender(), _isFullyOperational);
     }
@@ -168,8 +193,8 @@ contract LiquidityPool is ERC4626, Ownable, ILiquidityPool {
     }
 
     function previewSwapStAurForAurora(uint256 _amount) external view returns (uint256) {
-        (uint256 discountedAmount,) = _calculatePoolFees(_amount);
-        return IStakedAuroraVault(stAurVault).convertToAssets(discountedAmount);
+        (uint256 _discountedAmount,) = _calculatePoolFees(_amount);
+        return IStakedAuroraVault(stAurVault).convertToAssets(_discountedAmount);
     }
 
     /// @notice Used for fast swaps to get AURORA tokens back without the unstake delay.
@@ -177,40 +202,57 @@ contract LiquidityPool is ERC4626, Ownable, ILiquidityPool {
         uint256 _stAurAmount,
         uint256 _minAuroraToReceive
     ) external {
+        require(_stAurAmount > 0, "CANNOT_SWAP_ZERO_AMOUNT");
+        (
+            uint256 _discountedAmount,
+            uint256 _collectedFee
+        ) = _calculatePoolFees(_stAurAmount);
+
         IStakedAuroraVault vault = IStakedAuroraVault(stAurVault);
-        (uint256 discountedAmount, uint256 fee) = _calculatePoolFees(_stAurAmount);
-        uint256 auroraToSend = vault.convertToAssets(discountedAmount);
+        uint256 auroraToSend = vault.convertToAssets(_discountedAmount);
 
         require(auroraToSend <= auroraBalance, "NOT_ENOUGH_AURORA");
         require(auroraToSend >= _minAuroraToReceive, "UNREACHED_MIN_SWAP_AMOUNT");
 
-        stAurBalance += discountedAmount;
-        collectedStAurFees += fee;
+        stAurBalance += _discountedAmount;
+        collectedStAurFees += _collectedFee;
         auroraBalance -= auroraToSend;
 
-        // Step 1. Get the caller stAur tokens.
+        // Step 1. Get the caller stAUR tokens.
         vault.safeTransferFrom(_msgSender(), address(this), _stAurAmount);
 
         // Step 2. Transfer the Aurora tokens to the caller.
         IERC20(auroraToken).safeTransfer(_msgSender(), auroraToSend);
 
-        emit SwapStAur(_msgSender(), auroraToSend, _stAurAmount, fee);
+        emit SwapStAur(_msgSender(), auroraToSend, _stAurAmount, _collectedFee);
     }
 
-    // TODO: Fees are selfish 🐡
-    function withdrawCollectedStAurFees(address _receiver) onlyOwner external {
+    /// @notice The collected stAUR fees are owned by Meta Pool.
+    function withdrawCollectedStAurFees(
+        address _receiver
+    ) onlyRole(FEE_COLLECTOR_ROLE) external {
         require(_receiver != address(0), "INVALID_ZERO_ADDRESS");
         uint256 _toTransfer = collectedStAurFees;
         collectedStAurFees = 0;
         IStakedAuroraVault(stAurVault).safeTransfer(_receiver, _toTransfer);
+
+        emit WithdrawCollectedFees(_msgSender(), _receiver, _toTransfer);
     }
 
-    function _calculatePoolFees(uint256 _amount)
-        private
-        view
-        returns (uint256 _discountedAmount, uint256 _fee) {
-        uint256 fee = (_amount * swapFeeBasisPoints) / 10_000;
-        return (_amount - fee, fee);
+    /// @notice The fee is splited in two: first, for the liquidity providers, and
+    /// second, for Meta Pool, granted for FEE_COLLECTOR_ROLE.
+    /// @dev CONSIDER FORMULA: _discountedAmount + _collectedFee + _lpFeeCut == _amount
+    /// @return _discountedAmount stAUR to be taken for swap.
+    /// @return _collectedFee stAUR to be granted for FEE_COLLECTOR_ROLE.
+    function _calculatePoolFees(
+        uint256 _amount
+    ) private view returns (uint256, uint256) {
+        uint256 totalFee = (_amount * swapFeeBasisPoints) / 10_000;
+
+        // The cut of the fee destinated to the Liquidity Providers.
+        uint256 _lpFeeCut = (totalFee * liqProvFeeCutBasisPoints) / 10_000;
+
+        return (_amount - totalFee, totalFee - _lpFeeCut);
     }
 
     /// @dev The Deposit event is used to indicate more liquidity.
