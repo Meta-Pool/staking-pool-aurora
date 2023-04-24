@@ -2,7 +2,7 @@
 pragma solidity 0.8.18;
 
 interface IStakingManager {
-    event CleanOrdersQueue(address indexed _sender, uint256 _timestamp);
+    event CleanOrdersQueue(address indexed _sender, uint256 _auroraStreamTau, uint256 _nextCleanTimestamp);
     event MaxDepositorsUpdate(address indexed _sender, uint256 _maxDepositors);
     event MaxWithdrawOrdersUpdate(address indexed _sender, uint256 _maxWithdrawOrders);
     event NewDepositorAdded(address indexed _sender, address _depositor);

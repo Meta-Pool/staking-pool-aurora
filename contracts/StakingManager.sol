@@ -275,13 +275,13 @@ contract StakingManager is AccessControl, IStakingManager {
     }
 
     /// @notice Unstaking Flow - Ran by ROBOT 🤖
-    /// 1. Withdraw pending Aurora from depositors.
-    /// 2. Move previous pending amount to Available.
-    /// 3. Unstake withdraw orders.
-    /// 4. Move withdraw orders to Pending.
-    /// 5. Remove withdraw orders.
+    ///   1. Withdraw pending Aurora from depositors.
+    ///   2. Move previous pending amount to Available.
+    ///   3. Unstake withdraw orders.
+    ///   4. Move withdraw orders to Pending.
+    ///   5. Remove withdraw orders.
     /// @dev In case of emergency 🛟,
-    /// the withdraw-orders process could be temporally stopped (3, 4, 5 steps).
+    ///   the withdraw-orders process could be temporally stopped (3, 4, 5 steps).
     function cleanOrdersQueue() public {
         require(depositors.length > 0, "CREATE_DEPOSITOR");
         require(nextCleanOrderQueue <= block.timestamp, "WAIT_FOR_NEXT_CLEAN_ORDER");
@@ -298,21 +298,13 @@ contract StakingManager is AccessControl, IStakingManager {
         (,,,,,,,,,uint256 tau,) = IAuroraStaking(auroraStaking).getStream(0);
         nextCleanOrderQueue = block.timestamp + tau;
 
-        emit CleanOrdersQueue(_msgSender(), block.timestamp);
+        emit CleanOrdersQueue(_msgSender(), tau, nextCleanOrderQueue);
     }
 
     function createWithdrawOrder(
         uint256 _assets,
         address _receiver
     ) external onlyStAurVault {
-        _createWithdrawOrder(_assets, _receiver);
-    }
-
-    /// @dev The require is done after trying to increase the order amount.
-    function _createWithdrawOrder(
-        uint256 _assets,
-        address _receiver
-    ) private {
         totalWithdrawInQueue += _assets;
         uint256 index = _getUserWithdrawOrderIndex(_receiver);
         // Create a new withdraw order.
@@ -401,7 +393,7 @@ contract StakingManager is AccessControl, IStakingManager {
         address _owner,
         uint256 _assets
     ) private {
-        require(_assets > 0, "INVALID_ZERO_ASSETS_WITHDRAW");
+        require(_assets > 0, "CANNOT_WITHDRAW_ZERO_ASSETS");
         require(availableAssets[_owner] >= _assets, "NOT_ENOUGH_AVAILABLE_ASSETS");
         availableAssets[_owner] -= _assets;
         IERC20(auroraToken).safeTransfer(_receiver, _assets);

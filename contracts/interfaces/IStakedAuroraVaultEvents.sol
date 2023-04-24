@@ -10,4 +10,5 @@ interface IStakedAuroraVaultEvents {
     event NewLiquidityPoolUpdate(address indexed _sender, address _old, address _new);
     event NewManagerUpdate(address indexed _sender, address _old, address _new);
     event WithdrawOrderCreated(address indexed _sender, address indexed _receiver, address indexed _owner, uint256 _shares, uint256 _assets);
+    event UpdateMinDepositAmount(address indexed _sender, uint256 _old, uint256 _new);
 }

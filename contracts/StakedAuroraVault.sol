@@ -15,12 +15,14 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 contract StakedAuroraVault is ERC4626, Ownable, IStakedAuroraVaultEvents {
     using SafeERC20 for IERC20;
 
+    // TODO: Consider using istead of a single Owner, and AccessControl.
+
     address public stakingManager;
     address public liquidityPool;
     uint256 public minDepositAmount;
 
     /// @notice When is NOT fully operational, users cannot:
-    /// @notice 1) mint, 2) deposit nor 3) create withdraw orders.
+    /// 1) mint, 2) deposit nor 3) create withdraw orders.
     bool public fullyOperational;
     bool public enforceWhitelist;
 
@@ -88,6 +90,7 @@ contract StakedAuroraVault is ERC4626, Ownable, IStakedAuroraVaultEvents {
     }
 
     function updateMinDepositAmount(uint256 _amount) external onlyOwner {
+        emit UpdateMinDepositAmount(_msgSender(), minDepositAmount, _amount);
         minDepositAmount = _amount;
     }
 

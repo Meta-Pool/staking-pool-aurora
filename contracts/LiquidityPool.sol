@@ -14,18 +14,17 @@ contract LiquidityPool is ERC4626, Ownable, ILiquidityPool {
     using SafeERC20 for IERC20;
     using SafeERC20 for IStakedAuroraVault;
 
-    address public stAurVault;
-    address public auroraToken;
+    address immutable public stAurVault;
+    address immutable public auroraToken;
 
     /// @dev Internal accounting for the two vault assets.
     uint256 public stAurBalance;
     uint256 public auroraBalance;
 
-    uint256 public minDepositAmount;
-
     /// @dev Fee is represented as Basis Point (100 points == 0.01%).
     uint256 public swapFeeBasisPoints;
     uint256 public collectedStAurFees;
+    uint256 public minDepositAmount;
 
     bool public fullyOperational;
 
@@ -61,14 +60,24 @@ contract LiquidityPool is ERC4626, Ownable, ILiquidityPool {
 
     receive() external payable {}
 
+    function updateMinDepositAmount(uint256 _amount) external onlyOwner {
+        emit UpdateMinDepositAmount(_msgSender(), minDepositAmount, _amount);
+        minDepositAmount = _amount;
+    }
+
+    function updateFeeBasisPoints(uint256 _feeBasisPoints) external onlyOwner {
+        emit UpdateFeeBasisPoints(_msgSender(), swapFeeBasisPoints, _feeBasisPoints);
+        swapFeeBasisPoints = _feeBasisPoints;
+    }
+
     /// @notice Use in case of emergency 🦺.
-    function toggleFullyOperational() external onlyOwner {
-        fullyOperational = !fullyOperational;
+    function updateContractOperation(bool _isFullyOperational) public onlyOwner {
+        fullyOperational = _isFullyOperational;
+        emit ContractUpdateOperation(_msgSender(), _isFullyOperational);
     }
 
     function isStAurBalanceAvailable(uint _amount) external view returns(bool) {
-        if (stAurBalance >= _amount) return true;
-        return false;
+        return stAurBalance >= _amount;
     }
 
     /// @dev This function will ONLY be called by the stAUR vault
@@ -114,12 +123,10 @@ contract LiquidityPool is ERC4626, Ownable, ILiquidityPool {
         address _receiver,
         address _owner
     ) public override returns (uint256) {
+        require(_shares > 0, "CANNOT_REDEEM_ZERO_SHARES");
         if (_msgSender() != _owner) {
             _spendAllowance(_owner, _msgSender(), _shares);
         }
-
-        // IMPORTANT NOTE: run the burn 🔥 BEFORE the calculations.
-        _burn(_msgSender(), _shares);
 
         // Core Calculations.
         uint256 ONE_AURORA = 1 ether;
@@ -129,6 +136,9 @@ contract LiquidityPool is ERC4626, Ownable, ILiquidityPool {
 
         auroraBalance -= auroraToSend;
         stAurBalance -= stAurToSend;
+
+        // IMPORTANT NOTE: run the burn 🔥 AFTER the calculations.
+        _burn(_msgSender(), _shares);
 
         // Send Aurora tokens.
         IERC20(asset()).safeTransfer(_receiver, auroraToSend);
