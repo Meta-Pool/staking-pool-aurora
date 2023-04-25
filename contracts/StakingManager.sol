@@ -43,7 +43,6 @@ contract StakingManager is AccessControl, IStakingManager {
     bool stopWithdrawOrders;
 
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
-    bytes32 public constant DEPOSITORS_OWNER_ROLE = keccak256("DEPOSITORS_OWNER_ROLE");
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
 
     address immutable public stAurVault;
@@ -88,7 +87,6 @@ contract StakingManager is AccessControl, IStakingManager {
     constructor(
         address _stAurVault,
         address _auroraStaking,
-        address _depositorOwnerRole,
         address _contractOperatorRole,
         uint256 _maxWithdrawOrders,
         uint256 _maxDepositors
@@ -96,7 +94,6 @@ contract StakingManager is AccessControl, IStakingManager {
         require(
             _stAurVault != address(0)
                 && _auroraStaking != address(0)
-                && _depositorOwnerRole != address(0)
                 && _contractOperatorRole != address(0),
             "INVALID_ZERO_ADDRESS"
         );
@@ -109,18 +106,17 @@ contract StakingManager is AccessControl, IStakingManager {
 
         _grantRole(ADMIN_ROLE, msg.sender);
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _grantRole(DEPOSITORS_OWNER_ROLE, _depositorOwnerRole);
         _grantRole(OPERATOR_ROLE, _contractOperatorRole);
     }
 
     function insertDepositor(
         address _depositor
-    ) external onlyRole(DEPOSITORS_OWNER_ROLE) {
+    ) external onlyRole(OPERATOR_ROLE) {
         require(depositors.length < maxDepositors, "DEPOSITORS_LIMIT_REACHED");
         depositors.push(_depositor);
         nextDepositor = _depositor;
 
-        emit NewDepositorAdded(msg.sender, _depositor);
+        emit NewDepositorAdded(_depositor, msg.sender);
     }
 
     function changeMaxDepositors(
@@ -130,7 +126,7 @@ contract StakingManager is AccessControl, IStakingManager {
         require(_maxDepositors >= depositors.length, "BELOW_CURRENT_LENGTH");
         maxDepositors = _maxDepositors;
 
-        emit MaxDepositorsUpdate(msg.sender, _maxDepositors);
+        emit MaxDepositorsUpdate(_maxDepositors, msg.sender);
     }
 
     function changeMaxWithdrawOrders(
@@ -140,14 +136,15 @@ contract StakingManager is AccessControl, IStakingManager {
         require(_maxWithdrawOrders >= lastWithdrawOrderIndex, "BELOW_CURRENT_LENGTH");
         maxWithdrawOrders = _maxWithdrawOrders;
 
-        emit MaxWithdrawOrdersUpdate(msg.sender, _maxWithdrawOrders);
+        emit MaxWithdrawOrdersUpdate(_maxWithdrawOrders, msg.sender);
     }
 
     function stopProcessingWithdrawOrders(
         bool _isProcessStopped
     ) external onlyRole(ADMIN_ROLE) {
         stopWithdrawOrders = _isProcessStopped;
-        emit UpdateProcessWithdrawOrders(msg.sender, _isProcessStopped);
+
+        emit UpdateProcessWithdrawOrders(_isProcessStopped, msg.sender);
     }
 
     /// @dev If the user do NOT have a withdraw order, expect an index of "0".
@@ -271,6 +268,7 @@ contract StakingManager is AccessControl, IStakingManager {
             "VAULT_AND_MANAGER_STILL_ATTACHED"
         );
         _transferAurora(_receiver, msg.sender, _assets);
+
         emit AltWithdraw(msg.sender, _receiver, msg.sender, _assets);
     }
 
@@ -298,7 +296,7 @@ contract StakingManager is AccessControl, IStakingManager {
         (,,,,,,,,,uint256 tau,) = IAuroraStaking(auroraStaking).getStream(0);
         nextCleanOrderQueue = block.timestamp + tau;
 
-        emit CleanOrdersQueue(msg.sender, tau, nextCleanOrderQueue);
+        emit CleanOrdersQueue(nextCleanOrderQueue);
     }
 
     function createWithdrawOrder(

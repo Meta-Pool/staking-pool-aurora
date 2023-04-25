@@ -80,28 +80,30 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
 
         // Get fully operational for the first time.
         updateContractOperation(true);
-        emit ContractInitialized(msg.sender, _stakingManager, _liquidityPool);
+
+        emit ContractInitialized(_stakingManager, _liquidityPool, msg.sender);
     }
 
     function updateStakingManager(address _stakingManager) external onlyRole(ADMIN_ROLE) {
         require(_stakingManager != address(0), "INVALID_ZERO_ADDRESS");
         require(stakingManager != address(0), "NOT_INITIALIZED");
-
-        emit NewManagerUpdate(msg.sender, stakingManager, _stakingManager);
         stakingManager = _stakingManager;
+
+        emit NewManagerUpdate(_stakingManager, msg.sender);
     }
 
     function updateLiquidityPool(address _liquidityPool) external onlyRole(ADMIN_ROLE) {
         require(_liquidityPool != address(0), "INVALID_ZERO_ADDRESS");
         require(liquidityPool != address(0), "NOT_INITIALIZED");
-
-        emit NewLiquidityPoolUpdate(msg.sender, liquidityPool, _liquidityPool);
         liquidityPool = _liquidityPool;
+
+        emit NewLiquidityPoolUpdate(_liquidityPool, msg.sender);
     }
 
     function updateMinDepositAmount(uint256 _amount) external onlyRole(OPERATOR_ROLE) {
-        emit UpdateMinDepositAmount(msg.sender, minDepositAmount, _amount);
         minDepositAmount = _amount;
+
+        emit UpdateMinDepositAmount(_amount, msg.sender);
     }
 
     /// @notice Use in case of emergency 🦺.
@@ -114,24 +116,28 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
             );
         }
         fullyOperational = _isFullyOperational;
-        emit ContractUpdateOperation(msg.sender, _isFullyOperational);
+
+        emit ContractUpdateOperation(_isFullyOperational, msg.sender);
     }
 
     function updateEnforceWhitelist(
         bool _isWhitelistRequired
     ) external onlyRole(OPERATOR_ROLE) {
         enforceWhitelist = _isWhitelistRequired;
-        emit ContractUpdateWhitelist(msg.sender, _isWhitelistRequired);
+
+        emit ContractUpdateWhitelist(_isWhitelistRequired, msg.sender);
     }
 
     function whitelistAccount(address _account) external onlyRole(OPERATOR_ROLE) {
         accountWhitelist[_account] = true;
-        emit AccountWhitelisted(msg.sender, _account);
+
+        emit AccountWhitelisted(_account, msg.sender);
     }
 
     function blacklistAccount(address _account) external onlyRole(OPERATOR_ROLE) {
         accountWhitelist[_account] = false;
-        emit AccountBlacklisted(msg.sender, _account);
+
+        emit AccountBlacklisted(_account, msg.sender);
     }
 
     function isWhitelisted(address _account) public view returns (bool) {
@@ -226,13 +232,13 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
         if (pool.isStAurBalanceAvailable(_shares)) {
             auroraToken.safeIncreaseAllowance(liquidityPool, _assets);
             pool.transferStAur(_receiver, _shares, _assets);
+
         // FLOW 2: Stake with the depositor to mint more stAUR.
         } else {
             address depositor = manager.nextDepositor();
             auroraToken.safeIncreaseAllowance(depositor, _assets);
             IDepositor(depositor).stake(_assets);
             manager.setNextDepositor();
-
             _mint(_receiver, _shares);
         }
 

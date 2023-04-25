@@ -10,7 +10,6 @@ const {
   DECIMALS,
   TOTAL_SPAMBOTS,
   ADMIN_ROLE,
-  DEPOSITORS_OWNER_ROLE,
   OPERATOR_ROLE,
   COLLECT_REWARDS_ROLE
 } = require("./test_setup");
@@ -38,7 +37,6 @@ describe("Staking Pool AURORA", function () {
       expect(await stakedAuroraVaultContract.totalAssets()).to.equal(0);
 
       expect(await stakingManagerContract.hasRole(ADMIN_ROLE, owner.address)).to.be.true;
-      expect(await stakingManagerContract.hasRole(DEPOSITORS_OWNER_ROLE, depositors_owner.address)).to.be.true;
       expect(await stakingManagerContract.hasRole(OPERATOR_ROLE, operator.address)).to.be.true;
       expect(await stakingManagerContract.stAurVault()).to.equal(stakedAuroraVaultContract.address);
       expect(await stakingManagerContract.auroraToken()).to.equal(auroraTokenContract.address);

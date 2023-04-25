@@ -94,7 +94,6 @@ async function deployPoolFixture() {
   const stakingManagerContract = await StakingManager.connect(owner).deploy(
     stakedAuroraVaultContract.address,
     auroraStakingContract.address,
-    depositors_owner.address,
     operator.address,
     MAX_WITHDRAW_ORDERS,
     MAX_DEPOSITORS
@@ -113,8 +112,8 @@ async function deployPoolFixture() {
   );
   await depositor01Contract.deployed();
 
-  await stakingManagerContract.connect(depositors_owner).insertDepositor(depositor00Contract.address);
-  await stakingManagerContract.connect(depositors_owner).insertDepositor(depositor01Contract.address);
+  await stakingManagerContract.connect(operator).insertDepositor(depositor00Contract.address);
+  await stakingManagerContract.connect(operator).insertDepositor(depositor01Contract.address);
 
   // Deploy Liquidity Pool
   const liquidityPoolContract = await LiquidityPool.connect(liquidity_pool_owner).deploy(

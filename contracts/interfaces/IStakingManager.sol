@@ -2,12 +2,12 @@
 pragma solidity 0.8.18;
 
 interface IStakingManager {
-    event CleanOrdersQueue(address indexed _sender, uint256 _auroraStreamTau, uint256 _nextCleanTimestamp);
-    event MaxDepositorsUpdate(address indexed _sender, uint256 _maxDepositors);
-    event MaxWithdrawOrdersUpdate(address indexed _sender, uint256 _maxWithdrawOrders);
-    event NewDepositorAdded(address indexed _sender, address _depositor);
-    event UpdateProcessWithdrawOrders(address indexed _sender, bool _isProcessStopped);
-    event AltWithdraw(address indexed sender, address indexed receiver, address indexed owner, uint256 assets);
+    event AltWithdraw(address indexed _caller, address indexed _receiver, address indexed _owner, uint256 _assets);
+    event CleanOrdersQueue(uint256 _nextCleanTimestamp);
+    event MaxDepositorsUpdate(uint256 _maxDepositors, address _sender);
+    event MaxWithdrawOrdersUpdate(uint256 _maxWithdrawOrders, address _sender);
+    event NewDepositorAdded(address _depositor, address _sender);
+    event UpdateProcessWithdrawOrders(bool _isProcessStopped, address _sender);
 
     function alternativeWithdraw(uint256 _assets, address _receiver) external;
     function auroraStaking() external view returns (address);

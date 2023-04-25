@@ -3,7 +3,7 @@ pragma solidity 0.8.18;
 
 interface IDepositor {
     event MoveRewardsToPending(address indexed _depositor, uint256 _streamId);
-    event NewManagerUpdate(address indexed _sender, address _old, address _new);
+    event NewManagerUpdate(address _new, address _sender);
     event StakeThroughDepositor(address indexed _depositor, uint256 _assets);
     event UnstakeAllThroughDepositor(address indexed _depositor);
     event UnstakeThroughDepositor(address indexed _depositor, uint256 _assets);

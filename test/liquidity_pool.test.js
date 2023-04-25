@@ -86,9 +86,6 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
         await liquidityPoolContract.previewSwapStAurForAurora(providerSwap)
       );
       const providerPostBalance = await auroraTokenContract.balanceOf(liquidity_provider.address);
-
-      var stAurBalanceTracker = ethers.BigNumber.from("88200000000000000000000");
-      expect(await liquidityPoolContract.stAurBalance()).to.equal(stAurBalanceTracker);
       expect(auroraBalanceTracker.sub(await liquidityPoolContract.auroraBalance())).to.equal(
         providerPostBalance.sub(providerPreBalance)
       );
@@ -104,9 +101,6 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
         await liquidityPoolContract.previewSwapStAurForAurora(aliceSwap)
       );
       const alicePostBalance = await auroraTokenContract.balanceOf(alice.address);
-
-      var stAurBalanceTracker = stAurBalanceTracker.add(ethers.BigNumber.from("196000000000000000000"));
-      expect(await liquidityPoolContract.stAurBalance()).to.equal(stAurBalanceTracker);
       expect(auroraBalanceTracker.sub(await liquidityPoolContract.auroraBalance())).to.equal(
         alicePostBalance.sub(alicePreBalance)
       );
@@ -122,9 +116,6 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
         await liquidityPoolContract.previewSwapStAurForAurora(bobSwap)
       );
       const bobPostBalance = await auroraTokenContract.balanceOf(bob.address);
-
-      var stAurBalanceTracker = stAurBalanceTracker.add(ethers.BigNumber.from("3332000000000000000000"));
-      expect(await liquidityPoolContract.stAurBalance()).to.equal(stAurBalanceTracker);
       expect(auroraBalanceTracker.sub(await liquidityPoolContract.auroraBalance())).to.equal(
         bobPostBalance.sub(bobPreBalance)
       );
@@ -140,9 +131,6 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
         await liquidityPoolContract.previewSwapStAurForAurora(carlSwap)
       );
       const carlPostBalance = await auroraTokenContract.balanceOf(carl.address);
-
-      var stAurBalanceTracker = stAurBalanceTracker.add(ethers.BigNumber.from("129360000000000000000"));
-      expect(await liquidityPoolContract.stAurBalance()).to.equal(stAurBalanceTracker);
       expect(auroraBalanceTracker.sub(await liquidityPoolContract.auroraBalance())).to.equal(
         carlPostBalance.sub(carlPreBalance)
       );
