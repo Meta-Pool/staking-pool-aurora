@@ -7,9 +7,9 @@ interface ILiquidityPool {
     event RemoveLiquidity(address indexed _sender, address indexed _receiver, address indexed _owner, uint256 _lpTokenAmount, uint256 _auroraAmount, uint256 _stAurAmount);
     event StAurLiquidityProvidedByPool(address indexed _receiver, uint256 _stAurAmount, uint256 _auroraAmount);
     event SwapStAur(address indexed _user, uint256 _auroraAmount, uint256 _stAurAmount, uint256 _totalFee);
-    event UpdateFeeBasisPoints(uint256 _old, uint256 _new, address _sender);
-    event UpdateLiqProvFeeBasisPoints(uint256 _old, uint256 _new, address _sender);
-    event UpdateMinDepositAmount(uint256 _old, uint256 _new, address _sender);
+    event UpdateFeeBasisPoints(uint256 _new, address _sender);
+    event UpdateLiqProvFeeBasisPoints(uint256 _new, address _sender);
+    event UpdateMinDepositAmount(uint256 _new, address _sender);
     event WithdrawCollectedFees(address _receiver, uint256 _amount, address _sender);
 
     function isStAurBalanceAvailable(uint _amount) external view returns(bool);

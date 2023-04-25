@@ -59,9 +59,10 @@ contract Depositor is AccessControl, IDepositor {
 
     function stake(uint256 _assets) external onlyStAurVault {
         IERC20 aurora = IERC20(auroraToken);
+        address _auroraStaking = auroraStaking;
         aurora.safeTransferFrom(stAurVault, address(this), _assets);
-        aurora.safeIncreaseAllowance(auroraStaking, _assets);
-        IAuroraStaking(auroraStaking).stake(_assets);
+        aurora.safeIncreaseAllowance(_auroraStaking, _assets);
+        IAuroraStaking(_auroraStaking).stake(_assets);
 
         emit StakeThroughDepositor(address(this), _assets);
     }
@@ -81,9 +82,10 @@ contract Depositor is AccessControl, IDepositor {
     /// @dev The param of 0 in withdraw refers to the streamId for the Aurora Token.
     function withdraw(uint256 _assets) external onlyManager {
         IAuroraStaking(auroraStaking).withdraw(0);
-        IERC20(auroraToken).safeTransfer(stakingManager, _assets);
+        address _stakingManager = stakingManager;
+        IERC20(auroraToken).safeTransfer(_stakingManager, _assets);
 
-        emit WithdrawThroughDepositor(address(this), stakingManager, _assets);
+        emit WithdrawThroughDepositor(address(this), _stakingManager, _assets);
     }
 
     function getReleaseTime(uint256 _streamId) external view returns (uint256) {
@@ -112,8 +114,8 @@ contract Depositor is AccessControl, IDepositor {
         address _spender
     ) external onlyRole(COLLECT_REWARDS_ROLE) {
         require(_streamId > 0, "WITHDRAW_ONLY_FOR_REWARDS");
-        (,address rewardToken,,,,,,,,,) = IAuroraStaking(auroraStaking).getStream(_streamId);
         IAuroraStaking staking = IAuroraStaking(auroraStaking);
+        (,address rewardToken,,,,,,,,,) = staking.getStream(_streamId);
         uint256 _amount = staking.getPending(_streamId, address(this));
         if (_amount > 0) {
             staking.withdraw(_streamId);

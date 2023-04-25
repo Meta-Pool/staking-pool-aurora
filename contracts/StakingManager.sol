@@ -40,7 +40,10 @@ contract StakingManager is AccessControl, IStakingManager {
 
     /// @dev If there are problems with the clean-orders,
     /// you can temporally stop processing withdraw orders.
-    bool stopWithdrawOrders;
+    bool public stopWithdrawOrders;
+
+    /// @dev 1 Hour of safety buffer before the Depositors can withdraw.
+    uint256 public constant SAFETY_BUFFER = 3_600;
 
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
@@ -112,7 +115,7 @@ contract StakingManager is AccessControl, IStakingManager {
     function insertDepositor(
         address _depositor
     ) external onlyRole(OPERATOR_ROLE) {
-        require(depositors.length < maxDepositors, "DEPOSITORS_LIMIT_REACHED");
+        require(getDepositorsLength() < maxDepositors, "DEPOSITORS_LIMIT_REACHED");
         depositors.push(_depositor);
         nextDepositor = _depositor;
 
@@ -123,7 +126,7 @@ contract StakingManager is AccessControl, IStakingManager {
         uint256 _maxDepositors
     ) external onlyRole(OPERATOR_ROLE) {
         require(_maxDepositors != maxDepositors, "INVALID_CHANGE");
-        require(_maxDepositors >= depositors.length, "BELOW_CURRENT_LENGTH");
+        require(_maxDepositors >= getDepositorsLength(), "BELOW_CURRENT_LENGTH");
         maxDepositors = _maxDepositors;
 
         emit MaxDepositorsUpdate(_maxDepositors, msg.sender);
@@ -133,7 +136,7 @@ contract StakingManager is AccessControl, IStakingManager {
         uint256 _maxWithdrawOrders
     ) external onlyRole(OPERATOR_ROLE) {
         require(_maxWithdrawOrders != maxWithdrawOrders, "INVALID_CHANGE");
-        require(_maxWithdrawOrders >= lastWithdrawOrderIndex, "BELOW_CURRENT_LENGTH");
+        require(_maxWithdrawOrders >= getTotalWithdrawOrders(), "BELOW_CURRENT_LENGTH");
         maxWithdrawOrders = _maxWithdrawOrders;
 
         emit MaxWithdrawOrdersUpdate(_maxWithdrawOrders, msg.sender);
@@ -149,7 +152,8 @@ contract StakingManager is AccessControl, IStakingManager {
 
     /// @dev If the user do NOT have a withdraw order, expect an index of "0".
     function _getUserWithdrawOrderIndex(address _account) private view returns (uint256) {
-        for (uint i = 1; i <= lastWithdrawOrderIndex; i++) {
+        uint256 _totalOrders = getTotalWithdrawOrders();
+        for (uint i = 1; i <= _totalOrders; i++) {
             if (withdrawOrder[i].receiver == _account) {
                 return i;
             }
@@ -159,7 +163,8 @@ contract StakingManager is AccessControl, IStakingManager {
 
     /// @dev If the user do NOT have a pending order, expect an index of "0".
     function _getUserPendingOrderIndex(address _account) private view returns (uint256) {
-        for (uint i = 1; i <= lastPendingOrderIndex; i++) {
+        uint256 _totalOrders = getTotalPendingOrders();
+        for (uint i = 1; i <= _totalOrders; i++) {
             if (pendingOrder[i].receiver == _account) {
                 return i;
             }
@@ -173,8 +178,15 @@ contract StakingManager is AccessControl, IStakingManager {
         return withdrawOrder[index].amount;
     }
 
-    function getTotalWithdrawOrders() external view returns (uint256) {
+    function getTotalWithdrawOrders() public view returns (uint256) {
         return lastWithdrawOrderIndex;
+    }
+
+    function getAvailableTimestamp(bool _includePending) external view returns (uint256) {
+        if (_includePending) {
+            return nextCleanOrderQueue + _getAuroraTau();
+        }
+        return nextCleanOrderQueue;
     }
 
     /// @notice Returns the amount of assets of a user in the pending orders.
@@ -183,7 +195,7 @@ contract StakingManager is AccessControl, IStakingManager {
         return pendingOrder[index].amount;
     }
 
-    function getTotalPendingOrders() external view returns (uint256) {
+    function getTotalPendingOrders() public view returns (uint256) {
         return lastPendingOrderIndex;
     }
 
@@ -192,7 +204,7 @@ contract StakingManager is AccessControl, IStakingManager {
         return availableAssets[_account];
     }
 
-    function depositorsLength() external view returns (uint256) {
+    function getDepositorsLength() public view returns (uint256) {
         return depositors.length;
     }
 
@@ -201,7 +213,8 @@ contract StakingManager is AccessControl, IStakingManager {
     }
 
     function depositorExists(address _depositor) external view returns (bool) {
-        for (uint i = 0; i < depositors.length; i++) {
+        uint256 _totalDepositors = getDepositorsLength();
+        for (uint i = 0; i < _totalDepositors; i++) {
             if (depositors[i] == _depositor) {
                 return true;
             }
@@ -218,7 +231,8 @@ contract StakingManager is AccessControl, IStakingManager {
     function setNextDepositor() external onlyStAurVault {
         _updateDepositorShares(nextDepositor);
         address _nextDepositor = depositors[0];
-        for (uint i = 0; i < depositors.length; i++) {
+        uint256 _totalDepositors = getDepositorsLength();
+        for (uint i = 0; i < _totalDepositors; i++) {
             // Keeping a < instead of <= allows prioritizing the deposits in lower index depositors.
             if (depositorShares[depositors[i]] < depositorShares[_nextDepositor] ) {
                 _nextDepositor = depositors[i];
@@ -237,7 +251,8 @@ contract StakingManager is AccessControl, IStakingManager {
 
     function getTotalAssetsFromDepositors() public view returns (uint256) {
         uint256 depositorsAuroraShares = 0;
-        for (uint i = 0; i < depositors.length; i++) {
+        uint256 _totalDepositors = getDepositorsLength();
+        for (uint i = 0; i < _totalDepositors; i++) {
             depositorsAuroraShares += depositorShares[depositors[i]];
         }
         if (depositorsAuroraShares == 0) return 0;
@@ -281,7 +296,7 @@ contract StakingManager is AccessControl, IStakingManager {
     /// @dev In case of emergency 🛟,
     ///   the withdraw-orders process could be temporally stopped (3, 4, 5 steps).
     function cleanOrdersQueue() public {
-        require(depositors.length > 0, "CREATE_DEPOSITOR");
+        require(getDepositorsLength() > 0, "CREATE_DEPOSITOR");
         require(nextCleanOrderQueue <= block.timestamp, "WAIT_FOR_NEXT_CLEAN_ORDER");
 
         _withdrawFromDepositor();           // Step 1.
@@ -293,10 +308,10 @@ contract StakingManager is AccessControl, IStakingManager {
         }
 
         // Update the timestamp for the next clean and total.
-        (,,,,,,,,,uint256 tau,) = IAuroraStaking(auroraStaking).getStream(0);
-        nextCleanOrderQueue = block.timestamp + tau;
+        uint256 _nextCleanOrderQueue = block.timestamp + _getAuroraTau();
+        nextCleanOrderQueue = _nextCleanOrderQueue;
 
-        emit CleanOrdersQueue(nextCleanOrderQueue);
+        emit CleanOrdersQueue(_nextCleanOrderQueue);
     }
 
     function createWithdrawOrder(
@@ -305,19 +320,28 @@ contract StakingManager is AccessControl, IStakingManager {
     ) external onlyStAurVault {
         totalWithdrawInQueue += _assets;
         uint256 index = _getUserWithdrawOrderIndex(_receiver);
+        uint256 _totalOrders = getTotalWithdrawOrders();
         // Create a new withdraw order.
         if (index == 0) {
-            require(lastWithdrawOrderIndex < maxWithdrawOrders, "TOO_MANY_WITHDRAW_ORDERS");
-            lastWithdrawOrderIndex++;
-            withdrawOrder[lastWithdrawOrderIndex] = Order(_assets, _receiver);
+            require(_totalOrders < maxWithdrawOrders, "TOO_MANY_WITHDRAW_ORDERS");
+            uint256 _nextIndex = _totalOrders + 1;
+            lastWithdrawOrderIndex = _nextIndex;
+            withdrawOrder[_nextIndex] = Order(_assets, _receiver);
         // Increase current withdraw order.
         } else {
             withdrawOrder[index].amount += _assets;
         }
     }
 
+    /// @dev The tau is the pending release period for the AURORA stream.
+    function _getAuroraTau() private view returns (uint256) {
+        (,,,,,,,,,uint256 tau,) = IAuroraStaking(auroraStaking).getStream(0);
+        return tau + SAFETY_BUFFER;
+    }
+
     function _withdrawFromDepositor() private {
-        for (uint i = 0; i < depositors.length; i++) {
+        uint256 _totalDepositors = getDepositorsLength();
+        for (uint i = 0; i < _totalDepositors; i++) {
             address depositor = depositors[i];
             uint256 pendingAmount = IDepositor(depositor).getPendingAurora();
             if (pendingAmount > 0) {
@@ -327,11 +351,11 @@ contract StakingManager is AccessControl, IStakingManager {
     }
 
     function _movePendingToAvailable() private {
-        for (uint i = 1; i <= lastPendingOrderIndex; i++) {
-            address _receiver = pendingOrder[i].receiver;
-            uint256 _amount = pendingOrder[i].amount;
+        uint256 _totalOrders = getTotalPendingOrders();
+        for (uint i = 1; i <= _totalOrders; i++) {
+            Order memory order = pendingOrder[i];
             pendingOrder[i] = Order(0, address(0));
-            availableAssets[_receiver] += _amount;
+            availableAssets[order.receiver] += order.amount;
         }
         lastPendingOrderIndex = 0;
     }
@@ -340,12 +364,14 @@ contract StakingManager is AccessControl, IStakingManager {
     /// withdraw orders will not be unstaked to allow users to get funds back.
     function _unstakeWithdrawOrders() private {
         uint256 alreadyWithdraw = 0;
+        uint256 _totalDepositors = getDepositorsLength();
+        uint256 _totalWithdrawInQueue = totalWithdrawInQueue;
         if (totalWithdrawInQueue > 0) {
-            for (uint i = depositors.length; i > 0; i--) {
+            for (uint i = _totalDepositors; i > 0; i--) {
                 address depositor = depositors[i-1];
                 uint256 assets = getTotalAssetsFromDepositor(depositor);
                 if (assets == 0) continue;
-                uint256 nextWithdraw = totalWithdrawInQueue - alreadyWithdraw;
+                uint256 nextWithdraw = _totalWithdrawInQueue - alreadyWithdraw;
 
                 if (assets >= nextWithdraw) {
                     IDepositor(depositor).unstake(nextWithdraw);
@@ -355,16 +381,18 @@ contract StakingManager is AccessControl, IStakingManager {
                     alreadyWithdraw += assets;
                 }
                 _updateDepositorShares(depositor);
-                if (alreadyWithdraw == totalWithdrawInQueue) return;
+                if (alreadyWithdraw == _totalWithdrawInQueue) return;
             }
         }
     }
 
     function _moveAndRemoveWithdrawOrders() private {
-        for (uint i = 1; i <= lastWithdrawOrderIndex; i++) {
-            uint256 _assets = withdrawOrder[i].amount;
+        uint256 _totalOrders = getTotalWithdrawOrders();
+        for (uint i = 1; i <= _totalOrders; i++) {
+            Order memory order = withdrawOrder[i];
+            uint256 _assets = order.amount;
             if (_assets > 0) {
-                address _receiver = withdrawOrder[i].receiver;
+                address _receiver = order.receiver;
                 // Removing withdraw order.
                 withdrawOrder[i] = Order(0, address(0));
 
@@ -372,7 +400,7 @@ contract StakingManager is AccessControl, IStakingManager {
                 pendingOrder[i] = Order(_assets, _receiver);
             }
         }
-        lastPendingOrderIndex = lastWithdrawOrderIndex;
+        lastPendingOrderIndex = _totalOrders;
         lastWithdrawOrderIndex = 0;        
         totalWithdrawInQueue = 0;
     }
@@ -382,8 +410,7 @@ contract StakingManager is AccessControl, IStakingManager {
         uint256 denominator = aurora.totalAuroraShares();
         if (denominator == 0) return 0;
         uint256 numerator = _shares * aurora.getTotalAmountOfStakedAurora();
-        uint256 stakeValue = numerator / denominator;
-        return stakeValue;
+        return numerator / denominator;
     }
 
     function _transferAurora(

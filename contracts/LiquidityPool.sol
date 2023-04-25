@@ -97,22 +97,25 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
     function updateMinDepositAmount(
         uint256 _amount
     ) external onlyRole(OPERATOR_ROLE) {
-        emit UpdateMinDepositAmount(minDepositAmount, _amount, msg.sender);
         minDepositAmount = _amount;
+
+        emit UpdateMinDepositAmount(_amount, msg.sender);
     }
 
     function updateFeeBasisPoints(
         uint256 _feeBasisPoints
     ) external onlyRole(OPERATOR_ROLE) checkBasisPoints(_feeBasisPoints) {
-        emit UpdateFeeBasisPoints(swapFeeBasisPoints, _feeBasisPoints, msg.sender);
         swapFeeBasisPoints = _feeBasisPoints;
+
+        emit UpdateFeeBasisPoints(_feeBasisPoints, msg.sender);
     }
 
     function updateLiqProvFeeBasisPoints(
         uint256 _feeBasisPoints
     ) external onlyRole(OPERATOR_ROLE) checkBasisPoints(_feeBasisPoints) {
-        emit UpdateLiqProvFeeBasisPoints(liqProvFeeCutBasisPoints, _feeBasisPoints, msg.sender);
         liqProvFeeCutBasisPoints = _feeBasisPoints;
+
+        emit UpdateLiqProvFeeBasisPoints(_feeBasisPoints, msg.sender);
     }
 
     /// @notice Use in case of emergency 🦺.
@@ -120,6 +123,7 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
         bool _isFullyOperational
     ) public onlyRole(ADMIN_ROLE) {
         fullyOperational = _isFullyOperational;
+
         emit ContractUpdateOperation(_isFullyOperational, msg.sender);
     }
 
@@ -136,9 +140,10 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
         uint256 _assets
     ) external onlyStAurVault {
         stAurBalance -= _amount;
-        IStakedAuroraVault(stAurVault).safeTransfer(_receiver, _amount);
+        address _stAurVault = stAurVault;
+        IStakedAuroraVault(_stAurVault).safeTransfer(_receiver, _amount);
         auroraBalance += _assets;
-        IERC20(auroraToken).safeTransferFrom(stAurVault, address(this), _assets);
+        IERC20(auroraToken).safeTransferFrom(_stAurVault, address(this), _assets);
 
         emit StAurLiquidityProvidedByPool(_receiver, _amount, _assets);
     }

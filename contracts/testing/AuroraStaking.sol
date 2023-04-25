@@ -24,6 +24,10 @@ contract AuroraStaking {
     mapping(address => mapping(uint256 => uint256)) pendings;
     mapping(address => mapping(uint256 => uint256)) releaseTime;
 
+    /// @dev Testing parameter to help the test of the withdraw with some stress.
+    bool public failAtSecondWithdraw;
+    bool public failAtNextWithdraw;
+
     enum StreamStatus {
         INACTIVE,
         PROPOSED,
@@ -43,6 +47,11 @@ contract AuroraStaking {
         tauAuroraStream = 1 * 60 * 60; // 1 hour in seconds.
         tauCentauriStream = 30 * 60; // 0.5 hour in seconds.
         centauriToken = _centauriToken;
+    }
+
+    function updateFailAtSecondWithdraw(bool _newValue) external {
+        failAtSecondWithdraw = _newValue;
+        if (!_newValue) { failAtNextWithdraw = false; }
     }
 
     /// @dev get the stream data
@@ -160,6 +169,15 @@ contract AuroraStaking {
 
         // console.log("now greater: %s", block.timestamp);
         // console.log("releseTime : %s", releaseTime[msg.sender][streamId]);
+
+        // TEST MECHANISM to make it fail at second withdraw.
+        if (failAtSecondWithdraw) {
+            if (failAtNextWithdraw) {
+                revert("ERROR");
+            } else {
+                failAtNextWithdraw = true;
+            }
+        }
 
         require(
             block.timestamp > releaseTime[msg.sender][streamId],
