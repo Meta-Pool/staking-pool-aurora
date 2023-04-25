@@ -215,7 +215,7 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
     }
 
     function previewSwapStAurForAurora(uint256 _amount) external view returns (uint256) {
-        (uint256 _discountedAmount,) = _calculatePoolFees(_amount);
+        (uint256 _discountedAmount,,) = _calculatePoolFees(_amount);
         return IStakedAuroraVault(stAurVault).convertToAssets(_discountedAmount);
     }
 
@@ -227,7 +227,8 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
         require(_stAurAmount > 0, "CANNOT_SWAP_ZERO_AMOUNT");
         (
             uint256 _discountedAmount,
-            uint256 _collectedFee
+            uint256 _collectedFee,
+            uint256 _lpFeeCut
         ) = _calculatePoolFees(_stAurAmount);
 
         IStakedAuroraVault vault = IStakedAuroraVault(stAurVault);
@@ -236,7 +237,7 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
         require(auroraToSend <= auroraBalance, "NOT_ENOUGH_AURORA");
         require(auroraToSend >= _minAuroraToReceive, "UNREACHED_MIN_SWAP_AMOUNT");
 
-        stAurBalance += _discountedAmount;
+        stAurBalance += (_discountedAmount + _lpFeeCut);
         collectedStAurFees += _collectedFee;
         auroraBalance -= auroraToSend;
 
@@ -261,20 +262,21 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
         emit WithdrawCollectedFees(msg.sender, _receiver, _toTransfer);
     }
 
-    /// @notice The fee is splited in two: first, for the liquidity providers, and
+    /// @notice The fee is splited in two: first, for the Liquidity Providers, and
     /// second, for Meta Pool, granted for FEE_COLLECTOR_ROLE.
     /// @dev CONSIDER FORMULA: _discountedAmount + _collectedFee + _lpFeeCut == _amount
     /// @return _discountedAmount stAUR to be taken for swap.
     /// @return _collectedFee stAUR to be granted for FEE_COLLECTOR_ROLE.
+    /// @return _lpFeeCut stAUR for our friends, the Liquidity Providers.
     function _calculatePoolFees(
         uint256 _amount
-    ) private view returns (uint256, uint256) {
+    ) private view returns (uint256, uint256, uint256) {
         uint256 totalFee = (_amount * swapFeeBasisPoints) / ONE_HUNDRED_PERCENT;
 
         // The cut of the fee destinated to the Liquidity Providers.
         uint256 _lpFeeCut = (totalFee * liqProvFeeCutBasisPoints) / ONE_HUNDRED_PERCENT;
 
-        return (_amount - totalFee, totalFee - _lpFeeCut);
+        return (_amount - totalFee, totalFee - _lpFeeCut, _lpFeeCut);
     }
 
     /// @dev The Deposit event is used to indicate more liquidity.
