@@ -509,7 +509,7 @@ describe("Staking Pool AURORA", function () {
 
       const bobAurora = await auroraTokenContract.balanceOf(bob.address);
       const bobAvailableAssets = await stakingManagerContract.getAvailableAssets(bob.address);
-      await stakedAuroraVaultContract.connect(bob).withdraw(bobAvailableAssets, bob.address, bob.address)
+      await stakedAuroraVaultContract.connect(bob).withdraw(bobAvailableAssets, bob.address, bob.address);
       expect(await auroraTokenContract.balanceOf(bob.address)).to.equal(bobAurora.add(bobAvailableAssets));
     });
 
@@ -1024,167 +1024,67 @@ describe("Staking Pool AURORA", function () {
   });
 
   describe("Stressing the clean-orders function", function () {
-      it("Should not process ANY depositor withdraw if ONE of them fail.", async function () {
-        const {
-          auroraTokenContract,
-          // auroraStakingContract,
-          stakedAuroraVaultContract,
-          stakingManagerContract,
-          alice,
-          bob,
-          carl
-        } = await loadFixture(depositPoolFixture);
+    it("Should allow Bob to take funds from both depositors [PREREQUISITE FOR NEXT TEST].", async function () {
+      const {
+        stakedAuroraVaultContract,
+        stakingManagerContract,
+        depositor00Contract,
+        depositor01Contract,
+        bob
+      } = await loadFixture(depositPoolFixture);
 
-        /// ACA HAY JALE 🏖️
-        expect(1).to.equal(2);
-    
-        // // console.log("Total assets 1: %s", await stakedAuroraVaultContract.totalAssets());
-        // // console.log("Total supply 1: %s", await stakedAuroraVaultContract.totalSupply());
-        // // console.log("Aurora Staking Balance 1: %s", await auroraTokenContract.balanceOf(auroraStakingContract.address));
-        // const supply0 = await stakedAuroraVaultContract.totalSupply();
-        // const aliceShares = await stakedAuroraVaultContract.balanceOf(alice.address);
-        // expect(aliceShares).to.be.greaterThan(0);
-        // const aliceLessAssets = await stakedAuroraVaultContract.previewRedeem(aliceShares);
-        // expect(await stakingManagerContract.getWithdrawOrderAssets(alice.address)).to.equal(0);
-    
-        // await stakedAuroraVaultContract.connect(alice).redeem(aliceShares, alice.address, alice.address);
-        // expect(await stakedAuroraVaultContract.balanceOf(alice.address)).to.equal(0);
-        // // CONSIDER: Alice assets in the withdraw-order are greater than last call
-        // // due to the fast (every second) price increase.
-        // expect(
-        //   await stakingManagerContract.getWithdrawOrderAssets(alice.address)
-        // ).to.be.greaterThanOrEqual(aliceLessAssets);
-    
-        // // console.log("Total assets 2: %s", await stakedAuroraVaultContract.totalAssets());
-        // // console.log("Total supply 2: %s", await stakedAuroraVaultContract.totalSupply());
-        // // console.log("Aurora Staking Balance 2: %s", await auroraTokenContract.balanceOf(auroraStakingContract.address));
-        // const supply1 = await stakedAuroraVaultContract.totalSupply();
-        // expect(supply1).to.be.lessThan(supply0);
-        // const bobShares = await stakedAuroraVaultContract.balanceOf(bob.address);
-        // expect(bobShares).to.be.greaterThan(0);
-        // const bobLessAssets = await stakedAuroraVaultContract.previewRedeem(bobShares);
-        // expect(await stakingManagerContract.getWithdrawOrderAssets(bob.address)).to.equal(0);
-        // await stakedAuroraVaultContract.connect(bob).redeem(bobShares, bob.address, bob.address);
-        // expect(await stakedAuroraVaultContract.balanceOf(bob.address)).to.equal(0);
-        // expect(
-        //   await stakingManagerContract.getWithdrawOrderAssets(bob.address)
-        // ).to.be.greaterThanOrEqual(bobLessAssets);
-    
-        // // console.log("Total assets 3: %s", await stakedAuroraVaultContract.totalAssets());
-        // // console.log("Total supply 3: %s", await stakedAuroraVaultContract.totalSupply());
-        // // console.log("Aurora Staking Balance 3: %s", await auroraTokenContract.balanceOf(auroraStakingContract.address));
-        // const supply2 = await stakedAuroraVaultContract.totalSupply();
-        // expect(supply2).to.be.lessThan(supply1);
-        // const carlShares = await stakedAuroraVaultContract.balanceOf(carl.address);
-        // expect(carlShares).to.be.greaterThan(0);
-        // const carlLessAssets = await stakedAuroraVaultContract.previewRedeem(carlShares);
-        // expect(await stakingManagerContract.getWithdrawOrderAssets(carl.address)).to.equal(0);
-        // await stakedAuroraVaultContract.connect(carl).redeem(carlShares, carl.address, carl.address);
-        // expect(await stakedAuroraVaultContract.balanceOf(carl.address)).to.equal(0);
-        // expect(
-        //   await stakingManagerContract.getWithdrawOrderAssets(carl.address)
-        // ).to.be.greaterThanOrEqual(carlLessAssets);
-    
-        // // /// Original deposits.
-        // // const aliceDeposit = ethers.BigNumber.from(6_000).mul(DECIMALS);
-        // // const bobDeposit = ethers.BigNumber.from(100_000).mul(DECIMALS);
-        // // const carlDeposit = ethers.BigNumber.from(24_000).mul(DECIMALS);
-        // // const aliceCurrAssets = await stakedAuroraVaultContract.previewRedeem(aliceShares);
-        // // const bobCurrAssets = await stakedAuroraVaultContract.previewRedeem(bobShares);
-        // // const carlCurrAssets = await stakedAuroraVaultContract.previewRedeem(carlShares);
-        // // console.log("alice current assets: %s", aliceCurrAssets);
-        // // console.log("alice original depos: %s", aliceDeposit);
-        // // console.log("alice withdraw order: %s", await stakingManagerContract.getWithdrawOrderAssets(alice.address));
-        // // console.log("bob   current assets: %s", bobCurrAssets);
-        // // console.log("bob   original depos: %s", bobDeposit);
-        // // console.log("bob   withdraw order: %s", await stakingManagerContract.getWithdrawOrderAssets(bob.address));
-        // // console.log("carl  current assets: %s", carlCurrAssets);
-        // // console.log("carl  original depos: %s", carlDeposit);
-        // // console.log("carl  withdraw order: %s", await stakingManagerContract.getWithdrawOrderAssets(carl.address));
-        // // console.log("Total assets 4: %s", await stakedAuroraVaultContract.totalAssets());
-        // // console.log("Total supply 4: %s", await stakedAuroraVaultContract.totalSupply());
-        // // console.log("Aurora Staking Balance 4: %s", await auroraTokenContract.balanceOf(auroraStakingContract.address));
-    
-        // const supply3 = await stakedAuroraVaultContract.totalSupply();
-        // expect(supply3).to.be.lessThan(supply2);
-        // expect(await stakingManagerContract.totalWithdrawInQueue()).to.equal(
-        //   (
-        //     await stakingManagerContract.getWithdrawOrderAssets(alice.address)
-        //   ).add(
-        //     await stakingManagerContract.getWithdrawOrderAssets(bob.address)
-        //   ).add(
-        //     await stakingManagerContract.getWithdrawOrderAssets(carl.address)
-        //   )
-        // );
-    
-        // await expect(
-        //   stakingManagerContract.cleanOrdersQueue()
-        // ).to.be.revertedWith("WAIT_FOR_NEXT_CLEAN_ORDER");
-        // expect(await stakingManagerContract.getPendingOrderAssets(alice.address)).to.equal(0);
-        // expect(await stakingManagerContract.getPendingOrderAssets(bob.address)).to.equal(0);
-        // expect(await stakingManagerContract.getPendingOrderAssets(carl.address)).to.equal(0);
-    
-        // // Move forward: From withdraw to pending.
-        // await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
-        // await stakingManagerContract.cleanOrdersQueue();
-        // // console.log("Total assets 5: %s", await stakedAuroraVaultContract.totalAssets());
-        // // console.log("Total supply 5: %s", await stakedAuroraVaultContract.totalSupply());
-        // // console.log("Aurora Staking Balance 5: %s", await auroraTokenContract.balanceOf(auroraStakingContract.address));
-        // // console.log("Staker Manager Balance 5: %s", await auroraTokenContract.balanceOf(stakingManagerContract.address));
-    
-        // // The total Supply should drop to zero, but some assets will remain due to
-        // // the fast stAUR repricing.
-        // expect(await stakedAuroraVaultContract.totalSupply()).to.equal(0);
-        // expect(await stakedAuroraVaultContract.totalAssets()).to.be.lessThan(AURORA);
-        // expect(await stakingManagerContract.totalAssets()).to.be.lessThan(AURORA);
-    
-        // const alicePending = await stakingManagerContract.getPendingOrderAssets(alice.address);
-        // const bobPending = await stakingManagerContract.getPendingOrderAssets(bob.address);
-        // const carlPending = await stakingManagerContract.getPendingOrderAssets(carl.address);
-        // expect(alicePending).to.be.greaterThan(0);
-        // expect(bobPending).to.be.greaterThan(0);
-        // expect(carlPending).to.be.greaterThan(0);
-    
-        // // Staking Manager should not have any Aurora until assets are moved from the depositors.
-        // expect(await auroraTokenContract.balanceOf(stakingManagerContract.address)).to.equal(0);
-    
-        // // Move forward: From pending to available.
-        // await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
-        // await stakingManagerContract.cleanOrdersQueue();
-        // // console.log("Aurora Staking Balance 6: %s", await auroraTokenContract.balanceOf(auroraStakingContract.address));
-        // // console.log("Staker Manager Balance 6: %s", await auroraTokenContract.balanceOf(stakingManagerContract.address));
-        // expect(await stakingManagerContract.getPendingOrderAssets(alice.address)).to.equal(0);
-        // expect(await stakingManagerContract.getPendingOrderAssets(bob.address)).to.equal(0);
-        // expect(await stakingManagerContract.getPendingOrderAssets(carl.address)).to.equal(0);
-        // expect(await stakingManagerContract.getAvailableAssets(alice.address)).to.equal(alicePending);
-        // expect(await stakingManagerContract.getAvailableAssets(bob.address)).to.equal(bobPending);
-        // expect(await stakingManagerContract.getAvailableAssets(carl.address)).to.equal(carlPending);
-        // // console.log("Alice deposit: %s pending: %s", aliceLessAssets, alicePending);
-        // // console.log("Bob   deposit: %s pending: %s", bobLessAssets, bobPending);
-        // // console.log("Carl  deposit: %s pending: %s", carlLessAssets, carlPending);
-        // // console.log("Aurora required  in Manager: %s", alicePending.add(bobPending).add(carlPending));
-        // // console.log("Aurora available in Manager: %s", await auroraTokenContract.balanceOf(stakingManagerContract.address));
-    
-        // // The available tokens in the Manager should be enough to cover the pending orders.
-        // expect(alicePending.add(bobPending).add(carlPending)).to.equal(
-        //   await auroraTokenContract.balanceOf(stakingManagerContract.address)
-        // );
-    
-        // const aliceBalance = await auroraTokenContract.balanceOf(alice.address);
-        // const bobBalance = await auroraTokenContract.balanceOf(bob.address);
-        // const carlBalance = await auroraTokenContract.balanceOf(carl.address);
-        // await stakedAuroraVaultContract.connect(alice).withdraw(alicePending, alice.address, alice.address)
-        // // console.log("Alice withdraw: %s", alicePending);
-        // // console.log("Staker Manager Balance 7: %s", await auroraTokenContract.balanceOf(stakingManagerContract.address));
-        // await stakedAuroraVaultContract.connect(bob).withdraw(bobPending, bob.address, bob.address)
-        // // console.log("  Bob withdraw: %s", bobPending);
-        // // console.log("Staker Manager Balance 8: %s", await auroraTokenContract.balanceOf(stakingManagerContract.address));
-        // await stakedAuroraVaultContract.connect(carl).withdraw(carlPending, carl.address, carl.address)
-        // // console.log(" Carl withdraw: %s", carlPending);
-        // // console.log("Staker Manager Balance 9: %s", await auroraTokenContract.balanceOf(stakingManagerContract.address));
-        // expect(await auroraTokenContract.balanceOf(alice.address)).to.equal(aliceBalance.add(alicePending));
-        // expect(await auroraTokenContract.balanceOf(bob.address)).to.equal(bobBalance.add(bobPending));
-        // expect(await auroraTokenContract.balanceOf(carl.address)).to.equal(carlBalance.add(carlPending));
-      });
+      // Bob redeem should take funds from both depositors.
+      const preBobDep00 = await stakingManagerContract.getTotalAssetsFromDepositor(depositor00Contract.address);
+
+      const bobShares = stakedAuroraVaultContract.balanceOf(bob.address);
+      await stakedAuroraVaultContract.connect(bob).redeem(bobShares, bob.address, bob.address);
+
+      // Move forward: From withdraw to pending.
+      await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
+      await stakingManagerContract.cleanOrdersQueue();
+
+      const posBobDep00 = await stakingManagerContract.getTotalAssetsFromDepositor(depositor00Contract.address);
+      const posBobDep01 = await stakingManagerContract.getTotalAssetsFromDepositor(depositor01Contract.address);
+
+      expect(posBobDep01).to.equal(0);
+      expect(posBobDep00).to.be.lessThan(preBobDep00);
     });
+
+    it("Should not process ANY depositor withdraw if ONE of them fail.", async function () {
+      const {
+        auroraStakingContract,
+        stakedAuroraVaultContract,
+        stakingManagerContract,
+        depositor00Contract,
+        depositor01Contract,
+        bob
+      } = await loadFixture(depositPoolFixture);
+
+      // Bob redeem should take funds from both depositors.
+      const preBobDep00 = await stakingManagerContract.getTotalAssetsFromDepositor(depositor00Contract.address);
+      const preBobDep01 = await stakingManagerContract.getTotalAssetsFromDepositor(depositor01Contract.address);
+      const directPreBobDep00 = await auroraStakingContract.getUserShares(depositor00Contract.address);
+      const directPreBobDep01 = await auroraStakingContract.getUserShares(depositor01Contract.address);
+
+      await auroraStakingContract.updateFailAtSecondWithdraw(true);
+
+      const bobShares = stakedAuroraVaultContract.balanceOf(bob.address);
+      await stakedAuroraVaultContract.connect(bob).redeem(bobShares, bob.address, bob.address);
+
+      // Move forward: From withdraw to pending.
+      await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
+      await expect(stakingManagerContract.cleanOrdersQueue()).to.be.reverted;
+
+      const posBobDep00 = await stakingManagerContract.getTotalAssetsFromDepositor(depositor00Contract.address);
+      const posBobDep01 = await stakingManagerContract.getTotalAssetsFromDepositor(depositor01Contract.address);
+      const directPosBobDep00 = await auroraStakingContract.getUserShares(depositor00Contract.address);
+      const directPosBobDep01 = await auroraStakingContract.getUserShares(depositor01Contract.address);
+
+      // The assets increase in price very FAST (at least during this test :( - not in reallity).
+      expect(preBobDep00).to.lessThan(posBobDep00);
+      expect(preBobDep01).to.lessThan(posBobDep01);
+      expect(directPreBobDep00).to.equal(directPosBobDep00);
+      expect(directPreBobDep01).to.equal(directPosBobDep01);
+    });
+  });
 });

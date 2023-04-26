@@ -166,19 +166,6 @@ contract AuroraStaking {
     /// pending time (tau constant) in order to be able to withdraw.
     /// @param streamId stream index
     function withdraw(uint256 streamId) external {
-
-        // console.log("now greater: %s", block.timestamp);
-        // console.log("releseTime : %s", releaseTime[msg.sender][streamId]);
-
-        // TEST MECHANISM to make it fail at second withdraw.
-        if (failAtSecondWithdraw) {
-            if (failAtNextWithdraw) {
-                revert("ERROR");
-            } else {
-                failAtNextWithdraw = true;
-            }
-        }
-
         require(
             block.timestamp > releaseTime[msg.sender][streamId],
             "INVALID_RELEASE_TIME"
@@ -247,6 +234,19 @@ contract AuroraStaking {
     /// Unclaimed rewards will be lost.
     /// `_before()` must be called before `_unstake` to update streams rps
     function _unstake(uint256 amount, uint256 stakeValue) internal {
+        // console.log("failAtSecondWithdraw: %s", failAtSecondWithdraw);
+        // console.log("failAtNextWithdraw: %s", failAtNextWithdraw);
+        // console.log("---------");
+
+        // TEST MECHANISM to make it fail at second withdraw.
+        if (failAtSecondWithdraw) {
+            if (failAtNextWithdraw) {
+                require(1 == 2, "DUMMY_TEST_ERROR");
+            } else {
+                failAtNextWithdraw = true;
+            }
+        }
+
         require(amount != 0, "ZERO_AMOUNT");
         require(amount <= stakeValue, "NOT_ENOUGH_STAKE_BALANCE");
         // User storage userAccount = users[msg.sender];
