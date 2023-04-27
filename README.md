@@ -54,9 +54,12 @@ Addresses of the deployed contracts:
  - AuroraToken 💚: ----- 0xCca0C26Be4169d7963fEC984F6EAd5F6e630B288
  - CentauriToken 🪐: --- 0x6f2c4ee43D89b904e62f5F0acF68A37100C968D0
  - AuroraStaking: ------ 0x8e6aA7a602042879074334bB6c02c40A9385F522
- - StakingManager: ----- 0xd44b2eC72C39538294d6e2735DcAc7BB5Ebf2cC6
+ - StakingManager: ----- [DEPRECATED] 0xd44b2eC72C39538294d6e2735DcAc7BB5Ebf2cC6
  - Depositor 00: ------- 0xF01d1060Fe27D69D143EB237dbC8235ED3e4FA4f
  - Depositor 01: ------- 0x0C32f3824B02EC9B82598Cfe487162463579242F
  - StakedAuroraVault: -- 0xD6a1BEB40523A91B8424C02517219875A5D95c01
  - LiquidityPool: ------ 0x9156273eE2684BE1C9F1064cCE43f30E766c8496
+
+  # Updated Manager
+ - NEW StakingManager: - 0xf8Cb922aBdb0a2d4478ADE41a493d9A11e0e6009
 ```

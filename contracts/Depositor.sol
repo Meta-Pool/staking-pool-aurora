@@ -48,6 +48,8 @@ contract Depositor is AccessControl, IDepositor {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
+    receive() external payable {}
+
     function updateStakingManager(
         address _stakingManager
     ) external onlyRole(ADMIN_ROLE) {

@@ -69,6 +69,8 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
         _grantRole(OPERATOR_ROLE, _contractOperatorRole);
     }
 
+    receive() external payable {}
+
     function initializeLiquidStaking(
         address _stakingManager,
         address _liquidityPool

@@ -112,6 +112,8 @@ contract StakingManager is AccessControl, IStakingManager {
         _grantRole(OPERATOR_ROLE, _contractOperatorRole);
     }
 
+    receive() external payable {}
+
     function insertDepositor(
         address _depositor
     ) external onlyRole(OPERATOR_ROLE) {
@@ -182,8 +184,10 @@ contract StakingManager is AccessControl, IStakingManager {
         return lastWithdrawOrderIndex;
     }
 
-    function getAvailableTimestamp(bool _includePending) external view returns (uint256) {
-        if (_includePending) {
+    /// @notice Returns the estimated timestamp of availability for funds in:
+    /// withdraw or pending orders.
+    function getAvailableTimestamp(bool _isWithdrawOrder) external view returns (uint256) {
+        if (_isWithdrawOrder) {
             return nextCleanOrderQueue + _getAuroraTau();
         }
         return nextCleanOrderQueue;

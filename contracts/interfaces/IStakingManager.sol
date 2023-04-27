@@ -18,6 +18,7 @@ interface IStakingManager {
     function createWithdrawOrder(uint256 _assets, address _receiver) external;
     function depositorExists(address _depositor) external view returns (bool);
     function getAvailableAssets(address _account) external view returns (uint256);
+    function getAvailableTimestamp(bool _isWithdrawOrder) external view returns (uint256);
     function getDepositorShares(address _depositor) external view returns (uint256);
     function getDepositorsLength() external view returns (uint256);
     function getPendingOrderAssets(address _account) external view returns (uint256);
