@@ -61,5 +61,6 @@ Addresses of the deployed contracts:
  - LiquidityPool: ------ 0x9156273eE2684BE1C9F1064cCE43f30E766c8496
 
   # Updated Manager
- - NEW StakingManager: - 0xf8Cb922aBdb0a2d4478ADE41a493d9A11e0e6009
+ - NEW StakingManager: - [DEPRECATED] 0xf8Cb922aBdb0a2d4478ADE41a493d9A11e0e6009
+ - NEW StakingManager: - 0x2da4A45AE7f78EABce1E3206c85383E9a98529d2
 ```

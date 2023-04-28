@@ -120,6 +120,7 @@ contract StakingManager is AccessControl, IStakingManager {
         require(getDepositorsLength() < maxDepositors, "DEPOSITORS_LIMIT_REACHED");
         depositors.push(_depositor);
         nextDepositor = _depositor;
+        _updateDepositorShares(_depositor);
 
         emit NewDepositorAdded(_depositor, msg.sender);
     }

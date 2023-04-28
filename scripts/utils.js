@@ -1,7 +1,6 @@
 async function getDepositorsArray(contract) {
-  var depositors = new Array();
+  var depositors = [];
   const depositorsLength = await contract.getDepositorsLength();
-  console.log("CUANTOS %s", depositorsLength);
   for (let i = 0; i < depositorsLength; i++) {
     depositors.push(
       await contract.depositors(i)
@@ -14,7 +13,12 @@ function getCurrentTimestamp() {
   return Date.now();
 }
 
+function compareWithEmoji(A, B) {
+  return (String(A) == String(B) ? "✅" : "❌");
+}
+
 module.exports = {
   getDepositorsArray,
+  compareWithEmoji,
   getCurrentTimestamp
 };
