@@ -8,6 +8,7 @@ module.exports = {
   networks: {
     goerli_alchemy: {
       allowUnlimitedContractSize: true,
+      gas: 5000000,
       gasLimit: 5000000,
       maxFeePerGas: 55000000000,
       maxPriorityFeePerGas: 55000000000,
@@ -20,6 +21,7 @@ module.exports = {
     },
     goerli: {
       allowUnlimitedContractSize: true,
+      gas: 5000000,
       gasLimit: 5000000,
       maxFeePerGas: 55000000000,
       maxPriorityFeePerGas: 55000000000,
