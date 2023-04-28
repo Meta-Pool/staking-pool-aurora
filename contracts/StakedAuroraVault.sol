@@ -130,16 +130,34 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
         emit ContractUpdateWhitelist(_isWhitelistRequired, msg.sender);
     }
 
-    function whitelistAccount(address _account) external onlyRole(OPERATOR_ROLE) {
+    function whitelistAccount(address _account) public onlyRole(OPERATOR_ROLE) {
         accountWhitelist[_account] = true;
 
         emit AccountWhitelisted(_account, msg.sender);
     }
 
-    function blacklistAccount(address _account) external onlyRole(OPERATOR_ROLE) {
+    function bulkWhitelistAccount(
+        address[] memory _accounts
+    ) external onlyRole(OPERATOR_ROLE) {
+        uint256 _totalAccounts = _accounts.length;
+        for (uint i = 0; i < _totalAccounts; i++) {
+            whitelistAccount(_accounts[i]);
+        }
+    }
+
+    function blacklistAccount(address _account) public onlyRole(OPERATOR_ROLE) {
         accountWhitelist[_account] = false;
 
         emit AccountBlacklisted(_account, msg.sender);
+    }
+
+    function bulkBlacklistAccount(
+        address[] memory _accounts
+    ) external onlyRole(OPERATOR_ROLE) {
+        uint256 _totalAccounts = _accounts.length;
+        for (uint i = 0; i < _totalAccounts; i++) {
+            blacklistAccount(_accounts[i]);
+        }
     }
 
     function isWhitelisted(address _account) public view returns (bool) {
