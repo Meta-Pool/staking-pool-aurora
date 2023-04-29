@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-/// @dev In case of emergency, keep the Depositors alive and update the Staking Manager logic.
+/// @notice In case of emergency, keep the Depositors alive and update the Staking Manager logic.
 
 contract Depositor is AccessControl, IDepositor {
     using SafeERC20 for IERC20;
@@ -50,6 +50,7 @@ contract Depositor is AccessControl, IDepositor {
 
     receive() external payable {}
 
+    /// @dev In case of emergency 🛟, update the Manager contract.
     function updateStakingManager(
         address _stakingManager
     ) external onlyRole(ADMIN_ROLE) {
@@ -59,6 +60,7 @@ contract Depositor is AccessControl, IDepositor {
         emit NewManagerUpdate(_stakingManager, msg.sender);
     }
 
+    /// @notice The staking has to go first through the stAUR vault.
     function stake(uint256 _assets) external onlyStAurVault {
         IERC20 aurora = IERC20(auroraToken);
         address _auroraStaking = auroraStaking;
@@ -69,18 +71,22 @@ contract Depositor is AccessControl, IDepositor {
         emit StakeThroughDepositor(address(this), _assets);
     }
 
+    /// @notice The unstake is made by the Robot 🤖 clean-order job.
     function unstake(uint256 _assets) external onlyManager {
         IAuroraStaking(auroraStaking).unstake(_assets);
 
         emit UnstakeThroughDepositor(address(this), _assets);
     }
 
+    /// @notice The unstake is made by the Robot 🤖 clean-order job.
     function unstakeAll() external onlyManager {
         IAuroraStaking(auroraStaking).unstakeAll();
 
         emit UnstakeAllThroughDepositor(address(this));
     }
 
+    /// @notice Withdraw transfers AURORA tokens to the Manager. The withdraw
+    /// is made by the Robot 🤖 clean-order job.
     /// @dev The param of 0 in withdraw refers to the streamId for the Aurora Token.
     function withdraw(uint256 _assets) external onlyManager {
         IAuroraStaking(auroraStaking).withdraw(0);
@@ -90,19 +96,23 @@ contract Depositor is AccessControl, IDepositor {
         emit WithdrawThroughDepositor(address(this), _stakingManager, _assets);
     }
 
+    /// @notice Interface for the Aurora Staking (Aurora Plus) contract.
     function getReleaseTime(uint256 _streamId) external view returns (uint256) {
         return IAuroraStaking(auroraStaking).getReleaseTime(_streamId, address(this));
     }
 
+    /// @notice Interface for the Aurora Staking (Aurora Plus) contract.
     /// @dev The param of 0 in getPendings refers to the streamId for the Aurora Token.
     function getPendingAurora() external view returns (uint256) {
         return IAuroraStaking(auroraStaking).getPending(0, address(this));
     }
 
+    /// @notice Interface for the Aurora Staking (Aurora Plus) contract.
     function getPendingRewards(uint256 _streamId) external view returns (uint256) {
         return IAuroraStaking(auroraStaking).getPending(_streamId, address(this));
     }
 
+    /// @notice Manually collect depositor Stream Rewards from Aurora Plus.
     function moveRewardsToPending(
         uint256 _streamId
     ) external onlyRole(COLLECT_REWARDS_ROLE) {
@@ -111,6 +121,7 @@ contract Depositor is AccessControl, IDepositor {
         emit MoveRewardsToPending(address(this), _streamId);
     }
 
+    /// @notice Manually withdraw depositor Stream Rewards from Aurora Plus.
     function withdrawRewards(
         uint256 _streamId,
         address _spender

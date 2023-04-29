@@ -268,6 +268,8 @@ contract StakingManager is AccessControl, IStakingManager {
         return getTotalAssetsFromDepositors() - totalWithdrawInQueue;
     }
 
+    /// @notice AURORA tokens are tansfer to the users on the withdraw process,
+    /// triggered only by the stAUR vault.
     function transferAurora(
         address _receiver,
         address _owner,

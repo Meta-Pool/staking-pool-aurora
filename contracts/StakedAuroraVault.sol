@@ -86,6 +86,7 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
         emit ContractInitialized(_stakingManager, _liquidityPool, msg.sender);
     }
 
+    /// @dev In case of emergency 🛟, update the Manager contract.
     function updateStakingManager(address _stakingManager) external onlyRole(ADMIN_ROLE) {
         require(_stakingManager != address(0), "INVALID_ZERO_ADDRESS");
         require(stakingManager != address(0), "NOT_INITIALIZED");
@@ -178,7 +179,6 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
         uint256 _assets,
         address _receiver
     ) public override onlyFullyOperational checkWhitelist returns (uint256) {
-        require(_assets <= maxDeposit(_receiver), "ERC4626: deposit more than max");
         require(_assets >= minDepositAmount, "LESS_THAN_MIN_DEPOSIT_AMOUNT");
 
         uint256 shares = previewDeposit(_assets);
@@ -191,8 +191,6 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
         uint256 _shares,
         address _receiver
     ) public override onlyFullyOperational checkWhitelist returns (uint256) {
-        require(_shares <= maxMint(_receiver), "ERC4626: mint more than max");
-
         uint256 assets = previewMint(_shares);
         require(assets >= minDepositAmount, "LESS_THAN_MIN_DEPOSIT_AMOUNT");
         _deposit(msg.sender, _receiver, assets, _shares);
@@ -215,7 +213,7 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
         return 0;
     }
 
-    /// @notice The redeem fn starts the release of tokens from the Aurora staking contract.
+    /// @notice The redeem fn starts the release of tokens from the Aurora Plus contract.
     function redeem(
         uint256 _shares,
         address _receiver,

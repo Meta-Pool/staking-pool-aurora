@@ -118,7 +118,9 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
         emit UpdateLiqProvFeeBasisPoints(_feeBasisPoints, msg.sender);
     }
 
-    /// @notice Use in case of emergency 🦺.
+    /// @notice Use in case of emergency 🦺, stops: 1) adding and removing
+    /// liquidity, 2) all swaps from stAUR to AURORA tokens and 3) providing
+    /// stAUR token liquidity to cover deposits (FLOW 1).
     function updateContractOperation(
         bool _isFullyOperational
     ) public onlyRole(ADMIN_ROLE) {
@@ -127,8 +129,10 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
         emit ContractUpdateOperation(_isFullyOperational, msg.sender);
     }
 
+    /// @notice Function to evaluate if a Vault deposit can be covered by the
+    /// balance of stAUR tokens in the Liquidity Pool.
     function isStAurBalanceAvailable(uint _amount) external view returns(bool) {
-        return stAurBalance >= _amount;
+        return fullyOperational && (stAurBalance >= _amount);
     }
 
     /// @notice The stAUR Vault will emit the Deposit event if this function runs.
@@ -148,8 +152,9 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
         emit StAurLiquidityProvidedByPool(_receiver, _amount, _assets);
     }
     
-    /// @notice The returned amount is denominated in Aurora Tokens.
-    /// @dev Return the balance of Aurora and the current value in Aurora for the stAUR balance.
+    /// @dev Calculate sum of AURORA and stAUR balance, converting the amount of
+    /// stAUR to AURORA using the Vault price.
+    /// @return _amount Denominated in AURORA tokens.
     function totalAssets() public view override returns (uint256) {
         return (
             auroraBalance
@@ -162,7 +167,6 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
         uint256 _assets,
         address _receiver
     ) public override onlyFullyOperational returns (uint256) {
-        require(_assets <= maxDeposit(_receiver), "ERC4626: deposit more than max");
         require(_assets >= minDepositAmount, "LESS_THAN_MIN_DEPOSIT_AMOUNT");
 
         uint256 _shares = previewDeposit(_assets);
@@ -172,12 +176,14 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
     }
 
     /// @notice The redeem flow is used to **Remove** liquidity from the Liquidity Pool.
-    /// @return The pool percentage of shares that were burned.
+    /// @return ONLY the amount of base assets (AURORA token) that will be returned.
+    /// However, the liquidity provider expects to receive stAUR tokens as well,
+    /// in proportion of the redeemed shares.
     function redeem(
         uint256 _shares,
         address _receiver,
         address _owner
-    ) public override returns (uint256) {
+    ) public override onlyFullyOperational returns (uint256) {
         require(_shares > 0, "CANNOT_REDEEM_ZERO_SHARES");
         if (msg.sender != _owner) {
             _spendAllowance(_owner, msg.sender, _shares);
@@ -209,7 +215,7 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
             auroraToSend,
             stAurToSend
         );
-        return poolPercentage;
+        return auroraToSend;
     }
 
     /// @dev Use deposit fn instead.
@@ -222,16 +228,21 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
         revert("UNAVAILABLE_FUNCTION");
     }
 
+    /// @param _amount Denominated in stAUR.
+    /// @return _auroraAmount Denominated in AURORA.
     function previewSwapStAurForAurora(uint256 _amount) external view returns (uint256) {
         (uint256 _discountedAmount,,) = _calculatePoolFees(_amount);
         return IStakedAuroraVault(stAurVault).convertToAssets(_discountedAmount);
     }
 
-    /// @notice Used for fast swaps to get AURORA tokens back without the unstake delay.
+    /// @notice Function that allows "fast unstake".
+    /// @param _stAurAmount Denominated in stAUR.
+    /// @param _minAuroraToReceive Min amount of AURORA tokens that the user is expecting,
+    /// get a value for this parameter using the function previewSwapStAurForAurora().
     function swapStAurForAurora(
         uint256 _stAurAmount,
         uint256 _minAuroraToReceive
-    ) external {
+    ) external onlyFullyOperational {
         require(_stAurAmount > 0, "CANNOT_SWAP_ZERO_AMOUNT");
         (
             uint256 _discountedAmount,
@@ -255,14 +266,18 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
         // Step 2. Transfer the Aurora tokens to the caller.
         IERC20(auroraToken).safeTransfer(msg.sender, auroraToSend);
 
-        emit SwapStAur(msg.sender, auroraToSend, _stAurAmount, _collectedFee + _lpFeeCut);
+        emit SwapStAur(
+            msg.sender,
+            auroraToSend,
+            _stAurAmount,
+            _collectedFee + _lpFeeCut
+        );
     }
 
     /// @notice The collected stAUR fees are owned by Meta Pool.
     function withdrawCollectedStAurFees(
         address _receiver
     ) onlyRole(FEE_COLLECTOR_ROLE) external {
-        require(_receiver != address(0), "INVALID_ZERO_ADDRESS");
         uint256 _toTransfer = collectedStAurFees;
         collectedStAurFees = 0;
         IStakedAuroraVault(stAurVault).safeTransfer(_receiver, _toTransfer);
@@ -273,16 +288,20 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
     /// @notice The fee is splited in two: first, for the Liquidity Providers, and
     /// second, for Meta Pool, granted for FEE_COLLECTOR_ROLE.
     /// @dev CONSIDER FORMULA: _discountedAmount + _collectedFee + _lpFeeCut == _amount
-    /// @return _discountedAmount stAUR to be taken for swap.
+    /// @return _discountedAmount stAUR to be taken from the pool to cover the swap.
     /// @return _collectedFee stAUR to be granted for FEE_COLLECTOR_ROLE.
     /// @return _lpFeeCut stAUR for our friends, the Liquidity Providers.
     function _calculatePoolFees(
         uint256 _amount
     ) private view returns (uint256, uint256, uint256) {
-        uint256 totalFee = (_amount * swapFeeBasisPoints) / ONE_HUNDRED_PERCENT;
+        uint256 totalFee = (
+            _amount * swapFeeBasisPoints
+        ) / ONE_HUNDRED_PERCENT;
 
         // The cut of the fee destinated to the Liquidity Providers.
-        uint256 _lpFeeCut = (totalFee * liqProvFeeCutBasisPoints) / ONE_HUNDRED_PERCENT;
+        uint256 _lpFeeCut = (
+            totalFee * liqProvFeeCutBasisPoints
+        ) / ONE_HUNDRED_PERCENT;
 
         return (_amount - totalFee, totalFee - _lpFeeCut, _lpFeeCut);
     }
