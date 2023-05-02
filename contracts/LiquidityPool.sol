@@ -132,7 +132,7 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
     /// @notice Function to evaluate if a Vault deposit can be covered by the
     /// balance of stAUR tokens in the Liquidity Pool.
     function isStAurBalanceAvailable(uint _amount) external view returns(bool) {
-        return fullyOperational && (stAurBalance >= _amount);
+        return (stAurBalance >= _amount) && fullyOperational;
     }
 
     /// @notice The stAUR Vault will emit the Deposit event if this function runs.
