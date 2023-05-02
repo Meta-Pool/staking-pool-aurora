@@ -2,6 +2,12 @@
 
 Meta Staking pool in Aurora.
 
+# Functions
+
+## Burn 🔥
+
+The `burn()` function allows the redistribution of the underlying asset to all the stAUR holders.
+
 # Aurora Bounty ETHDenver2023
 
 We have been working on the stAUR, which is the liquid staking token that represent a proportion of the total Auroras staked into Aurora.plus by the N number of depositors. A good number of depositors to start with is with 3.

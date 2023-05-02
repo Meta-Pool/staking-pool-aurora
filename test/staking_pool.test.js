@@ -237,6 +237,34 @@ describe("Staking Pool AURORA", function () {
         stakedAuroraVaultContract.connect(alice).mint(amountToDeposit, alice.address)
       ).to.be.revertedWith("LESS_THAN_MIN_DEPOSIT_AMOUNT");
     });
+
+    it("Should allow 🔥 burning of stAUR.", async function () {
+      const {
+        stakedAuroraVaultContract,
+        alice,
+        bob,
+        carl
+      } = await loadFixture(depositPoolFixture);
+
+      const preAliceShares = await stakedAuroraVaultContract.balanceOf(alice.address);
+      const preBobShares = await stakedAuroraVaultContract.balanceOf(bob.address);
+      const preCarlShares = await stakedAuroraVaultContract.balanceOf(carl.address);
+      const preAliceAssets = await stakedAuroraVaultContract.convertToAssets(preAliceShares);
+      const preBobAssets = await stakedAuroraVaultContract.convertToAssets(preBobShares);
+      const preTotalSupply = await stakedAuroraVaultContract.totalSupply();
+
+      await stakedAuroraVaultContract.connect(alice).burn(preAliceShares);
+      expect(preTotalSupply.sub(preAliceShares)).to.equal(await stakedAuroraVaultContract.totalSupply());
+      await stakedAuroraVaultContract.connect(carl).burn(preCarlShares);
+      expect(preTotalSupply.sub(preAliceShares).sub(preCarlShares)).to.equal(
+        await stakedAuroraVaultContract.totalSupply()
+      );
+      expect(await stakedAuroraVaultContract.balanceOf(alice.address)).to.equal(0);
+      expect(await stakedAuroraVaultContract.balanceOf(carl.address)).to.equal(0);
+      expect(await stakedAuroraVaultContract.convertToAssets(preBobShares)).to.be.greaterThan(
+        preAliceAssets.add(preBobAssets).add(preCarlShares)
+      );
+    });
   });
 
   describe("Redeem and withdraw TOTAL Aurora tokens", function () {
