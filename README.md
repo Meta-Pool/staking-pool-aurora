@@ -50,10 +50,18 @@ Addresses of the deployed contracts:
  - LiquidityPool: ------ 0x2b22F6ae30DD752B5765dB5f2fE8eF5c5d2F154B
 ```
 
-Try me in Aurora Mainnet:
+# Operation
+
+Get a status of the contracts in Aurora `mainnet`.
 
 ```sh
 npx hardhat run scripts/mainnet/status/view_st_aur_status.js --network aurora_mainnet
+```
+
+Run the operation clean orders.
+
+```sh
+npx hardhat run scripts/mainnet/bot/clean_orders.js --network aurora_mainnet
 ```
 
 # Functions

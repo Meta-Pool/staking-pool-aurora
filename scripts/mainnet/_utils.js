@@ -10,7 +10,8 @@ async function getDepositorsArray(contract) {
 }
 
 function getCurrentTimestamp() {
-  return Date.now();
+  // Current time in seconds.
+  return (new Date().getTime() / 1000).toFixed();
 }
 
 function compareWithEmoji(A, B) {
