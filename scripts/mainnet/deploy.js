@@ -1,4 +1,4 @@
-const DECIMALS = ethers.BigNumber.from(10).pow(18);
+const { DECIMALS } = require("./_config");
 
 async function main() {
   // stAUR Vault and Liquidity Pool Params

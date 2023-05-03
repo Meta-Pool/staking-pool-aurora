@@ -1,18 +1,31 @@
 # Staking Pool Aurora
 
-Meta Staking pool in Aurora.
+Meta Staking pool in Aurora. The stAUR 🪐 token.
 
-# Functions
+# Versions
 
-## Burn 🔥
+The last version of the deployed contract, in AURORA `mainnet`, is in the `stable` branch.
 
-The `burn()` function allows the redistribution of the underlying asset to all the stAUR holders.
+Current stable version: [**v0.1.0**](https://github.com/Meta-Pool/staking-pool-aurora/releases/tag/v0.1.0)
+Check all releases in [stAUR Releases](https://github.com/Meta-Pool/staking-pool-aurora/releases).
 
-# Aurora Bounty ETHDenver2023
+To get the stable version, run the commands:
 
-We have been working on the stAUR, which is the liquid staking token that represent a proportion of the total Auroras staked into Aurora.plus by the N number of depositors. A good number of depositors to start with is with 3.
+```sh
+git clone https://github.com/Meta-Pool/staking-pool-aurora.git
+cd staking-pool-aurora
+git fetch origin --tags
 
-The **Depositors** are smart contracts that deposit Aurora into the staking service. The objective of spliting the deposits into multiple depositors is to allow deposits from one depositor, keeping the other two of them without the redeem penalization.
+git checkout tags/v0.1.0 -b stable
+```
+
+# Introduction
+
+Finally, the `stAUR` 🪐 token is in the wild, live on AURORA `mainnet`.
+
+The `stAUR` 🪐 token is the **Liquid Staking** token that represents a proportion of the total AURORA tokens staked in the [**Aurora Plus**](https://aurora.plus/) staking service. The staking is done through an additional smart contracts called **Depositors**. A good number of depositors to start with is two.
+
+The **Depositors** are independent smart contracts that deposit the delegated AURORA tokens into the Aurora Plus staking service. The objective of spliting the deposits into multiple depositors is to allow deposits from one depositor, keeping the others of them without the redeem penalization.
 
 Three different contracts are needed to be deployed.
 
@@ -26,30 +39,28 @@ Using the Aurora SDK, after the liquidity pool is developed, the stAUR token cou
 
 Address for the Staking Pool in Aurora Mainnet.
 
-```js
-  // These are the addresses of the Aurora Token and Aurora Plus in Mainnet.
-  const TokenAddress = "0x8BEc47865aDe3B172A928df8f990Bc7f2A3b9f79";
-  const AuroraStakingAddress = "0xccc2b1aD21666A5847A804a73a41F904C4a4A0Ec";
-
-  // These are the addresses of the contracts Meta Pool deployed.
-  const StakingManagerAddress = "0xd239cd3A5Dec2d2cb12fB8eC512Fe3790FA2cD0e";
-  const Depositor00Address = "0x6fA37581EBA252C08240c85f30fA8A5e3462c09d";
-  const Depositor01Address = "0x31e0752Deb99f1fCE9701Dc5611A1652189dEdC3";
-  const StakedAuroraVaultAddress = "0xA68118a4A067354A73C657300337d08E9753fB3D";
+```bash
+Addresses of the deployed contracts:
+ - AuroraToken 💚: ----- 0x8BEc47865aDe3B172A928df8f990Bc7f2A3b9f79
+ - AuroraPlus: --------- 0xccc2b1aD21666A5847A804a73a41F904C4a4A0Ec
+ - StakingManager: ----- 0x69e3a362ffD379cB56755B142c2290AFbE5A6Cc8
+ - Depositor 00: ------- 0xf56Baf1EE71fD4d6938c88E1C4bd0422ee768932
+ - Depositor 01: ------- 0x7ca831De9E59D7414313a1F7a003cc7d011caFE2
+ - StakedAuroraVault: -- 0xb01d35D469703c6dc5B369A1fDfD7D6009cA397F
+ - LiquidityPool: ------ 0x2b22F6ae30DD752B5765dB5f2fE8eF5c5d2F154B
 ```
 
 Try me in Aurora Mainnet:
 
-We started with 100 Aurora tokens. 20 were sent to Alice and 40 to Bob. Alice deposited 20 Aurora and received 20 stAUR, since this was the first deposit the ratio is 1-by-1. The next deposit is for 35 Auroras and Bob received `34.999`.
-
 ```sh
-npx hardhat run scripts/check_status.js --network aurora_mainnet
-# Contract status: =================================
-# alice stAUR: 20000000000000000000
-# alice AUROR: 0
-# bob stAUR: 34999923905739695523
-# bob AUROR: 5000000000000000000
+npx hardhat run scripts/mainnet/status/view_st_aur_status.js --network aurora_mainnet
 ```
+
+# Functions
+
+## Burn 🔥
+
+The `burn()` function allows the redistribution of the underlying asset to all the stAUR holders.
 
 # Deployment in Goerli
 

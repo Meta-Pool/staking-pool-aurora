@@ -1,4 +1,5 @@
 const hre = require("hardhat");
+const { ACCOUNTS } = require("./_accounts");
 const { getCurrentTimestamp } = require("../_utils");
 const { STAKED_AURORA_VAULT_ADDRESS, generateAccounts } = require("../_config");
 
@@ -8,16 +9,16 @@ console.log("Network: %s", hre.network.name);
 console.log("-------------------------")
 
 async function main() {
+  console.log("Account to Whitelist: %s", ACCOUNTS.single);
   const { VAULT_OPERATOR_ACCOUNT } = await generateAccounts();
   const StakedAuroraVault = await ethers.getContractFactory("StakedAuroraVault");
   const StakedAuroraVaultContract = await StakedAuroraVault.attach(STAKED_AURORA_VAULT_ADDRESS);
-  console.log("Current Vault Whitelist status: %s", await StakedAuroraVaultContract.enforceWhitelist());
   const request = await StakedAuroraVaultContract
     .connect(VAULT_OPERATOR_ACCOUNT)
-    .updateEnforceWhitelist(false);
+    .whitelistAccount(ACCOUNTS.single);
   console.log("Request: %s", request);
   await request.wait();
-  console.log("Vault Whitelist status NOW: %s", await StakedAuroraVaultContract.enforceWhitelist());
+  console.log("Accounts Whitelisted 🐻‍❄️.")
 }
 
 // We recommend this pattern to be able to use async/await everywhere

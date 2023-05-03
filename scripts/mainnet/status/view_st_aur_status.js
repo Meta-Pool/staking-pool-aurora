@@ -6,10 +6,9 @@ const {
   LIQUIDITY_POOL_ADDRESS,
   AURORA_TOKEN_ADDRESS,
   DEPOSITORS_ADDRESS,
-  AURORA_PLUS_ADDRESS,
-  generateAccounts
-} = require("./config");
-const { getCurrentTimestamp, compareWithEmoji, getDepositorsArray } = require("../utils");
+  AURORA_PLUS_ADDRESS
+} = require("../_config");
+const { getCurrentTimestamp, compareWithEmoji, getDepositorsArray } = require("../_utils");
 
 console.log("Mr Robot 🤖");
 console.log("Started at: %s", getCurrentTimestamp());
@@ -21,12 +20,46 @@ async function main() {
   await displayVaultStatus();
 
   // LP STATUS
+  await displayLPStatus();
 
   // MANAGER STATUS
   await displayManagerStatus();
 
   // DEPOSITORS
 
+}
+
+async function displayLPStatus() {
+  console.log("\nPool 🎱 (%s):", LIQUIDITY_POOL_ADDRESS);
+  const LiquidityPool = await ethers.getContractFactory("LiquidityPool");
+  const LiquidityPoolContract = await LiquidityPool.attach(LIQUIDITY_POOL_ADDRESS);
+
+  const stAurVault = await LiquidityPoolContract.stAurVault();
+  console.log("Staked Vault   : (%s) %s", stAurVault, compareWithEmoji(stAurVault, STAKED_AURORA_VAULT_ADDRESS));
+
+  const auroraToken = await LiquidityPoolContract.auroraToken();
+  console.log("Aurora Token   : (%s) %s", auroraToken, compareWithEmoji(auroraToken, AURORA_TOKEN_ADDRESS));
+
+  const fullyOperational = await LiquidityPoolContract.fullyOperational();
+  console.log("Fully Operatnal: %s", fullyOperational);
+
+  const stAurBalance = await LiquidityPoolContract.stAurBalance();
+  console.log("stAUR Balance  : %s stAUR", ethers.utils.formatEther(stAurBalance));
+
+  const auroraBalance = await LiquidityPoolContract.auroraBalance();
+  console.log("AURORA Balance : %s AURORA", ethers.utils.formatEther(auroraBalance));
+
+  const minDepositAmount = await LiquidityPoolContract.minDepositAmount();
+  console.log("minDepos Amount: %s AURORA", ethers.utils.formatEther(minDepositAmount));
+
+  const swapFeeBasisPoints = await LiquidityPoolContract.swapFeeBasisPoints();
+  console.log("Swap fee BasisP: %s Basis Points", swapFeeBasisPoints);
+
+  const liqProvFeeCutBasisPoints = await LiquidityPoolContract.liqProvFeeCutBasisPoints();
+  console.log("LP fee cut BasP: %s Basis Points", liqProvFeeCutBasisPoints);
+
+  const collectedStAurFees = await LiquidityPoolContract.collectedStAurFees();
+  console.log("Collected Fees : %s stAUR", ethers.utils.formatEther(collectedStAurFees));
 }
 
 async function displayManagerStatus() {
