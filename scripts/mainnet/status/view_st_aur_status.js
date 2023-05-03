@@ -88,6 +88,19 @@ async function displayManagerStatus() {
 
   const nextDepositor = await StakingManagerContract.nextDepositor();
   console.log("Next Depositor : (%s) %s", nextDepositor, compareWithEmoji(DEPOSITORS_ADDRESS.includes(nextDepositor), true));
+
+  // View the next time for run.
+  const nextCleanTimestamp = await StakingManagerContract.nextCleanOrderQueue();
+
+  var _now = new Date(getCurrentTimestamp() * 1000);
+  _now = _now.toGMTString();
+
+  var _next = new Date(nextCleanTimestamp * 1000);
+  _next = _next.toGMTString();
+
+  console.log("Now            : %s", _now);
+  console.log("Next time clean: %s", _next);
+  console.log("MrRobot 🤖 run?: %s", compareWithEmoji(nextCleanTimestamp < getCurrentTimestamp(), true));
 }
 
 async function displayVaultStatus() {
