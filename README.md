@@ -58,7 +58,7 @@ Get a status of the contracts in Aurora `mainnet`.
 npx hardhat run scripts/mainnet/status/view_st_aur_status.js --network aurora_mainnet
 ```
 
-Run the operation clean orders.
+Run the `Mr Robot` 🤖 operation clean orders.
 
 ```sh
 npx hardhat run scripts/mainnet/bot/clean_orders.js --network aurora_mainnet
