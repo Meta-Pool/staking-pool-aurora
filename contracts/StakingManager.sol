@@ -116,7 +116,7 @@ contract StakingManager is AccessControl, IStakingManager {
 
     function insertDepositor(
         address _depositor
-    ) external onlyRole(OPERATOR_ROLE) {
+    ) external onlyRole(ADMIN_ROLE) {
         require(getDepositorsLength() < maxDepositors, "DEPOSITORS_LIMIT_REACHED");
         depositors.push(_depositor);
         nextDepositor = _depositor;

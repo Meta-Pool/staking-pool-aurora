@@ -105,7 +105,7 @@ async function main() {
 
   console.log("Addresses of the deployed contracts:")
   console.log(" - AuroraToken 💚: ----- %s", AURORA_TOKEN_ADDRESS);
-  console.log(" - AuroraPlus: ------ %s", AURORA_PLUS_ADDRESS);
+  console.log(" - AuroraPlus: --------- %s", AURORA_PLUS_ADDRESS);
   console.log(" - StakingManager: ----- %s", stakingManagerContract.address);
   console.log(" - Depositor 00: ------- %s", depositor00Contract.address);
   console.log(" - Depositor 01: ------- %s", depositor01Contract.address);

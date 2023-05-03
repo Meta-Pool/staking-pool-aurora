@@ -112,8 +112,8 @@ async function deployPoolFixture() {
   );
   await depositor01Contract.deployed();
 
-  await stakingManagerContract.connect(operator).insertDepositor(depositor00Contract.address);
-  await stakingManagerContract.connect(operator).insertDepositor(depositor01Contract.address);
+  await stakingManagerContract.connect(owner).insertDepositor(depositor00Contract.address);
+  await stakingManagerContract.connect(owner).insertDepositor(depositor01Contract.address);
 
   // Deploy Liquidity Pool
   const liquidityPoolContract = await LiquidityPool.connect(liquidity_pool_owner).deploy(
