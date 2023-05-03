@@ -83,7 +83,7 @@ async function displayManagerStatus() {
   for (let i = 0; i < depositors.length; i++) {
     console.log("Depositor  0%s  : (%s) %s", i, depositors[i], compareWithEmoji(depositors[i], DEPOSITORS_ADDRESS[i]));
     const shares = await StakingManagerContract.getDepositorShares(depositors[i]);
-    console.log("Depositor Share: %s stAUR", ethers.utils.formatEther(shares));
+    console.log("Depositor Share: %s AURORA Plus Shares", ethers.utils.formatEther(shares));
   }
 
   const nextDepositor = await StakingManagerContract.nextDepositor();
