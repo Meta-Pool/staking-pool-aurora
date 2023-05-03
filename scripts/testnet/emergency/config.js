@@ -1,0 +1,57 @@
+//////////////////////////
+// EMERGENCY 🛟 Config //
+//////////////////////////
+
+// Goerli test addresses
+const AURORA_TOKEN_ADDRESS = "0xCca0C26Be4169d7963fEC984F6EAd5F6e630B288";
+const AURORA_PLUS_ADDRESS = "0x8e6aA7a602042879074334bB6c02c40A9385F522";
+const CURRENT_MANAGER_ADDRESS = "0xf8Cb922aBdb0a2d4478ADE41a493d9A11e0e6009";
+const STAKED_AURORA_VAULT_ADDRESS = "0xD6a1BEB40523A91B8424C02517219875A5D95c01";
+const LIQUIDITY_POOL_ADDRESS = "0x9156273eE2684BE1C9F1064cCE43f30E766c8496";
+
+// New Contract Manager Params
+const NEW_MANAGER_ADDRESS = "0x2da4A45AE7f78EABce1E3206c85383E9a98529d2";
+const MAX_WITHDRAW_ORDERS = 100;
+const MAX_DEPOSITORS = 2;
+
+const DECIMALS = ethers.BigNumber.from(10).pow(18);
+
+// Accounts
+async function generateAccounts() {
+  const [ owner, operator ] = await ethers.getSigners();
+
+  // Current Contracts Accounts
+  const VAULT_ADMIN_ACCOUNT = owner;
+  const MANAGER_ADMIN_ACCOUNT = owner;
+  const NEW_MANAGER_ADMIN_ACCOUNT = operator;
+
+  const VAULT_OPERATOR_ACCOUNT = operator;
+  const MANAGER_OPERATOR_ACCOUNT = operator;
+  const NEW_MANAGER_OPERATOR_ACCOUNT = operator;
+
+  const DEPOSITOR_ADMIN_ACCOUNT = operator;
+
+  return {
+    VAULT_ADMIN_ACCOUNT,
+    MANAGER_ADMIN_ACCOUNT,
+    NEW_MANAGER_ADMIN_ACCOUNT,
+    VAULT_OPERATOR_ACCOUNT,
+    MANAGER_OPERATOR_ACCOUNT,
+    NEW_MANAGER_OPERATOR_ACCOUNT,
+    DEPOSITOR_ADMIN_ACCOUNT
+  };
+}
+
+
+module.exports = {
+  generateAccounts,
+  AURORA_TOKEN_ADDRESS,
+  AURORA_PLUS_ADDRESS,
+  CURRENT_MANAGER_ADDRESS,
+  STAKED_AURORA_VAULT_ADDRESS,
+  LIQUIDITY_POOL_ADDRESS,
+  NEW_MANAGER_ADDRESS,
+  MAX_WITHDRAW_ORDERS,
+  MAX_DEPOSITORS,
+  DECIMALS
+};
