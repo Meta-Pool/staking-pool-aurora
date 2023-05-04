@@ -49,6 +49,9 @@ async function displayLPStatus() {
   const auroraBalance = await LiquidityPoolContract.auroraBalance();
   console.log("AURORA Balance : %s AURORA", ethers.utils.formatEther(auroraBalance));
 
+  const totalSupply = await LiquidityPoolContract.totalSupply();
+  console.log("Total Supply   : %s stAUR/AUR", ethers.utils.formatEther(totalSupply));
+
   const minDepositAmount = await LiquidityPoolContract.minDepositAmount();
   console.log("minDepos Amount: %s AURORA", ethers.utils.formatEther(minDepositAmount));
 
