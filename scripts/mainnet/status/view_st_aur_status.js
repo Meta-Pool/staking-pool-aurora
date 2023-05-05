@@ -104,6 +104,8 @@ async function displayManagerStatus() {
   console.log("Now            : %s", _now);
   console.log("Next time clean: %s", _next);
   console.log("MrRobot 🤖 run?: %s", compareWithEmoji(nextCleanTimestamp < getCurrentTimestamp(), true));
+  console.log("Withdraw Orders: %s", await StakingManagerContract.getTotalWithdrawOrders());
+  console.log("Pending  Orders: %s", await StakingManagerContract.getTotalPendingOrders());
 }
 
 async function displayVaultStatus() {
