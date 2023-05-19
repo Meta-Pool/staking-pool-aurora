@@ -65,6 +65,19 @@ contract TestStakingPool is DeploymentHelper {
 
         console.log("[*] After ATTACKER's withdraw:");
         printBalances();
+
+        // Correct Balances at the end.
+        // After ATTACKER's withdraw:
+        // Attacker AUR balance:  100000000000000000000
+        // Attacker stAUR balance:  100000000000000000000
+        // stAUR total supply:  300000000000000000000
+        // Alice AUR balance:  0
+        // Alice stAUR balance:  200000000000000000000
+        assertEq(aur.balanceOf(ATTACKER),  100000000000000000000);
+        assertEq(stakedAuroraVault.balanceOf(ATTACKER),  100000000000000000000);
+        assertEq(stakedAuroraVault.totalSupply(),  300000000000000000000);
+        assertEq(aur.balanceOf(ALICE),  0);
+        assertEq(stakedAuroraVault.balanceOf(ALICE),  200000000000000000000);
     }
 
     function prepareBalances() public {
