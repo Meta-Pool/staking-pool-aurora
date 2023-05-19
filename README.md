@@ -103,30 +103,60 @@ curl -L https://foundry.paradigm.xyz | bash
 2. Create a new Foundry project:
 
 ```sh
-foundry new my-project
+
 ```
 
+3. Deal with the remappings
+
+```sh
 forge remappings > remappings.txt
+```
 
-3. Copy the `hardhat.config.js` file from your existing Hardhat project to the new Foundry project.
+```sh
+## Runing the test in verbose mode.
+$ forge test -vvv
+[⠆] Compiling...
+No files changed, compilation skipped
 
-4. In the `hardhat.config.js` file, import the `@nomicfoundation/hardhat-foundry` plugin:
+Running 2 tests for test/foundry/TestStakingPool.sol:TestStakingPool
+[PASS] testInflationAttack() (gas: 931329)
+Logs:
+  [-] Initial balances:
+  	- Attacker AUR balance:  200000000000000000000
+  	- Attacker stAUR balance:  0
+  	- stAUR total supply:  0
+  	- Alice AUR balance:  200000000000000000000
+  	- Alice stAUR balance:  0
 
-Code snippet
-import "@nomicfoundation/hardhat-foundry";
-Use code with caution. Learn more
-In the hardhat.config.js file, configure the foundry object:
-Code snippet
-module.exports = {
-  networks: {
-    development: {
-      host: "localhost",
-      port: 8545,
-      networkId: "*",
-      gasPrice: 10000000000,
-    },
-  },
-  foundry: {
-    apiUrl: "http://localhost:8545",
-  },
-};
+  [*] After ATTACKER's deposit:
+  	- Attacker AUR balance:  99999999999999999999
+  	- Attacker stAUR balance:  100000000000000000001
+  	- stAUR total supply:  100000000000000000001
+  	- Alice AUR balance:  200000000000000000000
+  	- Alice stAUR balance:  0
+
+  [*] After ATTACKER's inflation:
+  	- Attacker AUR balance:  99999999999999999999
+  	- Attacker stAUR balance:  1
+  	- stAUR total supply:  1
+  	- Alice AUR balance:  200000000000000000000
+  	- Alice stAUR balance:  0
+
+  [+] Victim deposit tokens:
+  	- Attacker AUR balance:  99999999999999999999
+  	- Attacker stAUR balance:  1
+  	- stAUR total supply:  2
+  	- Alice AUR balance:  0
+  	- Alice stAUR balance:  1
+
+  [*] After ATTACKER's withdraw:
+  	- Attacker AUR balance:  249999999999999999999
+  	- Attacker stAUR balance:  0
+  	- stAUR total supply:  1
+  	- Alice AUR balance:  0
+  	- Alice stAUR balance:  1
+
+
+[PASS] test_NumberIs42() (gas: 2412)
+Test result: ok. 2 passed; 0 failed; finished in 2.97ms
+```
