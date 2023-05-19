@@ -15,7 +15,7 @@ contract MockERC20 is ERC20 {
         string memory name,
         string memory symbol
     ) ERC20(name, symbol) {
-        uint128 supply = 10_000_000 ether;
+        uint256 supply = 10_000_000 ether;
         _mint(msg.sender, supply);
     }
  

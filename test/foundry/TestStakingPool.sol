@@ -4,8 +4,15 @@ pragma solidity ^0.8.0;
 import "./utils/DeploymentHelper.sol";
 
 contract TestStakingPool is DeploymentHelper {
+    uint256 testNumber;
 
-    function setUp() public {}
+    function setUp() public {
+        testNumber = 42;
+    }
+
+    function test_NumberIs42() public {
+        assertEq(testNumber, 42);
+    }
 
     function testInflationAttack() public {
         prepareBalances();
