@@ -89,3 +89,40 @@ Addresses of the deployed contracts:
  - NEW StakingManager: - [DEPRECATED] 0xf8Cb922aBdb0a2d4478ADE41a493d9A11e0e6009
  - NEW StakingManager: - 0x2da4A45AE7f78EABce1E3206c85383E9a98529d2
 ```
+
+## Install Foundry on top of Hardhat
+
+1. Install the Foundry CLI:
+
+```sh
+npm install -g foundry
+```
+
+2. Create a new Foundry project:
+
+```sh
+foundry new my-project
+```
+
+3. Copy the `hardhat.config.js` file from your existing Hardhat project to the new Foundry project.
+
+4. In the `hardhat.config.js` file, import the `@nomicfoundation/hardhat-foundry` plugin:
+
+Code snippet
+import "@nomicfoundation/hardhat-foundry";
+Use code with caution. Learn more
+In the hardhat.config.js file, configure the foundry object:
+Code snippet
+module.exports = {
+  networks: {
+    development: {
+      host: "localhost",
+      port: 8545,
+      networkId: "*",
+      gasPrice: 10000000000,
+    },
+  },
+  foundry: {
+    apiUrl: "http://localhost:8545",
+  },
+};
