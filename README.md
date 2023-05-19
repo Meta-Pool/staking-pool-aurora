@@ -19,6 +19,16 @@ git fetch origin --tags
 git checkout tags/v0.1.0 -b stable
 ```
 
+## Quick run
+
+If you already have all the dependencies installed.
+
+```sh
+# Using the Makefile
+make buld
+make test
+```
+
 # Introduction
 
 Finally, the `stAUR` 🪐 token is in the wild, live on AURORA `mainnet`.
