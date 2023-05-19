@@ -92,10 +92,12 @@ Addresses of the deployed contracts:
 
 ## Install Foundry on top of Hardhat
 
+Source: https://book.getfoundry.sh/getting-started/installation
+
 1. Install the Foundry CLI:
 
 ```sh
-npm install -g foundry
+curl -L https://foundry.paradigm.xyz | bash
 ```
 
 2. Create a new Foundry project:
@@ -103,6 +105,8 @@ npm install -g foundry
 ```sh
 foundry new my-project
 ```
+
+forge remappings > remappings.txt
 
 3. Copy the `hardhat.config.js` file from your existing Hardhat project to the new Foundry project.
 
