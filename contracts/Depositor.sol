@@ -71,7 +71,7 @@ contract Depositor is AccessControl, IDepositor {
         emit StakeThroughDepositor(address(this), _assets);
     }
 
-    /// @notice The unstake is made by the Robot 🤖 clean-order job.
+    /// @notice The unstake is made by the Robot 🤖 clean-orders job.
     function unstake(uint256 _assets) external onlyManager {
         IAuroraStaking(auroraStaking).unstake(_assets);
 
