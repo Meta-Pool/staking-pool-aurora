@@ -1,6 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
+const { loadFixture, impersonateAccount } = require("@nomicfoundation/hardhat-network-helpers");
+
 const {
   ADMIN_ADDRESS,
   AURORA_PLUS_ADDRESS,
@@ -8,6 +9,7 @@ const {
   DEPOSITOR_00_ADDRESS,
   DEPOSITOR_01_ADDRESS,
   LIQUIDITY_POOL_ADDRESS,
+  OPERATOR_ADDRESS,
   STAKED_AURORA_VAULT_ADDRESS,
   STAKING_MANAGER_ADDRESS,
 } = require("./_config");
@@ -57,8 +59,11 @@ async function useProdForkFixture() {
     carl
   ] = await ethers.getSigners();
 
-  
+  // const impersonatedAdmin = await impersonateAccount(ADMIN_ADDRESS);
+  // const impersonatedOperator = await impersonateAccount(OPERATOR_ADDRESS);
+
   const impersonatedAdmin = await ethers.getImpersonatedSigner(ADMIN_ADDRESS);
+  const impersonatedOperator = await ethers.getImpersonatedSigner(OPERATOR_ADDRESS);
 
   return {
     AuroraTokenContract,
@@ -78,7 +83,8 @@ async function useProdForkFixture() {
     alice,
     bob,
     carl,
-    impersonatedAdmin
+    impersonatedAdmin,
+    impersonatedOperator,
   };
 }
 
