@@ -235,20 +235,6 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
         return assets;
     }
 
-    /// @dev Destroys `amount` tokens from the caller.
-    /// See {ERC20-_burn}.
-    function burn(uint256 amount) external {
-        _burn(msg.sender, amount);
-    }
-
-    /// @dev Destroys `amount` tokens from `account`, deducting from the caller's allowance.
-    /// See {ERC20-_burn} and {ERC20-allowance}.
-    /// The caller must have allowance for ``accounts``'s tokens of at least `amount`.
-    function burnFrom(address account, uint256 amount) external {
-        _spendAllowance(account, msg.sender, amount);
-        _burn(account, amount);
-    }
-
     function _deposit(
         address _caller,
         address _receiver,

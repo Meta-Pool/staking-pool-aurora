@@ -6,6 +6,7 @@ const {
   ADMIN_ADDRESS,
   AURORA_PLUS_ADDRESS,
   AURORA_TOKEN_ADDRESS,
+  AURORA_WHALE_ADDRESS,
   DEPOSITOR_00_ADDRESS,
   DEPOSITOR_01_ADDRESS,
   LIQUIDITY_POOL_ADDRESS,
@@ -59,11 +60,27 @@ async function useProdForkFixture() {
     carl
   ] = await ethers.getSigners();
 
-  // const impersonatedAdmin = await impersonateAccount(ADMIN_ADDRESS);
-  // const impersonatedOperator = await impersonateAccount(OPERATOR_ADDRESS);
-
   const impersonatedAdmin = await ethers.getImpersonatedSigner(ADMIN_ADDRESS);
   const impersonatedOperator = await ethers.getImpersonatedSigner(OPERATOR_ADDRESS);
+  
+  const impersonatedWhale = await ethers.getImpersonatedSigner(AURORA_WHALE_ADDRESS);
+
+//   tx = {
+//       to: alice.address,
+//       value: ethers.utils.parseEther('0.02', 'ether')
+//   };
+//   impersonatedAdmin
+
+// const transaction = await signer.sendTransaction(tx);
+
+  await AuroraTokenContract
+    .connect(impersonatedWhale)
+    .transfer(
+      ADMIN_ADDRESS,
+      await AuroraTokenContract.balanceOf(AURORA_WHALE_ADDRESS)
+    );
+  
+
 
   return {
     AuroraTokenContract,
