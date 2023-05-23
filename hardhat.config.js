@@ -7,6 +7,13 @@ require("@nomicfoundation/hardhat-foundry");
 module.exports = {
   solidity: "0.8.18",
   networks: {
+    hardhat: {
+      forking: {
+        url: `https://aurora-mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+        blockNumber: Number(process.env.BLOCK_NUMBER),
+        enabled: true,
+      },
+    },
     goerli_alchemy: {
       allowUnlimitedContractSize: true,
       gas: 5000000,

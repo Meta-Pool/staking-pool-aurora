@@ -5,7 +5,7 @@ import "./utils/DeploymentHelper.sol";
 
 // Part of the Halborn Audit May 2023.
 
-contract TestStakingPool is DeploymentHelper {
+contract TestHalbornStakingPool is DeploymentHelper {
     uint256 testNumber;
 
     function setUp() public {
