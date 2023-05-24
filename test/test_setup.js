@@ -220,10 +220,10 @@ async function deployPoolFixture() {
   // Initialize the Liquid Staking service.
   await expect(
     stakedAuroraVaultContract.updateStakingManager(stakingManagerContract.address)
-  ).to.be.revertedWith("NOT_INITIALIZED");
+  ).to.be.revertedWithCustomError(stakedAuroraVaultContract, "ContractNotInitialized");
   await expect(
     stakedAuroraVaultContract.updateLiquidityPool(liquidityPoolContract.address)
-  ).to.be.revertedWith("NOT_INITIALIZED");
+  ).to.be.revertedWithCustomError(stakedAuroraVaultContract, "ContractNotInitialized");
   await stakedAuroraVaultContract.initializeLiquidStaking(
     stakingManagerContract.address,
     liquidityPoolContract.address
@@ -233,7 +233,7 @@ async function deployPoolFixture() {
       stakingManagerContract.address,
       liquidityPoolContract.address
     )
-  ).to.be.revertedWith("ALREADY_INITIALIZED");
+  ).to.be.revertedWithCustomError(stakedAuroraVaultContract, "ContractAlreadyInitialized");
 
   // Staking Aurora Vault should be fully operational by now.
   expect(await stakedAuroraVaultContract.fullyOperational()).to.be.true;
@@ -300,7 +300,7 @@ async function depositPoolFixture() {
   await stakedAuroraVaultContract.connect(owner).updateContractOperation(false);
   await expect(
     stakedAuroraVaultContract.connect(alice).deposit(aliceDeposit, alice.address)
-  ).to.be.revertedWith("CONTRACT_IS_NOT_FULLY_OPERATIONAL");
+  ).to.be.revertedWithCustomError(stakedAuroraVaultContract, "NotFullyOperational");
   await stakedAuroraVaultContract.connect(owner).updateContractOperation(true);
 
   await expect(

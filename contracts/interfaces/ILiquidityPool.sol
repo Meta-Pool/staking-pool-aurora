@@ -12,8 +12,18 @@ interface ILiquidityPool {
     event UpdateMinDepositAmount(uint256 _new, address _sender);
     event WithdrawCollectedFees(address _receiver, uint256 _amount, address _sender);
 
-    function isStAurBalanceAvailable(uint _amount) external view returns(bool);
+    function isStAurBalanceAvailable(uint256 _amount) external view returns(bool);
     function previewSwapStAurForAurora(uint256 _amount) external view returns (uint256);
     function swapStAurForAurora(uint256 _stAurAmount, uint256 _minAuroraToReceive) external;
-    function transferStAur(address _receiver, uint256 _amount, uint _assets) external;
+    function transferStAur(address _receiver, uint256 _amount, uint256 _assets) external;
+
+    error InvalidBasisPoints();
+    error InvalidZeroAddress();
+    error InvalidZeroAmount();
+    error LessThanMinDeposit();
+    error NotEnoughBalance();
+    error NotFullyOperational();
+    error SlippageError();
+    error Unauthorized();
+    error UnavailableFunction();
 }

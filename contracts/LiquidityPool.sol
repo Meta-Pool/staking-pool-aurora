@@ -42,17 +42,17 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
     bool public fullyOperational;
 
     modifier onlyStAurVault() {
-        require(msg.sender == stAurVault, "ONLY_FOR_STAUR_VAULT");
+        if (msg.sender != stAurVault) { revert Unauthorized(); }
         _;
     }
 
     modifier onlyFullyOperational() {
-        require(fullyOperational, "CONTRACT_IS_NOT_FULLY_OPERATIONAL");
+        if (!fullyOperational) { revert NotFullyOperational(); }
         _;
     }
 
     modifier checkBasisPoints(uint256 _basisPoints) {
-        require(_basisPoints <= ONE_HUNDRED_PERCENT, "INVALID_BASIS_POINTS");
+        if (_basisPoints > ONE_HUNDRED_PERCENT) { revert InvalidBasisPoints(); }
         _;
     }
 
@@ -72,13 +72,10 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
         checkBasisPoints(_swapFeeBasisPoints)
         checkBasisPoints(_liqProvFeeCutBasisPoints)
     {
-        require(
-            _stAurVault != address(0)
-                && _auroraToken != address(0)
-                && _feeCollectorRole != address(0)
-                && _contractOperatorRole != address(0),
-            "INVALID_ZERO_ADDRESS"
-        );
+        if (_stAurVault == address(0)
+                || _auroraToken == address(0)
+                || _feeCollectorRole == address(0)
+                || _contractOperatorRole == address(0)) { revert InvalidZeroAddress(); }
         stAurVault = _stAurVault;
         auroraToken = _auroraToken;
         minDepositAmount = _minDepositAmount;
@@ -131,7 +128,7 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
 
     /// @notice Function to evaluate if a Vault deposit can be covered by the
     /// balance of stAUR tokens in the Liquidity Pool.
-    function isStAurBalanceAvailable(uint _amount) external view returns(bool) {
+    function isStAurBalanceAvailable(uint256 _amount) external view returns(bool) {
         return (stAurBalance >= _amount) && fullyOperational;
     }
 
@@ -167,7 +164,7 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
         uint256 _assets,
         address _receiver
     ) public override onlyFullyOperational returns (uint256) {
-        require(_assets >= minDepositAmount, "LESS_THAN_MIN_DEPOSIT_AMOUNT");
+        if (_assets < minDepositAmount) { revert LessThanMinDeposit(); }
 
         uint256 _shares = previewDeposit(_assets);
         _deposit(msg.sender, _receiver, _assets, _shares);
@@ -184,7 +181,7 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
         address _receiver,
         address _owner
     ) public override onlyFullyOperational returns (uint256) {
-        require(_shares > 0, "CANNOT_REDEEM_ZERO_SHARES");
+        if (_shares == 0) { revert InvalidZeroAmount(); }
         if (msg.sender != _owner) {
             _spendAllowance(_owner, msg.sender, _shares);
         }
@@ -220,12 +217,12 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
 
     /// @dev Use deposit fn instead.
     function mint(uint256, address) public override pure returns (uint256) {
-        revert("UNAVAILABLE_FUNCTION");
+        revert UnavailableFunction();
     }
 
     /// @dev Use redeem fn instead.
     function withdraw(uint256, address, address) public override pure returns (uint256) {
-        revert("UNAVAILABLE_FUNCTION");
+        revert UnavailableFunction();
     }
 
     /// @param _amount Denominated in stAUR.
@@ -243,7 +240,7 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
         uint256 _stAurAmount,
         uint256 _minAuroraToReceive
     ) external onlyFullyOperational {
-        require(_stAurAmount > 0, "CANNOT_SWAP_ZERO_AMOUNT");
+        if (_stAurAmount == 0) { revert InvalidZeroAmount(); }
         (
             uint256 _discountedAmount,
             uint256 _collectedFee,
@@ -253,8 +250,8 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
         IStakedAuroraVault vault = IStakedAuroraVault(stAurVault);
         uint256 auroraToSend = vault.convertToAssets(_discountedAmount);
 
-        require(auroraToSend <= auroraBalance, "NOT_ENOUGH_AURORA");
-        require(auroraToSend >= _minAuroraToReceive, "UNREACHED_MIN_SWAP_AMOUNT");
+        if (auroraToSend > auroraBalance) { revert NotEnoughBalance(); }
+        if (auroraToSend < _minAuroraToReceive) { revert SlippageError(); }
 
         stAurBalance += (_discountedAmount + _lpFeeCut);
         collectedStAurFees += _collectedFee;

@@ -11,4 +11,13 @@ interface IStakedAuroraVaultEvents {
     event NewManagerUpdate(address _new, address _sender);
     event WithdrawOrderCreated(address indexed _caller, address indexed _receiver, address indexed _owner, uint256 _shares, uint256 _assets);
     event UpdateMinDepositAmount(uint256 _new, address _sender);
+
+    error AccountNotWhitelisted();
+    error ContractAlreadyInitialized();
+    error ContractNotInitialized();
+    error InvalidZeroAddress();
+    error InvalidZeroAmount();
+    error LessThanMinDeposit();
+    error NotFullyOperational();
+    error Unauthorized();
 }

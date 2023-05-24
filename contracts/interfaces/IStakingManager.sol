@@ -9,6 +9,18 @@ interface IStakingManager {
     event NewDepositorAdded(address _depositor, address _sender);
     event UpdateProcessWithdrawOrders(bool _isProcessStopped, address _sender);
 
+    error BelowCurrentLength();
+    error DepositorsLimitReached();
+    error InvalidChange();
+    error InvalidZeroAddress();
+    error InvalidZeroAmount();
+    error MaxOrdersExceeded(uint256 maxOrders);
+    error NoDepositors();
+    error NotEnoughBalance();
+    error Unauthorized();
+    error VaultAndManagerStillAttached();
+    error WaitForNextCleanOrders();
+
     function alternativeWithdraw(uint256 _assets, address _receiver) external;
     function auroraStaking() external view returns (address);
     function auroraToken() external view returns (address);

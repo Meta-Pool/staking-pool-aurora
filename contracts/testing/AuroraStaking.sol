@@ -109,6 +109,19 @@ contract AuroraStaking {
         }
     }
 
+    /// @dev get the streams count
+    /// @return streams.length
+    function getStreamsCount() external view returns (uint256) {
+        return 2;
+    }
+
+    function getStreamClaimableAmount(uint256 streamId, address account)
+        external
+        view
+        returns (uint256) {
+        return 0;
+    }
+
     /// @dev gets the total user deposit
     /// @param account the user address
     /// @return user total deposit in (AURORA)

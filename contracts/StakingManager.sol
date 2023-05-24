@@ -83,9 +83,10 @@ contract StakingManager is AccessControl, IStakingManager {
     uint256 maxDepositors;
 
     modifier onlyStAurVault() {
-        require(msg.sender == stAurVault, "ONLY_FOR_STAUR_VAULT");
+        if (msg.sender != stAurVault) { revert Unauthorized(); }
         _;
     }
+
 
     constructor(
         address _stAurVault,
@@ -94,12 +95,11 @@ contract StakingManager is AccessControl, IStakingManager {
         uint256 _maxWithdrawOrders,
         uint256 _maxDepositors
     ) {
-        require(
-            _stAurVault != address(0)
-                && _auroraStaking != address(0)
-                && _contractOperatorRole != address(0),
-            "INVALID_ZERO_ADDRESS"
-        );
+        if (_stAurVault == address(0)
+                || _auroraStaking == address(0)
+                || _contractOperatorRole == address(0)) {
+            revert InvalidZeroAddress();
+        }
         stAurVault = _stAurVault;
         auroraStaking = _auroraStaking;
         auroraToken = IERC4626(_stAurVault).asset();
@@ -114,10 +114,11 @@ contract StakingManager is AccessControl, IStakingManager {
 
     receive() external payable {}
 
+    ///tag:tested
     function insertDepositor(
         address _depositor
     ) external onlyRole(ADMIN_ROLE) {
-        require(getDepositorsLength() < maxDepositors, "DEPOSITORS_LIMIT_REACHED");
+        if (getDepositorsLength() >= maxDepositors) { revert DepositorsLimitReached(); }
         depositors.push(_depositor);
         nextDepositor = _depositor;
         _updateDepositorShares(_depositor);
@@ -128,8 +129,8 @@ contract StakingManager is AccessControl, IStakingManager {
     function changeMaxDepositors(
         uint256 _maxDepositors
     ) external onlyRole(OPERATOR_ROLE) {
-        require(_maxDepositors != maxDepositors, "INVALID_CHANGE");
-        require(_maxDepositors >= getDepositorsLength(), "BELOW_CURRENT_LENGTH");
+        if (_maxDepositors == maxDepositors) { revert InvalidChange(); }
+        if (_maxDepositors < getDepositorsLength()) { revert BelowCurrentLength(); }
         maxDepositors = _maxDepositors;
 
         emit MaxDepositorsUpdate(_maxDepositors, msg.sender);
@@ -138,8 +139,8 @@ contract StakingManager is AccessControl, IStakingManager {
     function changeMaxWithdrawOrders(
         uint256 _maxWithdrawOrders
     ) external onlyRole(OPERATOR_ROLE) {
-        require(_maxWithdrawOrders != maxWithdrawOrders, "INVALID_CHANGE");
-        require(_maxWithdrawOrders >= getTotalWithdrawOrders(), "BELOW_CURRENT_LENGTH");
+        if (_maxWithdrawOrders == maxWithdrawOrders) { revert InvalidChange(); }
+        if (_maxWithdrawOrders < getTotalWithdrawOrders()) { revert BelowCurrentLength(); }
         maxWithdrawOrders = _maxWithdrawOrders;
 
         emit MaxWithdrawOrdersUpdate(_maxWithdrawOrders, msg.sender);
@@ -156,7 +157,7 @@ contract StakingManager is AccessControl, IStakingManager {
     /// @dev If the user do NOT have a withdraw order, expect an index of "0".
     function _getUserWithdrawOrderIndex(address _account) private view returns (uint256) {
         uint256 _totalOrders = getTotalWithdrawOrders();
-        for (uint i = 1; i <= _totalOrders; i++) {
+        for (uint i = 1; i <= _totalOrders; ++i) {
             if (withdrawOrder[i].receiver == _account) {
                 return i;
             }
@@ -167,7 +168,7 @@ contract StakingManager is AccessControl, IStakingManager {
     /// @dev If the user do NOT have a pending order, expect an index of "0".
     function _getUserPendingOrderIndex(address _account) private view returns (uint256) {
         uint256 _totalOrders = getTotalPendingOrders();
-        for (uint i = 1; i <= _totalOrders; i++) {
+        for (uint i = 1; i <= _totalOrders; ++i) {
             if (pendingOrder[i].receiver == _account) {
                 return i;
             }
@@ -219,7 +220,7 @@ contract StakingManager is AccessControl, IStakingManager {
 
     function depositorExists(address _depositor) external view returns (bool) {
         uint256 _totalDepositors = getDepositorsLength();
-        for (uint i = 0; i < _totalDepositors; i++) {
+        for (uint i = 0; i < _totalDepositors; ++i) {
             if (depositors[i] == _depositor) {
                 return true;
             }
@@ -237,7 +238,7 @@ contract StakingManager is AccessControl, IStakingManager {
         _updateDepositorShares(nextDepositor);
         address _nextDepositor = depositors[0];
         uint256 _totalDepositors = getDepositorsLength();
-        for (uint i = 0; i < _totalDepositors; i++) {
+        for (uint i = 0; i < _totalDepositors; ++i) {
             // Keeping a < instead of <= allows prioritizing the deposits in lower index depositors.
             if (depositorShares[depositors[i]] < depositorShares[_nextDepositor] ) {
                 _nextDepositor = depositors[i];
@@ -257,7 +258,7 @@ contract StakingManager is AccessControl, IStakingManager {
     function getTotalAssetsFromDepositors() public view returns (uint256) {
         uint256 depositorsAuroraShares = 0;
         uint256 _totalDepositors = getDepositorsLength();
-        for (uint i = 0; i < _totalDepositors; i++) {
+        for (uint i = 0; i < _totalDepositors; ++i) {
             depositorsAuroraShares += depositorShares[depositors[i]];
         }
         if (depositorsAuroraShares == 0) return 0;
@@ -268,7 +269,7 @@ contract StakingManager is AccessControl, IStakingManager {
         return getTotalAssetsFromDepositors() - totalWithdrawInQueue;
     }
 
-    /// @notice AURORA tokens are tansfer to the users on the withdraw process,
+    /// @notice AURORA tokens are transfer to the users on the withdraw process,
     /// triggered only by the stAUR vault.
     function transferAurora(
         address _receiver,
@@ -285,10 +286,7 @@ contract StakingManager is AccessControl, IStakingManager {
         uint256 _assets,
         address _receiver
     ) external {
-        require(
-            IStakedAuroraVault(stAurVault).stakingManager() != address(this),
-            "VAULT_AND_MANAGER_STILL_ATTACHED"
-        );
+        if (IStakedAuroraVault(stAurVault).stakingManager() == address(this)) { revert VaultAndManagerStillAttached(); }
         _transferAurora(_receiver, msg.sender, _assets);
 
         emit AltWithdraw(msg.sender, _receiver, msg.sender, _assets);
@@ -303,8 +301,8 @@ contract StakingManager is AccessControl, IStakingManager {
     /// @dev In case of emergency 🛟,
     ///   the withdraw-orders process could be temporally stopped (3, 4, 5 steps).
     function cleanOrdersQueue() public {
-        require(getDepositorsLength() > 0, "CREATE_DEPOSITOR");
-        require(nextCleanOrderQueue <= block.timestamp, "WAIT_FOR_NEXT_CLEAN_ORDER");
+        if (getDepositorsLength() == 0) { revert NoDepositors(); }
+        if (nextCleanOrderQueue > block.timestamp) { revert WaitForNextCleanOrders(); }
 
         _withdrawFromDepositor();           // Step 1.
         _movePendingToAvailable();          // Step 2.
@@ -330,7 +328,8 @@ contract StakingManager is AccessControl, IStakingManager {
         uint256 _totalOrders = getTotalWithdrawOrders();
         // Create a new withdraw order.
         if (index == 0) {
-            require(_totalOrders < maxWithdrawOrders, "TOO_MANY_WITHDRAW_ORDERS");
+            uint256 _maxOrders = maxWithdrawOrders;
+            if (_totalOrders >= _maxOrders) { revert MaxOrdersExceeded(_maxOrders); }
             uint256 _nextIndex = _totalOrders + 1;
             lastWithdrawOrderIndex = _nextIndex;
             withdrawOrder[_nextIndex] = Order(_assets, _receiver);
@@ -348,7 +347,7 @@ contract StakingManager is AccessControl, IStakingManager {
 
     function _withdrawFromDepositor() private {
         uint256 _totalDepositors = getDepositorsLength();
-        for (uint i = 0; i < _totalDepositors; i++) {
+        for (uint i = 0; i < _totalDepositors; ++i) {
             address depositor = depositors[i];
             uint256 pendingAmount = IDepositor(depositor).getPendingAurora();
             if (pendingAmount > 0) {
@@ -359,7 +358,7 @@ contract StakingManager is AccessControl, IStakingManager {
 
     function _movePendingToAvailable() private {
         uint256 _totalOrders = getTotalPendingOrders();
-        for (uint i = 1; i <= _totalOrders; i++) {
+        for (uint i = 1; i <= _totalOrders; ++i) {
             Order memory order = pendingOrder[i];
             pendingOrder[i] = Order(0, address(0));
             availableAssets[order.receiver] += order.amount;
@@ -374,7 +373,7 @@ contract StakingManager is AccessControl, IStakingManager {
         uint256 _totalDepositors = getDepositorsLength();
         uint256 _totalWithdrawInQueue = totalWithdrawInQueue;
         if (totalWithdrawInQueue > 0) {
-            for (uint i = _totalDepositors; i > 0; i--) {
+            for (uint i = _totalDepositors; i > 0; --i) {
                 address depositor = depositors[i-1];
                 uint256 assets = getTotalAssetsFromDepositor(depositor);
                 if (assets == 0) continue;
@@ -395,7 +394,7 @@ contract StakingManager is AccessControl, IStakingManager {
 
     function _moveAndRemoveWithdrawOrders() private {
         uint256 _totalOrders = getTotalWithdrawOrders();
-        for (uint i = 1; i <= _totalOrders; i++) {
+        for (uint i = 1; i <= _totalOrders; ++i) {
             Order memory order = withdrawOrder[i];
             uint256 _assets = order.amount;
             if (_assets > 0) {
@@ -425,8 +424,8 @@ contract StakingManager is AccessControl, IStakingManager {
         address _owner,
         uint256 _assets
     ) private {
-        require(_assets > 0, "CANNOT_WITHDRAW_ZERO_ASSETS");
-        require(availableAssets[_owner] >= _assets, "NOT_ENOUGH_AVAILABLE_ASSETS");
+        if (_assets == 0) { revert InvalidZeroAmount(); }
+        if (availableAssets[_owner] < _assets) { revert NotEnoughBalance(); }
         availableAssets[_owner] -= _assets;
         IERC20(auroraToken).safeTransfer(_receiver, _assets);
     }

@@ -41,7 +41,7 @@ async function displayLPStatus() {
   console.log("Aurora Token   : (%s) %s", auroraToken, compareWithEmoji(auroraToken, AURORA_TOKEN_ADDRESS));
 
   const fullyOperational = await LiquidityPoolContract.fullyOperational();
-  console.log("Fully Operatnal: %s", fullyOperational);
+  console.log("Fully Operational: %s", fullyOperational);
 
   const stAurBalance = await LiquidityPoolContract.stAurBalance();
   console.log("stAUR Balance  : %s stAUR", ethers.utils.formatEther(stAurBalance));

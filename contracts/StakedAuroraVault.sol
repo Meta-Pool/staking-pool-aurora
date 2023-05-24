@@ -30,18 +30,18 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
     mapping(address => bool) public accountWhitelist;
 
     modifier onlyManager() {
-        require(msg.sender == stakingManager, "ONLY_STAKING_MANAGER");
+        if (msg.sender != stakingManager) { revert Unauthorized(); }
         _;
     }
 
     modifier onlyFullyOperational() {
-        require(fullyOperational, "CONTRACT_IS_NOT_FULLY_OPERATIONAL");
+        if (!fullyOperational) { revert NotFullyOperational(); }
         _;
     }
 
     modifier checkWhitelist() {
-        if (enforceWhitelist) {
-            require(isWhitelisted(msg.sender), "ACCOUNT_IS_NOT_WHITELISTED");
+        if (enforceWhitelist && !isWhitelisted(msg.sender)) {
+            revert AccountNotWhitelisted();
         }
         _;
     }
@@ -56,11 +56,9 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
         ERC4626(IERC20(_asset))
         ERC20(_stAurName, _stAurSymbol)
     {
-        require(
-            _asset != address(0)
-                && _contractOperatorRole != address(0),
-            "INVALID_ZERO_ADDRESS"
-        );
+        if (_asset == address(0) || _contractOperatorRole == address(0)) {
+            revert InvalidZeroAddress();
+        }
         minDepositAmount = _minDepositAmount;
         enforceWhitelist = true;
 
@@ -75,8 +73,9 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
         address _stakingManager,
         address _liquidityPool
     ) external onlyRole(ADMIN_ROLE) {
-        require(liquidityPool == address(0) || stakingManager == address(0), "ALREADY_INITIALIZED");
-        require(_liquidityPool != address(0) || _stakingManager != address(0), "INVALID_ZERO_ADDRESS");
+        if (liquidityPool != address(0) || stakingManager != address(0)) { revert ContractAlreadyInitialized(); }
+        if (_stakingManager == address(0) || _liquidityPool == address(0)) { revert InvalidZeroAddress(); }
+
         stakingManager = _stakingManager;
         liquidityPool = _liquidityPool;
 
@@ -86,18 +85,20 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
         emit ContractInitialized(_stakingManager, _liquidityPool, msg.sender);
     }
 
+    ///tag:tested
     /// @dev In case of emergency 🛟, update the Manager contract.
     function updateStakingManager(address _stakingManager) external onlyRole(ADMIN_ROLE) {
-        require(_stakingManager != address(0), "INVALID_ZERO_ADDRESS");
-        require(stakingManager != address(0), "NOT_INITIALIZED");
+        if (_stakingManager == address(0)) { revert InvalidZeroAddress(); }
+        if (stakingManager == address(0)) { revert ContractNotInitialized(); }
         stakingManager = _stakingManager;
 
         emit NewManagerUpdate(_stakingManager, msg.sender);
     }
 
+    ///tag:tested
     function updateLiquidityPool(address _liquidityPool) external onlyRole(ADMIN_ROLE) {
-        require(_liquidityPool != address(0), "INVALID_ZERO_ADDRESS");
-        require(liquidityPool != address(0), "NOT_INITIALIZED");
+        if (_liquidityPool == address(0)) { revert InvalidZeroAddress(); }
+        if (liquidityPool == address(0)) { revert ContractNotInitialized(); }
         liquidityPool = _liquidityPool;
 
         emit NewLiquidityPoolUpdate(_liquidityPool, msg.sender);
@@ -112,12 +113,9 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
     /// @notice Use in case of emergency 🦺.
     /// @dev Check if the contract is initialized when the change is to true.
     function updateContractOperation(bool _isFullyOperational) public onlyRole(ADMIN_ROLE) {
-        if (_isFullyOperational) {
-            require(
-                liquidityPool != address(0) && stakingManager != address(0),
-                "CONTRACT_NOT_INITIALIZED"
-            );
-        }
+        if (_isFullyOperational
+                && (liquidityPool == address(0)
+                        || stakingManager == address(0))) { revert ContractNotInitialized(); }
         fullyOperational = _isFullyOperational;
 
         emit ContractUpdateOperation(_isFullyOperational, msg.sender);
@@ -141,7 +139,7 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
         address[] memory _accounts
     ) external onlyRole(OPERATOR_ROLE) {
         uint256 _totalAccounts = _accounts.length;
-        for (uint i = 0; i < _totalAccounts; i++) {
+        for (uint i = 0; i < _totalAccounts; ++i) {
             whitelistAccount(_accounts[i]);
         }
     }
@@ -156,7 +154,7 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
         address[] memory _accounts
     ) external onlyRole(OPERATOR_ROLE) {
         uint256 _totalAccounts = _accounts.length;
-        for (uint i = 0; i < _totalAccounts; i++) {
+        for (uint i = 0; i < _totalAccounts; ++i) {
             blacklistAccount(_accounts[i]);
         }
     }
@@ -179,7 +177,7 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
         uint256 _assets,
         address _receiver
     ) public override onlyFullyOperational checkWhitelist returns (uint256) {
-        require(_assets >= minDepositAmount, "LESS_THAN_MIN_DEPOSIT_AMOUNT");
+        if (_assets < minDepositAmount) { revert LessThanMinDeposit(); }
 
         uint256 shares = previewDeposit(_assets);
         _deposit(msg.sender, _receiver, _assets, shares);
@@ -192,7 +190,7 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
         address _receiver
     ) public override onlyFullyOperational checkWhitelist returns (uint256) {
         uint256 assets = previewMint(_shares);
-        require(assets >= minDepositAmount, "LESS_THAN_MIN_DEPOSIT_AMOUNT");
+        if (assets < minDepositAmount) { revert LessThanMinDeposit(); }
         _deposit(msg.sender, _receiver, assets, _shares);
 
         return assets;
@@ -219,7 +217,7 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
         address _receiver,
         address _owner
     ) public override onlyFullyOperational returns (uint256) {
-        require(_shares > 0, "CANNOT_REDEEM_ZERO_SHARES");
+        if (_shares == 0) { revert InvalidZeroAmount(); }
         if (msg.sender != _owner) {
             _spendAllowance(_owner, msg.sender, _shares);
         }
