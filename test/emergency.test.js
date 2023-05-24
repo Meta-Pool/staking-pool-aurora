@@ -47,7 +47,7 @@ describe("Emergency flow 🦺", function () {
 
       await expect(
         stakedAuroraVaultContract.connect(alice).redeem(aliceShares, alice.address, alice.address)
-      ).to.be.revertedWith("TOO_MANY_WITHDRAW_ORDERS");
+      ).to.be.revertedWithCustomError(stakingManagerContract, "MaxOrdersExceeded");
 
       // Move forward: From withdraw to pending.
       await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
@@ -193,7 +193,7 @@ describe("Emergency flow 🦺", function () {
 
       await expect(
         stakedAuroraVaultContract.connect(alice).redeem(aliceShares, alice.address, alice.address)
-      ).to.be.revertedWith("TOO_MANY_WITHDRAW_ORDERS");
+      ).to.be.revertedWithCustomError(stakingManagerContract, "MaxOrdersExceeded");
 
       // Move forward: From withdraw to pending.
       await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
@@ -306,17 +306,17 @@ describe("Emergency flow 🦺", function () {
       await auroraTokenContract.connect(alice).approve(stakedAuroraVaultContract.address, aliceDeposit);
       await expect(
         stakedAuroraVaultContract.connect(alice).deposit(aliceDeposit, alice.address)
-      ).to.be.revertedWith("CONTRACT_IS_NOT_FULLY_OPERATIONAL");
+      ).to.be.revertedWithCustomError(stakedAuroraVaultContract, "NotFullyOperational");
 
       await expect(
         stakedAuroraVaultContract.connect(alice).mint(
           ethers.BigNumber.from(1).mul(DECIMALS), alice.address)
-      ).to.be.revertedWith("CONTRACT_IS_NOT_FULLY_OPERATIONAL");
+      ).to.be.revertedWithCustomError(stakedAuroraVaultContract, "NotFullyOperational");
 
       await expect(
         stakedAuroraVaultContract.connect(alice).redeem(
           await stakedAuroraVaultContract.balanceOf(alice.address), alice.address, alice.address)
-      ).to.be.revertedWith("CONTRACT_IS_NOT_FULLY_OPERATIONAL");
+      ).to.be.revertedWithCustomError(stakedAuroraVaultContract, "NotFullyOperational");
 
       // Move forward: From withdraw to pending.
       await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());

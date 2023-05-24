@@ -305,7 +305,7 @@ async function depositPoolFixture() {
 
   await expect(
     stakedAuroraVaultContract.connect(alice).deposit(aliceDeposit, alice.address)
-  ).to.be.revertedWith("ACCOUNT_IS_NOT_WHITELISTED");
+  ).to.be.revertedWithCustomError(stakedAuroraVaultContract, "AccountNotWhitelisted");
 
   await stakedAuroraVaultContract.connect(operator).whitelistAccount(alice.address);
   await stakedAuroraVaultContract.connect(alice).deposit(aliceDeposit, alice.address);

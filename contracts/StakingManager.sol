@@ -292,6 +292,7 @@ contract StakingManager is AccessControl, IStakingManager {
         emit AltWithdraw(msg.sender, _receiver, msg.sender, _assets);
     }
 
+    ///tag:tested
     /// @notice Unstaking Flow - Ran by ROBOT 🤖
     ///   1. Withdraw pending AURORA from depositors.
     ///   2. Move previous pending amount to Available.
@@ -319,6 +320,7 @@ contract StakingManager is AccessControl, IStakingManager {
         emit CleanOrdersQueue(_nextCleanOrderQueue);
     }
 
+    ///tag:tested
     function createWithdrawOrder(
         uint256 _assets,
         address _receiver
@@ -419,6 +421,7 @@ contract StakingManager is AccessControl, IStakingManager {
         return numerator / denominator;
     }
 
+    ///tag:tested
     function _transferAurora(
         address _receiver,
         address _owner,

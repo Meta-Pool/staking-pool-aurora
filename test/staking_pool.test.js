@@ -230,12 +230,12 @@ describe("Staking Pool AURORA", function () {
       // First, by direct deposit.
       await expect(
         stakedAuroraVaultContract.connect(alice).deposit(amountToDeposit, alice.address)
-      ).to.be.revertedWith("LESS_THAN_MIN_DEPOSIT_AMOUNT");
+      ).to.be.revertedWithCustomError(stakedAuroraVaultContract, "LessThanMinDeposit");
 
       // Then, by minting shares.
       await expect(
         stakedAuroraVaultContract.connect(alice).mint(amountToDeposit, alice.address)
-      ).to.be.revertedWith("LESS_THAN_MIN_DEPOSIT_AMOUNT");
+      ).to.be.revertedWithCustomError(stakedAuroraVaultContract, "LessThanMinDeposit");
     });
 
     /// For v0.1.1, the `burn` function was removed from the contract.
@@ -355,7 +355,7 @@ describe("Staking Pool AURORA", function () {
 
       await expect(
         stakingManagerContract.cleanOrdersQueue()
-      ).to.be.revertedWith("WAIT_FOR_NEXT_CLEAN_ORDER");
+      ).to.be.revertedWithCustomError(stakingManagerContract, "WaitForNextCleanOrders");
       expect(await stakingManagerContract.getPendingOrderAssets(alice.address)).to.equal(0);
       expect(await stakingManagerContract.getPendingOrderAssets(bob.address)).to.equal(0);
       expect(await stakingManagerContract.getPendingOrderAssets(carl.address)).to.equal(0);
@@ -705,7 +705,7 @@ describe("Staking Pool AURORA", function () {
       const alicePendingAssets = await stakingManagerContract.getPendingOrderAssets(alice.address);
       await expect(
         stakedAuroraVaultContract.connect(alice).withdraw(alicePendingAssets, alice.address, alice.address)
-      ).to.be.revertedWith("NOT_ENOUGH_AVAILABLE_ASSETS");
+      ).to.be.revertedWithCustomError(stakingManagerContract, "NotEnoughBalance");
 
       // Move forward: From pending to available.
       await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
@@ -715,13 +715,14 @@ describe("Staking Pool AURORA", function () {
       const aliceAvailableAssets = (await stakingManagerContract.getAvailableAssets(alice.address));
       await expect(
         stakedAuroraVaultContract.connect(alice).withdraw(aliceAvailableAssets.add(1), alice.address, alice.address)
-      ).to.be.revertedWith("NOT_ENOUGH_AVAILABLE_ASSETS");
+      ).to.be.revertedWithCustomError(stakingManagerContract, "NotEnoughBalance");
     });
   });
 
   describe("Creating Withdraw Orders", function () {
     it("Should FAIL when creating more orders than max.", async function () {
       const {
+        stakingManagerContract,
         stakedAuroraVaultContract,
         alice,
         spambots
@@ -738,7 +739,7 @@ describe("Staking Pool AURORA", function () {
       const aliceShares = await stakedAuroraVaultContract.balanceOf(alice.address);
       await expect(
         stakedAuroraVaultContract.connect(alice).redeem(aliceShares, alice.address, alice.address)
-      ).to.be.revertedWith("TOO_MANY_WITHDRAW_ORDERS"); 
+      ).to.be.revertedWithCustomError(stakingManagerContract, "MaxOrdersExceeded");
 
       // Burned 🔥 tokens were reverted back to Alice.
       expect(await stakedAuroraVaultContract.balanceOf(alice.address)).to.equal(aliceShares);
@@ -763,7 +764,7 @@ describe("Staking Pool AURORA", function () {
       const aliceShares = await stakedAuroraVaultContract.balanceOf(alice.address);
       await expect(
         stakedAuroraVaultContract.connect(alice).redeem(aliceShares, alice.address, alice.address)
-      ).to.be.revertedWith("TOO_MANY_WITHDRAW_ORDERS"); 
+      ).to.be.revertedWithCustomError(stakingManagerContract, "MaxOrdersExceeded");
 
       const spamShares = await stakedAuroraVaultContract.balanceOf(spambots[0].address);
       const currentWithdrawOrder = await stakingManagerContract.getWithdrawOrderAssets(spambots[0].address);
@@ -789,7 +790,7 @@ describe("Staking Pool AURORA", function () {
       const zero = ethers.BigNumber.from(0);
       await expect(
         stakedAuroraVaultContract.connect(alice).redeem(zero, alice.address, alice.address)
-      ).to.be.revertedWith("CANNOT_REDEEM_ZERO_SHARES");
+      ).to.be.revertedWithCustomError(stakingManagerContract, "InvalidZeroAmount");
       expect(await stakingManagerContract.getTotalWithdrawOrders()).to.equal(0);
     });
   });
@@ -1029,7 +1030,7 @@ describe("Staking Pool AURORA", function () {
       await depositor00Contract.connect(reward_collector).moveRewardsToPending(1);
       await expect(
         depositor00Contract.connect(reward_collector).withdrawRewards(1, alice.address)
-      ).to.be.revertedWith("INVALID_RELEASE_TIME");
+      ).to.be.revertedWith("INVALID_RELEASE_TIME"); // NOTE: This error comes from AURORA
 
       // Move forward: From pending to available.
       await time.increaseTo(await depositor00Contract.getReleaseTime(1));
@@ -1037,12 +1038,12 @@ describe("Staking Pool AURORA", function () {
       expect(await centauriTokenContract.balanceOf(depositor00Contract.address)).to.equal(0);
       await depositor00Contract.connect(reward_collector).withdrawRewards(1, alice.address);
 
-      const transferedRewards = await centauriTokenContract.balanceOf(depositor00Contract.address);
-      expect(transferedRewards).to.be.greaterThan(0);
+      const transferredRewards = await centauriTokenContract.balanceOf(depositor00Contract.address);
+      expect(transferredRewards).to.be.greaterThan(0);
 
       expect(await centauriTokenContract.balanceOf(alice.address)).to.equal(0);
-      await centauriTokenContract.connect(alice).transferFrom(depositor00Contract.address, alice.address, transferedRewards);
-      expect(await centauriTokenContract.balanceOf(alice.address)).to.equal(transferedRewards);
+      await centauriTokenContract.connect(alice).transferFrom(depositor00Contract.address, alice.address, transferredRewards);
+      expect(await centauriTokenContract.balanceOf(alice.address)).to.equal(transferredRewards);
     });
   });
 

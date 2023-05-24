@@ -172,6 +172,7 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
         return IStakingManager(stakingManager).totalAssets();
     }
 
+    ///tag:tested
     /// @dev Same as ERC-4626, but adding evaluation of min deposit amount.
     function deposit(
         uint256 _assets,
@@ -185,6 +186,7 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
         return shares;
     }
 
+    ///tag:tested
     function mint(
         uint256 _shares,
         address _receiver
