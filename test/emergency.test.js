@@ -64,9 +64,8 @@ describe("Emergency flow 🦺", function () {
       const nextSpamBalance = (await auroraTokenContract.balanceOf(spambots[0].address)).add(
         await stakingManagerContract.getAvailableAssets(spambots[0].address)
       );
-      await stakedAuroraVaultContract.connect(spambots[0]).withdraw(
+      await stakedAuroraVaultContract.connect(spambots[0]).completeDelayUnstake(
         await stakingManagerContract.getAvailableAssets(spambots[0].address),
-        spambots[0].address,
         spambots[0].address
       );
       expect(await auroraTokenContract.balanceOf(spambots[0].address)).to.equal(nextSpamBalance);
@@ -78,9 +77,8 @@ describe("Emergency flow 🦺", function () {
       const nextAliceBalance = (await auroraTokenContract.balanceOf(alice.address)).add(
         await stakingManagerContract.getAvailableAssets(alice.address)
       );
-      await stakedAuroraVaultContract.connect(alice).withdraw(
+      await stakedAuroraVaultContract.connect(alice).completeDelayUnstake(
         await stakingManagerContract.getAvailableAssets(alice.address),
-        alice.address,
         alice.address
       );
       expect(await auroraTokenContract.balanceOf(alice.address)).to.equal(nextAliceBalance);
@@ -88,9 +86,8 @@ describe("Emergency flow 🦺", function () {
       const nextBobBalance = (await auroraTokenContract.balanceOf(bob.address)).add(
         await stakingManagerContract.getAvailableAssets(bob.address)
       );
-      await stakedAuroraVaultContract.connect(bob).withdraw(
+      await stakedAuroraVaultContract.connect(bob).completeDelayUnstake(
         await stakingManagerContract.getAvailableAssets(bob.address),
-        bob.address,
         bob.address
       );
       expect(await auroraTokenContract.balanceOf(bob.address)).to.equal(nextBobBalance);
@@ -98,9 +95,8 @@ describe("Emergency flow 🦺", function () {
       const nextCarlBalance = (await auroraTokenContract.balanceOf(carl.address)).add(
         await stakingManagerContract.getAvailableAssets(carl.address)
       );
-      await stakedAuroraVaultContract.connect(carl).withdraw(
+      await stakedAuroraVaultContract.connect(carl).completeDelayUnstake(
         await stakingManagerContract.getAvailableAssets(carl.address),
-        carl.address,
         carl.address
       );
       expect(await auroraTokenContract.balanceOf(carl.address)).to.equal(nextCarlBalance);
@@ -211,9 +207,8 @@ describe("Emergency flow 🦺", function () {
       const nextSpamBalance = (await auroraTokenContract.balanceOf(spambots[0].address)).add(
         await stakingManagerContract.getAvailableAssets(spambots[0].address)
       );
-      await stakedAuroraVaultContract.connect(spambots[0]).withdraw(
+      await stakedAuroraVaultContract.connect(spambots[0]).completeDelayUnstake(
         await stakingManagerContract.getAvailableAssets(spambots[0].address),
-        spambots[0].address,
         spambots[0].address
       );
       expect(await auroraTokenContract.balanceOf(spambots[0].address)).to.equal(nextSpamBalance);
@@ -225,9 +220,8 @@ describe("Emergency flow 🦺", function () {
       const nextAliceBalance = (await auroraTokenContract.balanceOf(alice.address)).add(
         await stakingManagerContract.getAvailableAssets(alice.address)
       );
-      await stakedAuroraVaultContract.connect(alice).withdraw(
+      await stakedAuroraVaultContract.connect(alice).completeDelayUnstake(
         await stakingManagerContract.getAvailableAssets(alice.address),
-        alice.address,
         alice.address
       );
       expect(await auroraTokenContract.balanceOf(alice.address)).to.equal(nextAliceBalance);
@@ -235,9 +229,8 @@ describe("Emergency flow 🦺", function () {
       const nextBobBalance = (await auroraTokenContract.balanceOf(bob.address)).add(
         await stakingManagerContract.getAvailableAssets(bob.address)
       );
-      await stakedAuroraVaultContract.connect(bob).withdraw(
+      await stakedAuroraVaultContract.connect(bob).completeDelayUnstake(
         await stakingManagerContract.getAvailableAssets(bob.address),
-        bob.address,
         bob.address
       );
       expect(await auroraTokenContract.balanceOf(bob.address)).to.equal(nextBobBalance);
@@ -245,9 +238,8 @@ describe("Emergency flow 🦺", function () {
       const nextCarlBalance = (await auroraTokenContract.balanceOf(carl.address)).add(
         await stakingManagerContract.getAvailableAssets(carl.address)
       );
-      await stakedAuroraVaultContract.connect(carl).withdraw(
+      await stakedAuroraVaultContract.connect(carl).completeDelayUnstake(
         await stakingManagerContract.getAvailableAssets(carl.address),
-        carl.address,
         carl.address
       );
       expect(await auroraTokenContract.balanceOf(carl.address)).to.equal(nextCarlBalance);
@@ -329,9 +321,8 @@ describe("Emergency flow 🦺", function () {
       const nextBobBalance = (await auroraTokenContract.balanceOf(bob.address)).add(
         await stakingManagerContract.getAvailableAssets(bob.address)
       );
-      await stakedAuroraVaultContract.connect(bob).withdraw(
+      await stakedAuroraVaultContract.connect(bob).completeDelayUnstake(
         await stakingManagerContract.getAvailableAssets(bob.address),
-        bob.address,
         bob.address
       );
       expect(await auroraTokenContract.balanceOf(bob.address)).to.equal(nextBobBalance);
@@ -424,9 +415,8 @@ describe("Emergency flow 🦺", function () {
       await stakingManagerContract.cleanOrdersQueue();
 
       // All good for alice.
-      await stakedAuroraVaultContract.connect(alice).withdraw(
+      await stakedAuroraVaultContract.connect(alice).completeDelayUnstake(
         await stakingManagerContract.getAvailableAssets(alice.address),
-        alice.address,
         alice.address
       );
 
@@ -442,9 +432,8 @@ describe("Emergency flow 🦺", function () {
 
       // Too late for bob.
       await expect(
-        stakedAuroraVaultContract.connect(bob).withdraw(
+        stakedAuroraVaultContract.connect(bob).completeDelayUnstake(
           await stakingManagerContract.getAvailableAssets(bob.address),
-          bob.address,
           bob.address
         )
       ).to.be.reverted;

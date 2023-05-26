@@ -199,46 +199,48 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
         return assets;
     }
 
-    /// The delay-unstake process starts from either the withdraw or redeem function.
-    /// After the cooling period, funds can be collected using completeDelayUnstake.
-
-    /// ERC4626 ROUTER: TODO§1 convert into Redeem and use new function for withdraw
-    /// completeDelayUnstake
-    /// @notice It can only be called after the redeem of the stAUR and the waiting period.
-    /// @dev The withdraw can only be run by the owner, that's why the 3rd param is not required.
-    /// @return Zero shares were burned during the withdraw.
+    /// @notice Delay-unstake process starts from either the withdraw or redeem function.
+    /// After the cooling period, funds can be collected using completeDelayUnstake().
+    /// @dev Starts the delay-unstake.
     function withdraw(
         uint256 _assets,
         address _receiver,
-        address
+        address _owner
     ) public override returns (uint256) {
-        IStakingManager(stakingManager).transferAurora(_receiver, msg.sender, _assets);
+        if (_assets == 0) { revert InvalidZeroAmount(); }
+        require(_assets <= maxWithdraw(_owner), "ERC4626: withdraw more than max");
 
-        emit Withdraw(msg.sender, _receiver, msg.sender, _assets, 0);
+        uint256 shares = previewWithdraw(_assets);
+        _withdraw(msg.sender, _receiver, _owner, _assets, shares);
 
-        return 0;
+        return shares;
     }
 
     /// @notice The redeem fn starts the release of tokens from the Aurora Plus contract.
+    /// @dev Starts the delay-unstake.
     function redeem(
         uint256 _shares,
         address _receiver,
         address _owner
     ) public override onlyFullyOperational returns (uint256) {
         if (_shares == 0) { revert InvalidZeroAmount(); }
-        if (msg.sender != _owner) {
-            _spendAllowance(_owner, msg.sender, _shares);
-        }
+        require(_shares <= maxRedeem(_owner), "ERC4626: redeem more than max");
 
-        // IMPORTANT NOTE: run the burn 🔥 AFTER the calculations.
         uint256 assets = previewRedeem(_shares);
-        _burn(_owner, _shares);
-
-        IStakingManager(stakingManager).createWithdrawOrder(assets, _receiver);
-
-        emit WithdrawOrderCreated(msg.sender, _receiver, _owner, _shares, assets);
+        _withdraw(msg.sender, _receiver, _owner, assets, _shares);
 
         return assets;
+    }
+
+    /// @notice It can only be called after the withdraw/redeem of the stAUR and the
+    /// waiting period.
+    function completeDelayUnstake(
+        uint256 _assets,
+        address _receiver
+    ) public {
+        IStakingManager(stakingManager).transferAurora(_receiver, msg.sender, _assets);
+
+        emit Withdraw(msg.sender, _receiver, msg.sender, _assets, 0);
     }
 
     function _deposit(
@@ -267,5 +269,22 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
         }
 
         emit Deposit(_caller, _receiver, _assets, _shares);
+    }
+
+    function _withdraw(
+        address _caller,
+        address _receiver,
+        address _owner,
+        uint256 _assets,
+        uint256 _shares
+    ) internal override {
+        if (_caller != _owner) {
+            _spendAllowance(_owner, _caller, _shares);
+        }
+
+        _burn(_owner, _shares);
+        IStakingManager(stakingManager).createWithdrawOrder(_assets, _receiver);
+
+        emit WithdrawOrderCreated(msg.sender, _receiver, _owner, _shares, _assets);
     }
 }
