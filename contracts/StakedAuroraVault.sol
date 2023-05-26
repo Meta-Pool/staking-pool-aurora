@@ -168,6 +168,7 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
         return convertToAssets(ONE_AURORA);
     }
 
+    /// @notice The total assets are the sum of the balance from all Depositors.
     function totalAssets() public view override returns (uint256) {
         return IStakingManager(stakingManager).totalAssets();
     }
@@ -198,6 +199,11 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
         return assets;
     }
 
+    /// The delay-unstake process starts from either the withdraw or redeem function.
+    /// After the cooling period, funds can be collected using completeDelayUnstake.
+
+    /// ERC4626 ROUTER: TODO§1 convert into Redeem and use new function for withdraw
+    /// completeDelayUnstake
     /// @notice It can only be called after the redeem of the stAUR and the waiting period.
     /// @dev The withdraw can only be run by the owner, that's why the 3rd param is not required.
     /// @return Zero shares were burned during the withdraw.

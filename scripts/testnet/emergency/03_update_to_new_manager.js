@@ -5,7 +5,7 @@ const {
   STAKED_AURORA_VAULT_ADDRESS,
   NEW_MANAGER_ADDRESS,
   generateAccounts
-} = require("./config");
+} = require("./_config");
 const { getCurrentTimestamp, getDepositorsArray } = require("../utils");
 
 console.log("Mr Robot 🤖 - EMERGENCY MODE 🔥 - Step 03");

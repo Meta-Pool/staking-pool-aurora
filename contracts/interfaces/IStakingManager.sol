@@ -9,9 +9,12 @@ interface IStakingManager {
     event NewDepositorAdded(address _depositor, address _sender);
     event UpdateProcessWithdrawOrders(bool _isProcessStopped, address _sender);
 
+    error AvobeMaxOrders();
+    error BellowMaxOrders();
     error BelowCurrentLength();
     error DepositorsLimitReached();
     error InvalidChange();
+    error InvalidIndex();
     error InvalidZeroAddress();
     error InvalidZeroAmount();
     error MaxOrdersExceeded(uint256 maxOrders);
@@ -24,7 +27,6 @@ interface IStakingManager {
     function alternativeWithdraw(uint256 _assets, address _receiver) external;
     function auroraStaking() external view returns (address);
     function auroraToken() external view returns (address);
-    function changeMaxDepositors(uint256 _maxDepositors) external;
     function changeMaxWithdrawOrders(uint256 _maxWithdrawOrders) external;
     function cleanOrdersQueue() external;
     function createWithdrawOrder(uint256 _assets, address _receiver) external;

@@ -54,7 +54,6 @@ contract DeploymentHelper is Test {
             address(stakedAuroraVault),
             address(auroraStaking),
             OPERATOR,
-            50,
             50
         );
         depositor = new Depositor(

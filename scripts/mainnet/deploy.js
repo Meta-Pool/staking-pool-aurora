@@ -3,7 +3,6 @@ const { DECIMALS } = require("./_config");
 async function main() {
   // stAUR Vault and Liquidity Pool Params
   const MAX_WITHDRAW_ORDERS = 100;
-  const MAX_DEPOSITORS = 3;
   const MIN_DEPOSIT_AMOUNT = ethers.BigNumber.from(1).mul(DECIMALS);
   const SWAP_FEE_BASIS_POINTS = 200;            // 2.00%
   const LIQ_PROV_FEE_CUT_BASIS_POINTS = 8000;   // 80.00%
@@ -41,8 +40,7 @@ async function main() {
     stakedAuroraVaultContract.address,
     AURORA_PLUS_ADDRESS,
     OPERATOR_ACCOUNT.address,
-    MAX_WITHDRAW_ORDERS,
-    MAX_DEPOSITORS
+    MAX_WITHDRAW_ORDERS
   );
   await stakingManagerContract.deployed();
   console.log("       ...done in %s!", stakingManagerContract.address);

@@ -45,6 +45,14 @@ contract StakingManager is AccessControl, IStakingManager {
     /// @dev 1 Hour of safety buffer before the Depositors can withdraw.
     uint256 public constant SAFETY_BUFFER = 3_600;
 
+    /// @dev Safe value to aviod DOS attack.
+    /// The depositors and withdrawOrders arrays need to be looped.
+    /// We enforce limits to the size of this two arrays.
+    /// TODO: Test this values at extreme!
+    uint256 public constant MAX_MAX_WITHDRAW_ORDERS = 200;
+    uint256 public constant MIN_MAX_WITHDRAW_ORDERS = 50;
+    uint256 public constant MAX_DEPOSITORS = 20;
+
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
 
@@ -77,23 +85,18 @@ contract StakingManager is AccessControl, IStakingManager {
 
     mapping(address => uint256) availableAssets;
 
-    /// @dev The depositors and withdrawOrders arrays need to be looped.
-    /// @dev We enforce limits to the size of this two arrays.
     uint256 maxWithdrawOrders;
-    uint256 maxDepositors;
 
     modifier onlyStAurVault() {
         if (msg.sender != stAurVault) { revert Unauthorized(); }
         _;
     }
 
-
     constructor(
         address _stAurVault,
         address _auroraStaking,
         address _contractOperatorRole,
-        uint256 _maxWithdrawOrders,
-        uint256 _maxDepositors
+        uint256 _maxWithdrawOrders
     ) {
         if (_stAurVault == address(0)
                 || _auroraStaking == address(0)
@@ -104,7 +107,6 @@ contract StakingManager is AccessControl, IStakingManager {
         auroraStaking = _auroraStaking;
         auroraToken = IERC4626(_stAurVault).asset();
         maxWithdrawOrders = _maxWithdrawOrders;
-        maxDepositors = _maxDepositors;
         nextCleanOrderQueue = block.timestamp;
 
         _grantRole(ADMIN_ROLE, msg.sender);
@@ -115,10 +117,11 @@ contract StakingManager is AccessControl, IStakingManager {
     receive() external payable {}
 
     ///tag:tested
+    /// TODO: ⚠️ Forze NO duplicates.
     function insertDepositor(
         address _depositor
     ) external onlyRole(ADMIN_ROLE) {
-        if (getDepositorsLength() >= maxDepositors) { revert DepositorsLimitReached(); }
+        if (getDepositorsLength() >= MAX_DEPOSITORS) { revert DepositorsLimitReached(); }
         depositors.push(_depositor);
         nextDepositor = _depositor;
         _updateDepositorShares(_depositor);
@@ -126,21 +129,13 @@ contract StakingManager is AccessControl, IStakingManager {
         emit NewDepositorAdded(_depositor, msg.sender);
     }
 
-    function changeMaxDepositors(
-        uint256 _maxDepositors
-    ) external onlyRole(OPERATOR_ROLE) {
-        if (_maxDepositors == maxDepositors) { revert InvalidChange(); }
-        if (_maxDepositors < getDepositorsLength()) { revert BelowCurrentLength(); }
-        maxDepositors = _maxDepositors;
-
-        emit MaxDepositorsUpdate(_maxDepositors, msg.sender);
-    }
-
     function changeMaxWithdrawOrders(
         uint256 _maxWithdrawOrders
     ) external onlyRole(OPERATOR_ROLE) {
         if (_maxWithdrawOrders == maxWithdrawOrders) { revert InvalidChange(); }
         if (_maxWithdrawOrders < getTotalWithdrawOrders()) { revert BelowCurrentLength(); }
+        if (_maxWithdrawOrders > MAX_MAX_WITHDRAW_ORDERS) { revert AvobeMaxOrders(); }
+        if (_maxWithdrawOrders < MIN_MAX_WITHDRAW_ORDERS) { revert BellowMaxOrders(); }
         maxWithdrawOrders = _maxWithdrawOrders;
 
         emit MaxWithdrawOrdersUpdate(_maxWithdrawOrders, msg.sender);

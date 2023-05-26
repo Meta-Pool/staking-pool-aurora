@@ -218,11 +218,11 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
 
       await expect(
         liquidityPoolContract.mint(10, alice.address)
-      ).to.be.revertedWith("UNAVAILABLE_FUNCTION");
+      ).to.be.revertedWithCustomError(liquidityPoolContract, "UnavailableFunction");
 
       await expect(
         liquidityPoolContract.withdraw(10, alice.address, alice.address)
-      ).to.be.revertedWith("UNAVAILABLE_FUNCTION");
+      ).to.be.revertedWithCustomError(liquidityPoolContract, "UnavailableFunction");
     });
 
     it("Should EMPTY 🫗 the Liquidity Pool.", async function () {
@@ -262,7 +262,7 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
         0,
         liquidity_provider.address,
         liquidity_provider.address
-      )).to.be.revertedWith("CANNOT_REDEEM_ZERO_SHARES");
+      )).to.be.revertedWithCustomError(liquidityPoolContract, "InvalidZeroAmount");
 
       const auroraBalanceTracker = ethers.BigNumber.from(1_000_000).mul(DECIMALS);
       expect(await liquidityPoolContract.auroraBalance()).to.equal(auroraBalanceTracker);

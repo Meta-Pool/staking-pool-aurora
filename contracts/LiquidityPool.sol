@@ -172,6 +172,17 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
         return _shares;
     }
 
+    /// @notice Front-end can preview the amount that will be redeemed.
+    function calculatePreviewRedeem(uint256 _shares) public view returns (uint256, uint256) {
+        // Core Calculations.
+        uint256 ONE_AURORA = 1 ether;
+        uint256 poolPercentage = (_shares * ONE_AURORA) / totalSupply();
+        uint256 auroraToSend = (poolPercentage * auroraBalance) / ONE_AURORA;
+        uint256 stAurToSend = (poolPercentage * stAurBalance) / ONE_AURORA;
+
+        return (auroraToSend, stAurToSend);
+    }
+
     /// @notice The redeem flow is used to **Remove** liquidity from the Liquidity Pool.
     /// @return ONLY the amount of base assets (AURORA token) that will be returned.
     /// However, the liquidity provider expects to receive stAUR tokens as well,
@@ -185,34 +196,29 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
         if (msg.sender != _owner) {
             _spendAllowance(_owner, msg.sender, _shares);
         }
+        (uint256 _auroraToSend, uint256 _stAurToSend) = calculatePreviewRedeem(_shares);
 
-        // Core Calculations.
-        uint256 ONE_AURORA = 1 ether;
-        uint256 poolPercentage = (_shares * ONE_AURORA) / totalSupply();
-        uint256 auroraToSend = (poolPercentage * auroraBalance) / ONE_AURORA;
-        uint256 stAurToSend = (poolPercentage * stAurBalance) / ONE_AURORA;
-
-        auroraBalance -= auroraToSend;
-        stAurBalance -= stAurToSend;
+        auroraBalance -= _auroraToSend;
+        stAurBalance -= _stAurToSend;
 
         // IMPORTANT NOTE: run the burn 🔥 AFTER the calculations.
         _burn(msg.sender, _shares);
 
         // Send Aurora tokens.
-        IERC20(asset()).safeTransfer(_receiver, auroraToSend);
+        IERC20(asset()).safeTransfer(_receiver, _auroraToSend);
 
         // Then, send stAUR tokens.
-        IStakedAuroraVault(stAurVault).safeTransfer(_receiver, stAurToSend);
+        IStakedAuroraVault(stAurVault).safeTransfer(_receiver, _stAurToSend);
 
         emit RemoveLiquidity(
             msg.sender,
             _receiver,
             _owner,
             _shares,
-            auroraToSend,
-            stAurToSend
+            _auroraToSend,
+            _stAurToSend
         );
-        return auroraToSend;
+        return _auroraToSend;
     }
 
     /// @dev Use deposit fn instead.

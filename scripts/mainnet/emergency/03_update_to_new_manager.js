@@ -5,7 +5,7 @@ const {
   STAKED_AURORA_VAULT_ADDRESS,
   NEW_MANAGER_ADDRESS,
   generateAccounts
-} = require("./config");
+} = require("./_config");
 const { getCurrentTimestamp, getDepositorsArray } = require("../utils");
 
 console.log("Mr Robot 🤖 - EMERGENCY MODE 🔥 - Step 03");
@@ -44,8 +44,6 @@ async function main() {
     console.log("DEPOSITOR %s: %s\n", i, requests[i]);
   }
 }
-
-
 
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.

@@ -21,7 +21,6 @@ const AURORA = ethers.BigNumber.from(1).mul(ethers.BigNumber.from(10).pow(18));
 const EQUAL_SPAMBOTS_WITHDRAW_ORDERS = 20;
 const TOTAL_SPAMBOTS = EQUAL_SPAMBOTS_WITHDRAW_ORDERS;
 const MAX_WITHDRAW_ORDERS = EQUAL_SPAMBOTS_WITHDRAW_ORDERS;
-const MAX_DEPOSITORS = 3;
 
 // CONTRACT ROLES
 const ADMIN_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('ADMIN_ROLE'));
@@ -183,8 +182,7 @@ async function deployPoolFixture() {
     stakedAuroraVaultContract.address,
     auroraStakingContract.address,
     operator.address,
-    MAX_WITHDRAW_ORDERS,
-    MAX_DEPOSITORS
+    MAX_WITHDRAW_ORDERS
   );
   await stakingManagerContract.deployed();
 
@@ -519,7 +517,6 @@ module.exports = {
   DECIMALS,
   TOTAL_SPAMBOTS,
   MAX_WITHDRAW_ORDERS,
-  MAX_DEPOSITORS,
   ADMIN_ROLE,
   DEPOSITORS_OWNER_ROLE,
   OPERATOR_ROLE,

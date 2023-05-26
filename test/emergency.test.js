@@ -435,7 +435,7 @@ describe("Emergency flow 🦺", function () {
           await stakingManagerContract.getAvailableAssets(bob.address),
           bob.address
         )
-      ).to.be.revertedWith("VAULT_AND_MANAGER_STILL_ATTACHED");
+      ).to.be.revertedWithCustomError(stakingManagerContract, "VaultAndManagerStillAttached");
 
       // DETACHING ✂️ Vault and Manager. // Now the owner address is the Manager.
       await stakedAuroraVaultContract.connect(owner).updateStakingManager(owner.address);
