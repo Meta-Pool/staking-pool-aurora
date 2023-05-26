@@ -116,12 +116,13 @@ contract StakingManager is AccessControl, IStakingManager {
 
     receive() external payable {}
 
-    ///tag:tested
-    /// TODO: ⚠️ Forze NO duplicates.
+    /// @notice Depositors can only be inserted and not removed because Depositors
+    /// hold users funds. Instead, we hard-code the MAX_DEPOSITORS value.
     function insertDepositor(
         address _depositor
     ) external onlyRole(ADMIN_ROLE) {
         if (getDepositorsLength() >= MAX_DEPOSITORS) { revert DepositorsLimitReached(); }
+        if (depositorExists(_depositor)) { revert DepositorExists(); }
         depositors.push(_depositor);
         nextDepositor = _depositor;
         _updateDepositorShares(_depositor);
@@ -213,7 +214,7 @@ contract StakingManager is AccessControl, IStakingManager {
         return depositorShares[_depositor];
     }
 
-    function depositorExists(address _depositor) external view returns (bool) {
+    function depositorExists(address _depositor) public view returns (bool) {
         uint256 _totalDepositors = getDepositorsLength();
         for (uint i = 0; i < _totalDepositors; ++i) {
             if (depositors[i] == _depositor) {
@@ -287,7 +288,6 @@ contract StakingManager is AccessControl, IStakingManager {
         emit AltWithdraw(msg.sender, _receiver, msg.sender, _assets);
     }
 
-    ///tag:tested
     /// @notice Unstaking Flow - Ran by ROBOT 🤖
     ///   1. Withdraw pending AURORA from depositors.
     ///   2. Move previous pending amount to Available.
@@ -297,6 +297,7 @@ contract StakingManager is AccessControl, IStakingManager {
     /// @dev In case of emergency 🛟,
     ///   the withdraw-orders process could be temporally stopped (3, 4, 5 steps).
     function cleanOrdersQueue() public {
+        /// TODO: Evaluate GAS
         if (getDepositorsLength() == 0) { revert NoDepositors(); }
         if (nextCleanOrderQueue > block.timestamp) { revert WaitForNextCleanOrders(); }
 
@@ -315,7 +316,7 @@ contract StakingManager is AccessControl, IStakingManager {
         emit CleanOrdersQueue(_nextCleanOrderQueue);
     }
 
-    ///tag:tested
+    /// @notice stAUR vault calls this function when a user ask for a withdraw/redeem.
     function createWithdrawOrder(
         uint256 _assets,
         address _receiver
@@ -416,7 +417,6 @@ contract StakingManager is AccessControl, IStakingManager {
         return numerator / denominator;
     }
 
-    ///tag:tested
     function _transferAurora(
         address _receiver,
         address _owner,

@@ -85,7 +85,6 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
         emit ContractInitialized(_stakingManager, _liquidityPool, msg.sender);
     }
 
-    ///tag:tested
     /// @dev In case of emergency 🛟, update the Manager contract.
     function updateStakingManager(address _stakingManager) external onlyRole(ADMIN_ROLE) {
         if (_stakingManager == address(0)) { revert InvalidZeroAddress(); }
@@ -95,7 +94,6 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
         emit NewManagerUpdate(_stakingManager, msg.sender);
     }
 
-    ///tag:tested
     function updateLiquidityPool(address _liquidityPool) external onlyRole(ADMIN_ROLE) {
         if (_liquidityPool == address(0)) { revert InvalidZeroAddress(); }
         if (liquidityPool == address(0)) { revert ContractNotInitialized(); }
@@ -173,7 +171,6 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
         return IStakingManager(stakingManager).totalAssets();
     }
 
-    ///tag:tested
     /// @dev Same as ERC-4626, but adding evaluation of min deposit amount.
     function deposit(
         uint256 _assets,
@@ -187,7 +184,6 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
         return shares;
     }
 
-    ///tag:tested
     function mint(
         uint256 _shares,
         address _receiver

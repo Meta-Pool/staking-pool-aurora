@@ -113,6 +113,7 @@ async function deployPoolFixture() {
   const Depositor = await ethers.getContractFactory("Depositor");
   const StakedAuroraVault = await ethers.getContractFactory("StakedAuroraVault");
   const LiquidityPool = await ethers.getContractFactory("LiquidityPool");
+  const Router = await ethers.getContractFactory("ERC4626Router");
 
   const [
     owner,
@@ -146,7 +147,7 @@ async function deployPoolFixture() {
   );
   await centauriTokenContract.deployed();
 
-  // Sharing total suply with Bob and Carl.
+  // Sharing total supply with Bob and Carl.
   const splitSupply = ethers.BigNumber.from(3_000_000).mul(DECIMALS);
   await auroraTokenContract.connect(alice).transfer(bob.address, splitSupply);
   await auroraTokenContract.connect(alice).transfer(carl.address, splitSupply);
@@ -241,6 +242,15 @@ async function deployPoolFixture() {
   await stakedAuroraVaultContract.connect(operator).whitelistAccount(bob.address);
   await stakedAuroraVaultContract.connect(operator).whitelistAccount(carl.address);
   await stakedAuroraVaultContract.connect(operator).whitelistAccount(liquidity_provider.address);
+
+  // Deploying routers for stAurVault and LiquidityPool.
+  const stAurRouterContract = await Router.deploy(
+    initialSupply,
+    "Aurora Token",
+    "AURORA",
+    alice.address
+  );
+  await auroraTokenContract.deployed();
 
   // Fixtures can return anything you consider useful for your tests
   return {

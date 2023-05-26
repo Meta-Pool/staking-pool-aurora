@@ -12,6 +12,7 @@ interface IStakingManager {
     error AvobeMaxOrders();
     error BellowMaxOrders();
     error BelowCurrentLength();
+    error DepositorExists();
     error DepositorsLimitReached();
     error InvalidChange();
     error InvalidIndex();
