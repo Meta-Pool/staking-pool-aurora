@@ -1,6 +1,19 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
+const { loadFixture, impersonateAccount } = require("@nomicfoundation/hardhat-network-helpers");
+
+const {
+  ADMIN_ADDRESS,
+  AURORA_PLUS_ADDRESS,
+  AURORA_TOKEN_ADDRESS,
+  AURORA_WHALE_ADDRESS,
+  DEPOSITOR_00_ADDRESS,
+  DEPOSITOR_01_ADDRESS,
+  LIQUIDITY_POOL_ADDRESS,
+  OPERATOR_ADDRESS,
+  STAKED_AURORA_VAULT_ADDRESS,
+  STAKING_MANAGER_ADDRESS,
+} = require("./_config");
 
 const DECIMALS = ethers.BigNumber.from(10).pow(18);
 const AURORA = ethers.BigNumber.from(1).mul(ethers.BigNumber.from(10).pow(18));
@@ -16,6 +29,81 @@ const DEPOSITORS_OWNER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('D
 const OPERATOR_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('OPERATOR_ROLE'));
 const COLLECT_REWARDS_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('COLLECT_REWARDS_ROLE'));
 const FEE_COLLECTOR_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('FEE_COLLECTOR_ROLE'));
+
+async function useProdForkFixture() {
+  // Get the ContractFactory and Signers here.
+  const AuroraToken = await ethers.getContractFactory("Token");
+  const AuroraStaking = await ethers.getContractFactory("AuroraStaking");
+  const StakingManager = await ethers.getContractFactory("StakingManager");
+  const Depositor = await ethers.getContractFactory("Depositor");
+  const StakedAuroraVault = await ethers.getContractFactory("StakedAuroraVault");
+  const LiquidityPool = await ethers.getContractFactory("LiquidityPool");
+
+  const AuroraTokenContract = await AuroraToken.attach(AURORA_TOKEN_ADDRESS);
+  const AuroraStakingContract = await AuroraStaking.attach(AURORA_PLUS_ADDRESS);
+  const StakingManagerContract = await StakingManager.attach(STAKING_MANAGER_ADDRESS);
+  const Depositor00Contract = await Depositor.attach(DEPOSITOR_00_ADDRESS);
+  const Depositor01Contract = await Depositor.attach(DEPOSITOR_01_ADDRESS);
+  const StakedAuroraVaultContract = await StakedAuroraVault.attach(STAKED_AURORA_VAULT_ADDRESS);
+  const LiquidityPoolContract = await LiquidityPool.attach(LIQUIDITY_POOL_ADDRESS);
+
+  const [
+    owner,
+    depositors_owner,
+    liquidity_pool_owner,
+    liquidity_provider,
+    operator,
+    fee_collector,
+    reward_collector,
+    alice,
+    bob,
+    carl
+  ] = await ethers.getSigners();
+
+  const impersonatedAdmin = await ethers.getImpersonatedSigner(ADMIN_ADDRESS);
+  const impersonatedOperator = await ethers.getImpersonatedSigner(OPERATOR_ADDRESS);
+  
+  const impersonatedWhale = await ethers.getImpersonatedSigner(AURORA_WHALE_ADDRESS);
+
+//   tx = {
+//       to: alice.address,
+//       value: ethers.utils.parseEther('0.02', 'ether')
+//   };
+//   impersonatedAdmin
+
+// const transaction = await signer.sendTransaction(tx);
+
+  await AuroraTokenContract
+    .connect(impersonatedWhale)
+    .transfer(
+      ADMIN_ADDRESS,
+      await AuroraTokenContract.balanceOf(AURORA_WHALE_ADDRESS)
+    );
+  
+
+
+  return {
+    AuroraTokenContract,
+    AuroraStakingContract,
+    StakingManagerContract,
+    Depositor00Contract,
+    Depositor01Contract,
+    StakedAuroraVaultContract,
+    LiquidityPoolContract,
+    owner,
+    depositors_owner,
+    liquidity_pool_owner,
+    liquidity_provider,
+    operator,
+    fee_collector,
+    reward_collector,
+    alice,
+    bob,
+    carl,
+    impersonatedAdmin,
+    impersonatedOperator,
+  };
+}
 
 async function deployPoolFixture() {
   // Get the ContractFactory and Signers here.
@@ -422,10 +510,11 @@ async function botsHordeFixture() {
 }
 
 module.exports = {
+  botsHordeFixture,
   deployPoolFixture,
   depositPoolFixture,
   liquidityPoolFixture,
-  botsHordeFixture,
+  useProdForkFixture,
   AURORA,
   DECIMALS,
   TOTAL_SPAMBOTS,

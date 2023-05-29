@@ -295,7 +295,7 @@ contract StakingManager is AccessControl, IStakingManager {
     }
 
     /// @notice Unstaking Flow - Ran by ROBOT 🤖
-    ///   1. Withdraw pending Aurora from depositors.
+    ///   1. Withdraw pending AURORA from depositors.
     ///   2. Move previous pending amount to Available.
     ///   3. Unstake withdraw orders.
     ///   4. Move withdraw orders to Pending.

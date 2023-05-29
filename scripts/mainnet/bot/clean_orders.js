@@ -1,5 +1,5 @@
 const hre = require("hardhat");
-const { getCurrentTimestamp } = require("../_utils");
+const { getCurrentTimestamp } = require("../../_utils");
 const { STAKING_MANAGER_ADDRESS } = require("../_config");
 
 console.log("Mr Robot 🤖");
