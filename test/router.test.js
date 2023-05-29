@@ -295,4 +295,223 @@ describe("Router 🛜 : one router, two vaults", function () {
       )).to.revertedWithCustomError(RouterContract, "MaxSharesError");
     });
   });
+
+  describe("Deposit, mint, redeem and withdraw from Liquidity Pool 🎱 vault", function () {
+    it("Should allow deposit from the router.", async function () {
+      const {
+        auroraTokenContract,
+        liquidityPoolContract,
+        RouterContract,
+        liquidity_provider
+      } = await loadFixture(liquidityPoolFixture);
+
+      const DEPOSIT = ethers.BigNumber.from(100_000).mul(DECIMALS);
+      const MIN_SHARES = ethers.BigNumber.from(99_999).mul(DECIMALS);
+      const EXPECTS = (await liquidityPoolContract.balanceOf(liquidity_provider.address)).add(MIN_SHARES);
+
+      await auroraTokenContract.connect(liquidity_provider).approve(RouterContract.address, DEPOSIT);
+      await RouterContract.connect(liquidity_provider).depositToVault(
+        liquidityPoolContract.address,
+        liquidity_provider.address,
+        DEPOSIT,
+        MIN_SHARES
+      );
+      expect(await liquidityPoolContract.balanceOf(liquidity_provider.address)).to.be.greaterThan(EXPECTS);
+    });
+
+    it("Should allow mint from the router.", async function () {
+      const {
+        auroraTokenContract,
+        liquidityPoolContract,
+        RouterContract,
+        liquidity_provider
+      } = await loadFixture(liquidityPoolFixture);
+
+      const MINT = ethers.BigNumber.from(24_000).mul(DECIMALS);
+      const APPROVE = ethers.BigNumber.from(30_000).mul(DECIMALS);
+      const MAX_ASSETS = ethers.BigNumber.from(24_100).mul(DECIMALS);
+      const EXPECTS = (await liquidityPoolContract.balanceOf(liquidity_provider.address)).add(MINT);
+
+      await auroraTokenContract.connect(liquidity_provider).approve(
+        RouterContract.address,
+        APPROVE
+      );
+      await RouterContract.connect(liquidity_provider).mintToVault(
+        liquidityPoolContract.address,
+        liquidity_provider.address,
+        MINT,
+        MAX_ASSETS
+      );
+      expect(await liquidityPoolContract.balanceOf(liquidity_provider.address)).to.be.equal(EXPECTS);
+    });
+
+    it("Should allow redeem from the router.", async function () {
+      const {
+        auroraTokenContract,
+        liquidityPoolContract,
+        RouterContract,
+        liquidity_provider
+      } = await loadFixture(liquidityPoolFixture);
+
+      // Shares Ops
+      const SHARES_TO_REDEEM = ethers.BigNumber.from(400).mul(DECIMALS);
+      const EXPECTS_B = (await liquidityPoolContract.balanceOf(liquidity_provider.address)).sub(SHARES_TO_REDEEM);
+
+      // console.log("liquidity_provider expects shares: %s: ", EXPECTS_B);
+      // console.log("liquidity_provider shares balance: %s: ", await liquidityPoolContract.balanceOf(liquidity_provider.address));
+
+      // Base asset token Ops
+      const MIN_AMOUNT_OUT = ethers.BigNumber.from(399).mul(DECIMALS);
+      const EXPECTS_A = await auroraTokenContract.balanceOf(liquidity_provider.address);
+
+      // console.log("liquidity_provider expects assets: %s: ", EXPECTS_A);
+      // console.log("liquidity_provider assets balance: %s: ", await auroraTokenContract.balanceOf(liquidity_provider.address));
+
+      await liquidityPoolContract.connect(liquidity_provider).approve(
+        RouterContract.address,
+        SHARES_TO_REDEEM
+      );
+      await RouterContract.connect(liquidity_provider).redeemFromVault(
+        liquidityPoolContract.address,
+        liquidity_provider.address,
+        SHARES_TO_REDEEM,
+        MIN_AMOUNT_OUT
+      );
+      expect(await liquidityPoolContract.balanceOf(liquidity_provider.address)).to.be.equal(EXPECTS_B);
+      // This test should exclude the _minAmountOut, because the delay of 2 days for delay-unstake operations.
+      expect(await auroraTokenContract.balanceOf(liquidity_provider.address)).to.be.greaterThan(EXPECTS_A);
+    });
+
+    it("Should allow withdraw from the router.", async function () {
+      const {
+        auroraTokenContract,
+        liquidityPoolContract,
+        RouterContract,
+        liquidity_provider
+      } = await loadFixture(liquidityPoolFixture);
+
+      // Base asset token Ops
+      const ASSETS_TO_WITHDRAW = ethers.BigNumber.from(700).mul(DECIMALS);
+      const EXPECTS_B = await auroraTokenContract.balanceOf(liquidity_provider.address);
+
+      // console.log("liquidity_provider expects shares: %s: ", EXPECTS_B);
+      // console.log("liquidity_provider shares balance: %s: ", await liquidityPoolContract.balanceOf(liquidity_provider.address));
+
+      // Shares Ops
+      const MAX_SHARES_OUT = ethers.BigNumber.from(701).mul(DECIMALS);
+      const EXPECTS_A = (await liquidityPoolContract.balanceOf(liquidity_provider.address)).sub(MAX_SHARES_OUT);
+
+      // console.log("liquidity_provider expects assets: %s: ", EXPECTS_A);
+      // console.log("liquidity_provider assets balance: %s: ", await auroraTokenContract.balanceOf(liquidity_provider.address));
+
+      await liquidityPoolContract.connect(liquidity_provider).approve(
+        RouterContract.address,
+        MAX_SHARES_OUT
+      );
+      await RouterContract.connect(liquidity_provider).withdrawFromVault(
+        liquidityPoolContract.address,
+        liquidity_provider.address,
+        ASSETS_TO_WITHDRAW,
+        MAX_SHARES_OUT
+      );
+      // This test should exclude the _minAmountOut, because the delay of 2 days for delay-unstake operations.
+      expect(await auroraTokenContract.balanceOf(liquidity_provider.address)).to.be.greaterThan(EXPECTS_B);
+      expect(await liquidityPoolContract.balanceOf(liquidity_provider.address)).to.be.greaterThan(EXPECTS_A);
+    });
+  });
+
+  describe("Avoid slippage ⛸️ for: deposit, mint, redeem and withdraw from Liquidity Pool 🎱 vault", function () {
+    it("Should allow safe deposit.", async function () {
+      const {
+        auroraTokenContract,
+        liquidityPoolContract,
+        RouterContract,
+        liquidity_provider
+      } = await loadFixture(liquidityPoolFixture);
+
+      const DEPOSIT = ethers.BigNumber.from(100_000).mul(DECIMALS);
+      const MIN_SHARES = ethers.BigNumber.from(199_999).mul(DECIMALS);
+      await auroraTokenContract.connect(liquidity_provider).approve(RouterContract.address, DEPOSIT);
+      await expect(RouterContract.connect(liquidity_provider).depositToVault(
+        liquidityPoolContract.address,
+        liquidity_provider.address,
+        DEPOSIT,
+        MIN_SHARES
+      )).to.revertedWithCustomError(RouterContract, "MinSharesError");
+    });
+
+    it("Should allow safe mint.", async function () {
+      const {
+        auroraTokenContract,
+        liquidityPoolContract,
+        RouterContract,
+        liquidity_provider
+      } = await loadFixture(liquidityPoolFixture);
+
+      const MINT = ethers.BigNumber.from(24_000).mul(DECIMALS);
+      const APPROVE = ethers.BigNumber.from(30_000).mul(DECIMALS);
+      const MAX_ASSETS = ethers.BigNumber.from(20_100).mul(DECIMALS);
+      await auroraTokenContract.connect(liquidity_provider).approve(
+        RouterContract.address,
+        APPROVE
+      );
+      await expect(RouterContract.connect(liquidity_provider).mintToVault(
+        liquidityPoolContract.address,
+        liquidity_provider.address,
+        MINT,
+        MAX_ASSETS
+      )).to.revertedWithCustomError(RouterContract, "MaxAmountError");
+    });
+
+    it("Should allow safe redeem.", async function () {
+      const {
+        liquidityPoolContract,
+        RouterContract,
+        liquidity_provider
+      } = await loadFixture(liquidityPoolFixture);
+
+      // Shares Ops
+      const SHARES_TO_REDEEM = ethers.BigNumber.from(400).mul(DECIMALS);
+
+      // Base asset token Ops
+      const MIN_AMOUNT_OUT = ethers.BigNumber.from(402).mul(DECIMALS);
+
+      await liquidityPoolContract.connect(liquidity_provider).approve(
+        RouterContract.address,
+        SHARES_TO_REDEEM
+      );
+      await expect(RouterContract.connect(liquidity_provider).redeemFromVault(
+        liquidityPoolContract.address,
+        liquidity_provider.address,
+        SHARES_TO_REDEEM,
+        MIN_AMOUNT_OUT
+      )).to.revertedWithCustomError(RouterContract, "MinAmountError");
+    });
+
+    it("Should allow safe withdraw.", async function () {
+      const {
+        liquidityPoolContract,
+        RouterContract,
+        liquidity_provider
+      } = await loadFixture(liquidityPoolFixture);
+
+      // Base asset token Ops
+      const ASSETS_TO_WITHDRAW = ethers.BigNumber.from(700).mul(DECIMALS);
+
+      // Shares Ops
+      const MAX_SHARES_OUT = ethers.BigNumber.from(699).mul(DECIMALS);
+      const APPROVE = ethers.BigNumber.from(701).mul(DECIMALS);
+
+      await liquidityPoolContract.connect(liquidity_provider).approve(
+        RouterContract.address,
+        APPROVE
+      );
+      await expect(RouterContract.connect(liquidity_provider).withdrawFromVault(
+        liquidityPoolContract.address,
+        liquidity_provider.address,
+        ASSETS_TO_WITHDRAW,
+        MAX_SHARES_OUT
+      )).to.revertedWithCustomError(RouterContract, "MaxSharesError");
+    });
+  });
 });

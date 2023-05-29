@@ -4,7 +4,6 @@ pragma solidity 0.8.18;
 interface ILiquidityPool {
     event AddLiquidity(address indexed _sender, address indexed _receiver, uint256 _auroraAmount, uint256 _lpTokenAmount);
     event ContractUpdateOperation(bool _isFullyOperational, address _sender);
-    event RemoveLiquidity(address indexed _sender, address indexed _receiver, address indexed _owner, uint256 _lpTokenAmount, uint256 _auroraAmount, uint256 _stAurAmount);
     event StAurLiquidityProvidedByPool(address indexed _receiver, uint256 _stAurAmount, uint256 _auroraAmount);
     event SwapStAur(address indexed _user, uint256 _auroraAmount, uint256 _stAurAmount, uint256 _totalFee);
     event UpdateFeeBasisPoints(uint256 _new, address _sender);
@@ -25,5 +24,4 @@ interface ILiquidityPool {
     error NotFullyOperational();
     error SlippageError();
     error Unauthorized();
-    error UnavailableFunction();
 }

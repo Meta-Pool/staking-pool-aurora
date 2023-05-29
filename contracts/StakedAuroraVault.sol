@@ -180,6 +180,7 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
         address _receiver
     ) public override onlyFullyOperational checkWhitelist returns (uint256) {
         if (_assets < minDepositAmount) { revert LessThanMinDeposit(); }
+        require(_assets <= maxDeposit(_receiver), "ERC4626: deposit more than max");
 
         uint256 shares = previewDeposit(_assets);
         _deposit(msg.sender, _receiver, _assets, shares);
@@ -193,6 +194,7 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
     ) public override onlyFullyOperational checkWhitelist returns (uint256) {
         uint256 assets = previewMint(_shares);
         if (assets < minDepositAmount) { revert LessThanMinDeposit(); }
+        require(_shares <= maxMint(_receiver), "ERC4626: mint more than max");
         _deposit(msg.sender, _receiver, assets, _shares);
 
         return assets;
@@ -284,6 +286,6 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
         _burn(_owner, _shares);
         IStakingManager(stakingManager).createWithdrawOrder(_assets, _receiver);
 
-        emit WithdrawOrderCreated(msg.sender, _receiver, _owner, _shares, _assets);
+        emit Withdraw(msg.sender, _receiver, _owner, _shares, _assets);
     }
 }

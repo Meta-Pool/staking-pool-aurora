@@ -165,11 +165,25 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
         address _receiver
     ) public override onlyFullyOperational returns (uint256) {
         if (_assets < minDepositAmount) { revert LessThanMinDeposit(); }
+        require(_assets <= maxDeposit(_receiver), "ERC4626: deposit more than max");
 
         uint256 _shares = previewDeposit(_assets);
         _deposit(msg.sender, _receiver, _assets, _shares);
 
         return _shares;
+    }
+
+    function mint(
+        uint256 _shares,
+        address _receiver
+    ) public override onlyFullyOperational returns (uint256) {
+        require(_shares <= maxMint(_receiver), "ERC4626: mint more than max");
+
+        uint256 assets = previewMint(_shares);
+        if (assets < minDepositAmount) { revert LessThanMinDeposit(); }
+        _deposit(msg.sender, _receiver, assets, _shares);
+
+        return assets;
     }
 
     /// @notice Front-end can preview the amount that will be redeemed.
@@ -193,42 +207,45 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
         address _owner
     ) public override onlyFullyOperational returns (uint256) {
         if (_shares == 0) { revert InvalidZeroAmount(); }
-        if (msg.sender != _owner) {
-            _spendAllowance(_owner, msg.sender, _shares);
-        }
+        require(_shares <= maxRedeem(_owner), "ERC4626: redeem more than max");
+
         (uint256 _auroraToSend, uint256 _stAurToSend) = calculatePreviewRedeem(_shares);
-
-        auroraBalance -= _auroraToSend;
-        stAurBalance -= _stAurToSend;
-
-        // IMPORTANT NOTE: run the burn 🔥 AFTER the calculations.
-        _burn(msg.sender, _shares);
-
-        // Send Aurora tokens.
-        IERC20(asset()).safeTransfer(_receiver, _auroraToSend);
-
-        // Then, send stAUR tokens.
-        IStakedAuroraVault(stAurVault).safeTransfer(_receiver, _stAurToSend);
-
-        emit RemoveLiquidity(
+        uint256 _totalInAuroraToSend = _auroraToSend + IERC4626(stAurVault).convertToAssets(_stAurToSend);
+        _withdraw(
             msg.sender,
             _receiver,
             _owner,
-            _shares,
             _auroraToSend,
-            _stAurToSend
+            _stAurToSend,
+            _totalInAuroraToSend,
+            _shares
         );
-        return _auroraToSend;
+
+        return _totalInAuroraToSend;
     }
 
-    /// @dev Use deposit fn instead.
-    function mint(uint256, address) public override pure returns (uint256) {
-        revert UnavailableFunction();
-    }
+    function withdraw(
+        uint256 _assets,
+        address _receiver,
+        address _owner
+    ) public override onlyFullyOperational returns (uint256) {
+        if (_assets == 0) { revert InvalidZeroAmount(); }
+        require(_assets <= maxWithdraw(_owner), "ERC4626: withdraw more than max");
 
-    /// @dev Use redeem fn instead.
-    function withdraw(uint256, address, address) public override pure returns (uint256) {
-        revert UnavailableFunction();
+        uint256 shares = previewWithdraw(_assets);
+        (uint256 _auroraToSend, uint256 _stAurToSend) = calculatePreviewRedeem(shares);
+        uint256 _totalInAuroraToSend = _auroraToSend + IERC4626(stAurVault).convertToAssets(_stAurToSend);
+        _withdraw(
+            msg.sender,
+            _receiver,
+            _owner,
+            _auroraToSend,
+            _stAurToSend,
+            _totalInAuroraToSend,
+            shares
+        );
+
+        return shares;
     }
 
     /// @param _amount Denominated in stAUR.
@@ -322,4 +339,33 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
 
         emit AddLiquidity(_caller, _receiver, _assets, _shares);
     }
+
+    function _withdraw(
+        address _caller,
+        address _receiver,
+        address _owner,
+        uint256 _auroraToSend,
+        uint256 _stAurToSend,
+        uint256 _totalInAuroraToSend,
+        uint256 _shares
+    ) internal virtual {
+        if (_caller != _owner) {
+            _spendAllowance(_owner, _caller, _shares);
+        }
+
+        auroraBalance -= _auroraToSend;
+        stAurBalance -= _stAurToSend;
+
+        // IMPORTANT NOTE: run the burn 🔥 AFTER the calculations.
+        _burn(_caller, _shares);
+
+        // Send Aurora tokens.
+        IERC20(asset()).safeTransfer(_receiver, _auroraToSend);
+
+        // Then, send stAUR tokens.
+        IStakedAuroraVault(stAurVault).safeTransfer(_receiver, _stAurToSend);
+
+        emit Withdraw(_caller, _receiver, _owner, _totalInAuroraToSend, _shares);
+    }
+
 }
