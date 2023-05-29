@@ -210,22 +210,23 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
   });
 
   describe("Remove (REDEEM) and add (DEPOSIT) liquidity", function () {
-    it("Should FAIL for mint 🦗 and withdraw functions.", async function () {
-      const {
-        liquidityPoolContract,
-        alice
-      } = await loadFixture(deployPoolFixture);
+    // For version v0.2.0, the liquidity pool should be compatible with the ERC4626 standard.
+    // it("Should FAIL for mint 🦗 and withdraw functions.", async function () {
+    //   const {
+    //     liquidityPoolContract,
+    //     alice
+    //   } = await loadFixture(deployPoolFixture);
 
-      await expect(
-        liquidityPoolContract.mint(10, alice.address)
-      ).to.be.revertedWithCustomError(liquidityPoolContract, "UnavailableFunction");
+    //   await expect(
+    //     liquidityPoolContract.mint(10, alice.address)
+    //   ).to.be.revertedWithCustomError(liquidityPoolContract, "UnavailableFunction");
 
-      await expect(
-        liquidityPoolContract.withdraw(10, alice.address, alice.address)
-      ).to.be.revertedWithCustomError(liquidityPoolContract, "UnavailableFunction");
-    });
+    //   await expect(
+    //     liquidityPoolContract.withdraw(10, alice.address, alice.address)
+    //   ).to.be.revertedWithCustomError(liquidityPoolContract, "UnavailableFunction");
+    // });
 
-    it("Should EMPTY 🫗 the Liquidity Pool.", async function () {
+    it("Should EMPTY 🫗 the Liquidity Pool using `redeem`.", async function () {
       const {
         liquidityPoolContract,
         liquidity_provider
@@ -246,13 +247,38 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
         liquidity_provider.address,
         liquidity_provider.address
       );
+    });
+
+    it("Should EMPTY 🫗 the Liquidity Pool using `withdraw`.", async function () {
+        const {
+          liquidityPoolContract,
+          liquidity_provider
+        } = await loadFixture(liquidityPoolFixture);
+
+        // IMPORTANT VALUES:
+        // The initial state of the contract is 0 stAUR, and 1_000_000 Aurora. All LP Tokens are
+        // with the liquidity_provider account.
+        const auroraBalanceTracker = ethers.BigNumber.from(1_000_000).mul(DECIMALS);
+        expect(await liquidityPoolContract.auroraBalance()).to.equal(auroraBalanceTracker);
+        expect(await liquidityPoolContract.stAurBalance()).to.equal(0);
+        expect(await liquidityPoolContract.totalSupply()).to.equal(
+          await liquidityPoolContract.balanceOf(liquidity_provider.address)
+        );
+
+        await liquidityPoolContract.connect(liquidity_provider).withdraw(
+          await liquidityPoolContract.convertToAssets(
+            await liquidityPoolContract.balanceOf(liquidity_provider.address)
+          ),
+          liquidity_provider.address,
+          liquidity_provider.address
+        );
 
       expect(await liquidityPoolContract.auroraBalance()).to.equal(0);
       expect(await liquidityPoolContract.stAurBalance()).to.equal(0);
       expect(await liquidityPoolContract.totalSupply()).to.equal(0);
     });
 
-    it("Should NOT allow to redeem 0 shares.", async function () {
+    it("Should NOT allow to `redeem` 0 shares.", async function () {
       const {
         liquidityPoolContract,
         liquidity_provider
@@ -272,7 +298,27 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
       );
     });
 
-    it("Should NOT allow redeem to accounts without LP tokens.", async function () {
+    it("Should NOT allow to `withdraw` 0 assets.", async function () {
+      const {
+        liquidityPoolContract,
+        liquidity_provider
+      } = await loadFixture(liquidityPoolFixture);
+
+      await expect(liquidityPoolContract.connect(liquidity_provider).withdraw(
+        0,
+        liquidity_provider.address,
+        liquidity_provider.address
+      )).to.be.revertedWithCustomError(liquidityPoolContract, "InvalidZeroAmount");
+
+      const auroraBalanceTracker = ethers.BigNumber.from(1_000_000).mul(DECIMALS);
+      expect(await liquidityPoolContract.auroraBalance()).to.equal(auroraBalanceTracker);
+      expect(await liquidityPoolContract.stAurBalance()).to.equal(0);
+      expect(await liquidityPoolContract.totalSupply()).to.equal(
+        await liquidityPoolContract.balanceOf(liquidity_provider.address)
+      );
+    });
+
+    it("Should NOT allow `redeem` to accounts without LP tokens.", async function () {
       const {
         liquidityPoolContract,
         liquidity_provider,
@@ -283,7 +329,28 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
         ethers.BigNumber.from(1_000).mul(DECIMALS),
         alice.address,
         alice.address
-      )).to.be.revertedWith("ERC20: burn amount exceeds balance");
+      )).to.be.revertedWith("ERC4626: redeem more than max");
+
+      const auroraBalanceTracker = ethers.BigNumber.from(1_000_000).mul(DECIMALS);
+      expect(await liquidityPoolContract.auroraBalance()).to.equal(auroraBalanceTracker);
+      expect(await liquidityPoolContract.stAurBalance()).to.equal(0);
+      expect(await liquidityPoolContract.totalSupply()).to.equal(
+        await liquidityPoolContract.balanceOf(liquidity_provider.address)
+      );
+    });
+
+    it("Should NOT allow `withdraw` to accounts without LP tokens.", async function () {
+      const {
+        liquidityPoolContract,
+        liquidity_provider,
+        alice
+      } = await loadFixture(liquidityPoolFixture);
+
+      await expect(liquidityPoolContract.connect(alice).withdraw(
+        ethers.BigNumber.from(1_000).mul(DECIMALS),
+        alice.address,
+        alice.address
+      )).to.be.revertedWith("ERC4626: withdraw more than max");
 
       const auroraBalanceTracker = ethers.BigNumber.from(1_000_000).mul(DECIMALS);
       expect(await liquidityPoolContract.auroraBalance()).to.equal(auroraBalanceTracker);
