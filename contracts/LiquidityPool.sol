@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.18;
 
+/// @title Meta Pool stAUR 🪐 <> AURORA liquidity pool contract.
+
 import "./interfaces/ILiquidityPool.sol";
 import "./interfaces/IStakedAuroraVault.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";

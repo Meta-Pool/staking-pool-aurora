@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.18;
 
+/// @title Meta Pool stAUR 🪐 vault contract.
+
 import "./interfaces/IDepositor.sol";
 import "./interfaces/ILiquidityPool.sol";
 import "./interfaces/IStakingManager.sol";

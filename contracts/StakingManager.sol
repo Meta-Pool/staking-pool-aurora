@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.18;
 
+/// @title Meta Pool stAUR 🪐 staking manager contract.
+
 import "./interfaces/IAuroraStaking.sol";
 import "./interfaces/IDepositor.sol";
 import "./interfaces/IStakedAuroraVault.sol";
