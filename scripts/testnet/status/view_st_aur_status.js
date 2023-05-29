@@ -6,14 +6,13 @@ const {
   LIQUIDITY_POOL_ADDRESS,
   AURORA_TOKEN_ADDRESS,
   DEPOSITORS_ADDRESS,
-  AURORA_PLUS_ADDRESS,
-  generateAccounts
-} = require("./config");
-const { getCurrentTimestamp, compareWithEmoji, getDepositorsArray } = require("../utils");
+  AURORA_PLUS_ADDRESS
+} = require("../_config");
+const { getCurrentTimestamp, compareWithEmoji, getDepositorsArray } = require("../../_utils");
 
 console.log("Mr Robot 🤖");
 console.log("Started at: %s", getCurrentTimestamp());
-console.log("Network: %s", hre.network.name);
+console.log("Network (testnet): %s", hre.network.name);
 console.log("-------------------------")
 
 async function main() {
@@ -21,12 +20,49 @@ async function main() {
   await displayVaultStatus();
 
   // LP STATUS
+  await displayLPStatus();
 
   // MANAGER STATUS
   await displayManagerStatus();
 
   // DEPOSITORS
 
+}
+
+async function displayLPStatus() {
+  console.log("\nPool 🎱 (%s):", LIQUIDITY_POOL_ADDRESS);
+  const LiquidityPool = await ethers.getContractFactory("LiquidityPool");
+  const LiquidityPoolContract = await LiquidityPool.attach(LIQUIDITY_POOL_ADDRESS);
+
+  const stAurVault = await LiquidityPoolContract.stAurVault();
+  console.log("Staked Vault   : (%s) %s", stAurVault, compareWithEmoji(stAurVault, STAKED_AURORA_VAULT_ADDRESS));
+
+  const auroraToken = await LiquidityPoolContract.auroraToken();
+  console.log("Aurora Token   : (%s) %s", auroraToken, compareWithEmoji(auroraToken, AURORA_TOKEN_ADDRESS));
+
+  const fullyOperational = await LiquidityPoolContract.fullyOperational();
+  console.log("Fully Operatnal: %s", fullyOperational);
+
+  const stAurBalance = await LiquidityPoolContract.stAurBalance();
+  console.log("stAUR Balance  : %s stAUR", ethers.utils.formatEther(stAurBalance));
+
+  const auroraBalance = await LiquidityPoolContract.auroraBalance();
+  console.log("AURORA Balance : %s AURORA", ethers.utils.formatEther(auroraBalance));
+
+  const totalSupply = await LiquidityPoolContract.totalSupply();
+  console.log("Total Supply   : %s stAUR/AUR", ethers.utils.formatEther(totalSupply));
+
+  const minDepositAmount = await LiquidityPoolContract.minDepositAmount();
+  console.log("minDepos Amount: %s AURORA", ethers.utils.formatEther(minDepositAmount));
+
+  const swapFeeBasisPoints = await LiquidityPoolContract.swapFeeBasisPoints();
+  console.log("Swap fee BasisP: %s Basis Points", swapFeeBasisPoints);
+
+  const liqProvFeeCutBasisPoints = await LiquidityPoolContract.liqProvFeeCutBasisPoints();
+  console.log("LP fee cut BasP: %s Basis Points", liqProvFeeCutBasisPoints);
+
+  const collectedStAurFees = await LiquidityPoolContract.collectedStAurFees();
+  console.log("Collected Fees : %s stAUR", ethers.utils.formatEther(collectedStAurFees));
 }
 
 async function displayManagerStatus() {
@@ -50,11 +86,26 @@ async function displayManagerStatus() {
   for (let i = 0; i < depositors.length; i++) {
     console.log("Depositor  0%s  : (%s) %s", i, depositors[i], compareWithEmoji(depositors[i], DEPOSITORS_ADDRESS[i]));
     const shares = await StakingManagerContract.getDepositorShares(depositors[i]);
-    console.log("Depositor Share: %s stAUR", ethers.utils.formatEther(shares));
+    console.log("Depositor Share: %s AURORA Plus Shares", ethers.utils.formatEther(shares));
   }
 
   const nextDepositor = await StakingManagerContract.nextDepositor();
   console.log("Next Depositor : (%s) %s", nextDepositor, compareWithEmoji(DEPOSITORS_ADDRESS.includes(nextDepositor), true));
+
+  // View the next time for run.
+  const nextCleanTimestamp = await StakingManagerContract.nextCleanOrderQueue();
+
+  var _now = new Date(getCurrentTimestamp() * 1000);
+  _now = _now.toGMTString();
+
+  var _next = new Date(nextCleanTimestamp * 1000);
+  _next = _next.toGMTString();
+
+  console.log("Now            : %s", _now);
+  console.log("Next time clean: %s", _next);
+  console.log("MrRobot 🤖 run?: %s", compareWithEmoji(nextCleanTimestamp < getCurrentTimestamp(), true));
+  console.log("Withdraw Orders: %s", await StakingManagerContract.getTotalWithdrawOrders());
+  console.log("Pending  Orders: %s", await StakingManagerContract.getTotalPendingOrders());
 }
 
 async function displayVaultStatus() {

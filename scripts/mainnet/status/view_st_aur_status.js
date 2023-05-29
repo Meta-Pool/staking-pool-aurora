@@ -8,7 +8,7 @@ const {
   DEPOSITORS_ADDRESS,
   AURORA_PLUS_ADDRESS
 } = require("../_config");
-const { getCurrentTimestamp, compareWithEmoji, getDepositorsArray } = require("../_utils");
+const { getCurrentTimestamp, compareWithEmoji, getDepositorsArray } = require("../../_utils");
 
 console.log("Mr Robot 🤖");
 console.log("Started at: %s", getCurrentTimestamp());

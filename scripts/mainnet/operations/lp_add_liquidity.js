@@ -1,5 +1,5 @@
 const hre = require("hardhat");
-const { getCurrentTimestamp } = require("../_utils");
+const { getCurrentTimestamp } = require("../../_utils");
 const {
   AURORA_TOKEN_ADDRESS,
   DECIMALS,

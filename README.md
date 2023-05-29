@@ -19,6 +19,16 @@ git fetch origin --tags
 git checkout tags/v0.1.0 -b stable
 ```
 
+## Quick run
+
+If you already have all the dependencies installed.
+
+```sh
+# Using the Makefile
+make buld
+make test
+```
+
 # Introduction
 
 Finally, the `stAUR` 🪐 token is in the wild, live on AURORA `mainnet`.
@@ -88,4 +98,75 @@ Addresses of the deployed contracts:
   # Updated Manager
  - NEW StakingManager: - [DEPRECATED] 0xf8Cb922aBdb0a2d4478ADE41a493d9A11e0e6009
  - NEW StakingManager: - 0x2da4A45AE7f78EABce1E3206c85383E9a98529d2
+```
+
+## Install Foundry on top of Hardhat
+
+Source: https://book.getfoundry.sh/getting-started/installation
+
+1. Install the Foundry CLI:
+
+```sh
+curl -L https://foundry.paradigm.xyz | bash
+```
+
+2. Create a new Foundry project:
+
+```sh
+
+```
+
+3. Deal with the remappings
+
+```sh
+forge remappings > remappings.txt
+```
+
+```sh
+## Runing the test in verbose mode.
+$ forge test -vvv
+[⠆] Compiling...
+No files changed, compilation skipped
+
+Running 2 tests for test/foundry/TestStakingPool.sol:TestStakingPool
+[PASS] testInflationAttack() (gas: 931329)
+Logs:
+  [-] Initial balances:
+  	- Attacker AUR balance:  200000000000000000000
+  	- Attacker stAUR balance:  0
+  	- stAUR total supply:  0
+  	- Alice AUR balance:  200000000000000000000
+  	- Alice stAUR balance:  0
+
+  [*] After ATTACKER's deposit:
+  	- Attacker AUR balance:  99999999999999999999
+  	- Attacker stAUR balance:  100000000000000000001
+  	- stAUR total supply:  100000000000000000001
+  	- Alice AUR balance:  200000000000000000000
+  	- Alice stAUR balance:  0
+
+  [*] After ATTACKER's inflation:
+  	- Attacker AUR balance:  99999999999999999999
+  	- Attacker stAUR balance:  1
+  	- stAUR total supply:  1
+  	- Alice AUR balance:  200000000000000000000
+  	- Alice stAUR balance:  0
+
+  [+] Victim deposit tokens:
+  	- Attacker AUR balance:  99999999999999999999
+  	- Attacker stAUR balance:  1
+  	- stAUR total supply:  2
+  	- Alice AUR balance:  0
+  	- Alice stAUR balance:  1
+
+  [*] After ATTACKER's withdraw:
+  	- Attacker AUR balance:  249999999999999999999
+  	- Attacker stAUR balance:  0
+  	- stAUR total supply:  1
+  	- Alice AUR balance:  0
+  	- Alice stAUR balance:  1
+
+
+[PASS] test_NumberIs42() (gas: 2412)
+Test result: ok. 2 passed; 0 failed; finished in 2.97ms
 ```

@@ -1,5 +1,13 @@
+# Hardhat
 node_modules
 artifacts/
 cache/
 
+# Foundry
+out/
+.vscode
+.idea
+forge-cache/
+
+# Sec-Ops
 .env

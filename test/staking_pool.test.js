@@ -238,32 +238,27 @@ describe("Staking Pool AURORA", function () {
       ).to.be.revertedWith("LESS_THAN_MIN_DEPOSIT_AMOUNT");
     });
 
+    /// For v0.1.1, the `burn` function was removed from the contract.
     it("Should allow 🔥 burning of stAUR.", async function () {
       const {
         stakedAuroraVaultContract,
-        alice,
-        bob,
-        carl
+        alice
       } = await loadFixture(depositPoolFixture);
 
-      const preAliceShares = await stakedAuroraVaultContract.balanceOf(alice.address);
-      const preBobShares = await stakedAuroraVaultContract.balanceOf(bob.address);
-      const preCarlShares = await stakedAuroraVaultContract.balanceOf(carl.address);
-      const preAliceAssets = await stakedAuroraVaultContract.convertToAssets(preAliceShares);
-      const preBobAssets = await stakedAuroraVaultContract.convertToAssets(preBobShares);
-      const preTotalSupply = await stakedAuroraVaultContract.totalSupply();
-
-      await stakedAuroraVaultContract.connect(alice).burn(preAliceShares);
-      expect(preTotalSupply.sub(preAliceShares)).to.equal(await stakedAuroraVaultContract.totalSupply());
-      await stakedAuroraVaultContract.connect(carl).burn(preCarlShares);
-      expect(preTotalSupply.sub(preAliceShares).sub(preCarlShares)).to.equal(
-        await stakedAuroraVaultContract.totalSupply()
-      );
-      expect(await stakedAuroraVaultContract.balanceOf(alice.address)).to.equal(0);
-      expect(await stakedAuroraVaultContract.balanceOf(carl.address)).to.equal(0);
-      expect(await stakedAuroraVaultContract.convertToAssets(preBobShares)).to.be.greaterThan(
-        preAliceAssets.add(preBobAssets).add(preCarlShares)
-      );
+      try {
+        const preAliceShares = await stakedAuroraVaultContract.balanceOf(alice.address);
+        await stakedAuroraVaultContract.connect(alice).burn(preAliceShares);
+      } catch (error) {
+        // console.log(error); // debug
+        if (error.toString().startsWith(
+          "TypeError: stakedAuroraVaultContract.connect(...).burn is not a function"
+        )) {
+          // all-good
+        } else {
+          // New error string? TODO: refactor the catch {}
+          await expect(0).to.be.greaterThan(0);
+        }
+      }
     });
   });
 
