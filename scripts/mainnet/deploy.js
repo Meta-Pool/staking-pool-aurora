@@ -101,6 +101,9 @@ async function main() {
   console.log("Step 7. Insert Depositor 01: \n%s", request02);
   await request03.wait();
 
+
+  // TODO: Deploy Router 🛜 and whitelist on Vault.
+
   console.log("Addresses of the deployed contracts:")
   console.log(" - AuroraToken 💚: ----- %s", AURORA_TOKEN_ADDRESS);
   console.log(" - AuroraPlus: --------- %s", AURORA_PLUS_ADDRESS);

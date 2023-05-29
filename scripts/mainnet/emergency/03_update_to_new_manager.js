@@ -6,7 +6,7 @@ const {
   NEW_MANAGER_ADDRESS,
   generateAccounts
 } = require("./_config");
-const { getCurrentTimestamp, getDepositorsArray } = require("../utils");
+const { getCurrentTimestamp, getDepositorsArray } = require("../../utils");
 
 console.log("Mr Robot 🤖 - EMERGENCY MODE 🔥 - Step 03");
 console.log("Started at: %s", getCurrentTimestamp());

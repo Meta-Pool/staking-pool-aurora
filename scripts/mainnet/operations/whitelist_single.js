@@ -1,6 +1,6 @@
 const hre = require("hardhat");
 const { ACCOUNTS } = require("../_accounts");
-const { getCurrentTimestamp } = require("../_utils");
+const { getCurrentTimestamp } = require("../../_utils");
 const { STAKED_AURORA_VAULT_ADDRESS, generateAccounts } = require("../_config");
 
 console.log("Mr Robot 🤖");

@@ -1,5 +1,5 @@
 const hre = require("hardhat");
-const { getCurrentTimestamp, getDepositorsArray } = require("../utils");
+const { getCurrentTimestamp, getDepositorsArray } = require("../../utils");
 const {
   AURORA_PLUS_ADDRESS,
   MAX_WITHDRAW_ORDERS,

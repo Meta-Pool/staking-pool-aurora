@@ -237,20 +237,16 @@ async function deployPoolFixture() {
   // Staking Aurora Vault should be fully operational by now.
   expect(await stakedAuroraVaultContract.fullyOperational()).to.be.true;
 
+  // Deploying router for stAurVault and LiquidityPool.
+  const RouterContract = await Router.deploy();
+  await RouterContract.deployed();
+
   // Whitelisting all the accounts.
   await stakedAuroraVaultContract.connect(operator).whitelistAccount(alice.address);
   await stakedAuroraVaultContract.connect(operator).whitelistAccount(bob.address);
   await stakedAuroraVaultContract.connect(operator).whitelistAccount(carl.address);
   await stakedAuroraVaultContract.connect(operator).whitelistAccount(liquidity_provider.address);
-
-  // Deploying routers for stAurVault and LiquidityPool.
-  const stAurRouterContract = await Router.deploy(
-    initialSupply,
-    "Aurora Token",
-    "AURORA",
-    alice.address
-  );
-  await auroraTokenContract.deployed();
+  await stakedAuroraVaultContract.connect(operator).whitelistAccount(RouterContract.address);
 
   // Fixtures can return anything you consider useful for your tests
   return {
@@ -262,6 +258,7 @@ async function deployPoolFixture() {
     depositor00Contract,
     depositor01Contract,
     liquidityPoolContract,
+    RouterContract,
     owner,
     depositors_owner,
     liquidity_pool_owner,
@@ -285,6 +282,7 @@ async function depositPoolFixture() {
     depositor00Contract,
     depositor01Contract,
     liquidityPoolContract,
+    RouterContract,
     owner,
     depositors_owner,
     liquidity_pool_owner,
@@ -343,6 +341,7 @@ async function depositPoolFixture() {
     depositor00Contract,
     depositor01Contract,
     liquidityPoolContract,
+    RouterContract,
     owner,
     depositors_owner,
     liquidity_pool_owner,

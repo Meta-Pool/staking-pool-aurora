@@ -1,5 +1,5 @@
 const hre = require("hardhat");
-const { getCurrentTimestamp } = require("../utils");
+const { getCurrentTimestamp } = require("../../utils");
 const { STAKED_AURORA_VAULT_ADDRESS, generateAccounts } = require("./_config");
 
 console.log("Mr Robot 🤖 - EMERGENCY MODE 🔥 - Step 01");
