@@ -207,7 +207,7 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
         uint256 _assets,
         address _receiver,
         address _owner
-    ) public override returns (uint256) {
+    ) public override onlyFullyOperational returns (uint256) {
         if (_assets == 0) { revert InvalidZeroAmount(); }
         require(_assets <= maxWithdraw(_owner), "ERC4626: withdraw more than max");
 
