@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity 0.8.18;
 
-/// @title Meta Pool implementation of a ERC4626 Router
+/// @title Meta Pool implementation of a ERC4626 Router ☎️
 
 /// @notice The Router was developed using the following repository as reference:
 /// https://github.com/fei-protocol/ERC4626
@@ -12,8 +12,8 @@ import "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-// 👀
-import "hardhat/console.sol";
+// // 👀
+// import "hardhat/console.sol";
 
 contract ERC4626Router is IERC4626Router {
     using SafeERC20 for IERC20;
@@ -60,9 +60,6 @@ contract ERC4626Router is IERC4626Router {
     ) external returns (uint256 _amountOut) {
         // Using the vault as a safe IER20.
         IERC20 vault = IERC20(_vault);
-
-        // console.log("Shares asking to be redeem: %s", _shares);
-        // console.log("min Assets expected: _minAmountOut: %s", _minAmountOut);
         _pullToken(vault, _shares, address(this));
         vault.safeIncreaseAllowance(address(_vault), _shares);
         return _redeem(_vault, _to, _shares, _minAmountOut);
@@ -84,31 +81,32 @@ contract ERC4626Router is IERC4626Router {
         return _withdraw(_vault, _to, _amount, _maxSharesOut);
     }
 
-    /// @inheritdoc IERC4626Router
-    function depositMax(
-        IERC4626 _vault,
-        address _to,
-        uint256 _minSharesOut
-    ) external returns (uint256 _sharesOut) {
-        IERC20 asset = IERC20(_vault.asset());
-        uint256 assetBalance = asset.balanceOf(msg.sender);
-        uint256 maxDeposit = _vault.maxDeposit(_to);
-        uint256 amount = maxDeposit < assetBalance ? maxDeposit : assetBalance;
-        _pullToken(asset, amount, address(this));
-        return _deposit(_vault, _to, amount, _minSharesOut);
-    }
+    // TODO: Not for release v0.2.0.
+    // /// @inheritdoc IERC4626Router
+    // function depositMax(
+    //     IERC4626 _vault,
+    //     address _to,
+    //     uint256 _minSharesOut
+    // ) external returns (uint256 _sharesOut) {
+    //     IERC20 asset = IERC20(_vault.asset());
+    //     uint256 assetBalance = asset.balanceOf(msg.sender);
+    //     uint256 maxDeposit = _vault.maxDeposit(_to);
+    //     uint256 amount = maxDeposit < assetBalance ? maxDeposit : assetBalance;
+    //     _pullToken(asset, amount, address(this));
+    //     return _deposit(_vault, _to, amount, _minSharesOut);
+    // }
 
-    /// @inheritdoc IERC4626Router
-    function redeemMax(
-        IERC4626 _vault,
-        address _to,
-        uint256 _minAmountOut
-    ) external returns (uint256 _amountOut) {
-        uint256 shareBalance = _vault.balanceOf(msg.sender);
-        uint256 maxRedeem = _vault.maxRedeem(msg.sender);
-        uint256 amountShares = maxRedeem < shareBalance ? maxRedeem : shareBalance;
-        return _redeem(_vault, _to, amountShares, _minAmountOut);
-    }
+    // /// @inheritdoc IERC4626Router
+    // function redeemMax(
+    //     IERC4626 _vault,
+    //     address _to,
+    //     uint256 _minAmountOut
+    // ) external returns (uint256 _amountOut) {
+    //     uint256 shareBalance = _vault.balanceOf(msg.sender);
+    //     uint256 maxRedeem = _vault.maxRedeem(msg.sender);
+    //     uint256 amountShares = maxRedeem < shareBalance ? maxRedeem : shareBalance;
+    //     return _redeem(_vault, _to, amountShares, _minAmountOut);
+    // }
 
     /// ************************
     /// * Private 🦡 functions *
@@ -169,7 +167,7 @@ contract ERC4626Router is IERC4626Router {
         uint256 _amount,
         uint256 _maxSharesOut
     ) private returns (uint256 _sharesOut) {
-        if ((_sharesOut = _vault.withdraw(_amount, _to, msg.sender)) > _maxSharesOut) {
+        if ((_sharesOut = _vault.withdraw(_amount, _to, address(this))) > _maxSharesOut) {
             revert MaxSharesError();
         }
     }
