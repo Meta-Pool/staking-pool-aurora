@@ -38,7 +38,7 @@ describe("Router 🛜 : one router, two vaults", function () {
       expect(await stakedAuroraVaultContract.balanceOf(bob.address)).to.be.greaterThan(bobExpects);
     });
 
-    // TODO: Not for release v0.2.0.
+    /// @notice Not for release v0.2.0.
     // it("Should allow deposit MAX from the router.", async function () {
     //   const {
     //     auroraTokenContract,
@@ -132,7 +132,7 @@ describe("Router 🛜 : one router, two vaults", function () {
       expect(await auroraTokenContract.balanceOf(alice.address)).to.be.equal(aliceExpectsA);
     });
 
-    // TODO: Not for release v0.2.0.
+    /// @notice Not for release v0.2.0.
     // it("Should allow redeem MAX from the router.", async function () {
     //   const {
     //     auroraTokenContract,

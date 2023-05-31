@@ -21,7 +21,6 @@ interface ILiquidityPool {
     error InvalidZeroAmount();
     error LessThanMinDeposit();
     error NotEnoughBalance();
-    error NotFullyOperational();
     error SlippageError();
     error Unauthorized();
 }

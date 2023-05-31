@@ -5,19 +5,28 @@ pragma solidity 0.8.18;
 
 import "./interfaces/IDepositor.sol";
 import "./interfaces/ILiquidityPool.sol";
-import "./interfaces/IStakingManager.sol";
 import "./interfaces/IStakedAuroraVaultEvents.sol";
+import "./interfaces/IStakingManager.sol";
+import "./utils/FullyOperational.sol";
+import "./utils/Whitelistable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
-// NOTE: SafeMath is no longer needed starting with Solidity 0.8. The compiler now has built in overflow checking.
+// NOTE: SafeMath is no longer needed starting with Solidity 0.8. The compiler now has
+// built in overflow checking.
 
-// 👀
-import "hardhat/console.sol";
+/// @notice [FullyOperational] When is NOT fully operational, users cannot:
+/// 1) mint, 2) deposit nor 3) create withdraw orders.
 
-contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
+contract StakedAuroraVault is
+    Whitelistable,
+    FullyOperational,
+    ERC4626,
+    AccessControl,
+    IStakedAuroraVaultEvents
+{
     using SafeERC20 for IERC20;
 
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
@@ -27,27 +36,8 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
     address public liquidityPool;
     uint256 public minDepositAmount;
 
-    /// @notice When is NOT fully operational, users cannot:
-    /// 1) mint, 2) deposit nor 3) create withdraw orders.
-    bool public fullyOperational;
-    bool public enforceWhitelist;
-
-    mapping(address => bool) public accountWhitelist;
-
     modifier onlyManager() {
         if (msg.sender != stakingManager) { revert Unauthorized(); }
-        _;
-    }
-
-    modifier onlyFullyOperational() {
-        if (!fullyOperational) { revert NotFullyOperational(); }
-        _;
-    }
-
-    modifier checkWhitelist() {
-        if (enforceWhitelist && !isWhitelisted(msg.sender)) {
-            revert AccountNotWhitelisted();
-        }
         _;
     }
 
@@ -78,8 +68,12 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
         address _stakingManager,
         address _liquidityPool
     ) external onlyRole(ADMIN_ROLE) {
-        if (liquidityPool != address(0) || stakingManager != address(0)) { revert ContractAlreadyInitialized(); }
-        if (_stakingManager == address(0) || _liquidityPool == address(0)) { revert InvalidZeroAddress(); }
+        if (liquidityPool != address(0) || stakingManager != address(0)) {
+            revert ContractAlreadyInitialized();
+        }
+        if (_stakingManager == address(0) || _liquidityPool == address(0)) {
+            revert InvalidZeroAddress();
+        }
 
         stakingManager = _stakingManager;
         liquidityPool = _liquidityPool;
@@ -115,10 +109,14 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
 
     /// @notice Use in case of emergency 🦺.
     /// @dev Check if the contract is initialized when the change is to true.
-    function updateContractOperation(bool _isFullyOperational) public onlyRole(ADMIN_ROLE) {
+    function updateContractOperation(
+        bool _isFullyOperational
+    ) public override onlyRole(ADMIN_ROLE) {
         if (_isFullyOperational
                 && (liquidityPool == address(0)
-                        || stakingManager == address(0))) { revert ContractNotInitialized(); }
+                        || stakingManager == address(0))) {
+            revert ContractNotInitialized();
+        }
         fullyOperational = _isFullyOperational;
 
         emit ContractUpdateOperation(_isFullyOperational, msg.sender);
@@ -126,13 +124,13 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
 
     function updateEnforceWhitelist(
         bool _isWhitelistRequired
-    ) external onlyRole(OPERATOR_ROLE) {
+    ) external override onlyRole(OPERATOR_ROLE) {
         enforceWhitelist = _isWhitelistRequired;
 
         emit ContractUpdateWhitelist(_isWhitelistRequired, msg.sender);
     }
 
-    function whitelistAccount(address _account) public onlyRole(OPERATOR_ROLE) {
+    function whitelistAccount(address _account) public override onlyRole(OPERATOR_ROLE) {
         accountWhitelist[_account] = true;
 
         emit AccountWhitelisted(_account, msg.sender);
@@ -140,14 +138,14 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
 
     function bulkWhitelistAccount(
         address[] memory _accounts
-    ) external onlyRole(OPERATOR_ROLE) {
+    ) external override onlyRole(OPERATOR_ROLE) {
         uint256 _totalAccounts = _accounts.length;
         for (uint i = 0; i < _totalAccounts; ++i) {
             whitelistAccount(_accounts[i]);
         }
     }
 
-    function blacklistAccount(address _account) public onlyRole(OPERATOR_ROLE) {
+    function blacklistAccount(address _account) public override onlyRole(OPERATOR_ROLE) {
         accountWhitelist[_account] = false;
 
         emit AccountBlacklisted(_account, msg.sender);
@@ -155,15 +153,11 @@ contract StakedAuroraVault is ERC4626, AccessControl, IStakedAuroraVaultEvents {
 
     function bulkBlacklistAccount(
         address[] memory _accounts
-    ) external onlyRole(OPERATOR_ROLE) {
+    ) external override onlyRole(OPERATOR_ROLE) {
         uint256 _totalAccounts = _accounts.length;
         for (uint i = 0; i < _totalAccounts; ++i) {
             blacklistAccount(_accounts[i]);
         }
-    }
-
-    function isWhitelisted(address _account) public view returns (bool) {
-        return accountWhitelist[_account];
     }
 
     function getStAurPrice() public view returns (uint256) {

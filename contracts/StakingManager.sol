@@ -21,19 +21,21 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 ///   should never be upgraded.
 /// - The Depositor(s) contract have the control of all the AURORA tokens. The logic
 ///   should never be upgraded.
-/// - The StakingManager contract manage most of the logic for the "Liquid Staking Protocol".
-///   This contract only briefly holds the AURORA tokens that were withdraw using an Order.
-///   So, in case of an emergency, the logic of this contract can be updated, deploying a NEW
-///   contract Manager, leaving the stAUR ledger and the AURORA tokens safely.
+/// - The StakingManager contract manage most of the logic for the "Liquid Staking
+///   Protocol".
+///   This contract only briefly holds the AURORA tokens that were withdraw using an
+///   Order.
+///   So, in case of an emergency, the logic of this contract can be updated, deploying
+///   a NEW contract Manager, leaving the stAUR ledger and the AURORA tokens safely.
 
 /// **Steps in case of Emergency** 🛟:
 /// 1. Keep calm. Find the ADMIN_ROLE account(s) to operate emergency functions.
 /// 2. Pause all deposits and redeems from the StakedAuroraVault contract.
 ///    StakedAuroraVault.updateContractOperation(false)
-/// 3. Keep running the cleanOrdersQueue fn until all orders (withdraw, pending) are processed
-///    and available. If there is an issue, you could relief the load of the 🤖 by stop
-///    the processing of the Withdraw orders. This will allow the process the pending orders,
-///    and when those are available, then process the rest.
+/// 3. Keep running the cleanOrdersQueue fn until all orders (withdraw, pending) are
+///    processed and available. If there is an issue, you could relief the load of the 🤖
+///    by stop the processing of the Withdraw orders. This will allow the process the
+///    pending orders, and when those are available, then process the rest.
 /// 4. Deploy a new Manager and update the address in the Vault and in Depositors.
 /// 5. Pending tokens could be removed from the old Manager with the alternativeWithdraw.
 
@@ -47,10 +49,9 @@ contract StakingManager is AccessControl, IStakingManager {
     /// @dev 1 Hour of safety buffer before the Depositors can withdraw.
     uint256 public constant SAFETY_BUFFER = 3_600;
 
-    /// @dev Safe value to aviod DOS attack.
-    /// The depositors and withdrawOrders arrays need to be looped.
+    /// @notice The depositors and withdrawOrders arrays need to be looped.
     /// We enforce limits to the size of this two arrays.
-    /// TODO: Test this values at extreme!
+    /// @dev Safe value to aviod DOS attack.
     uint256 public constant MAX_MAX_WITHDRAW_ORDERS = 200;
     uint256 public constant MIN_MAX_WITHDRAW_ORDERS = 50;
     uint256 public constant MAX_DEPOSITORS = 20;
@@ -186,7 +187,9 @@ contract StakingManager is AccessControl, IStakingManager {
 
     /// @notice Returns the estimated timestamp of availability for funds in:
     /// withdraw or pending orders.
-    function getAvailableTimestamp(bool _isWithdrawOrder) external view returns (uint256) {
+    function getAvailableTimestamp(
+        bool _isWithdrawOrder
+    ) external view returns (uint256) {
         if (_isWithdrawOrder) {
             return nextCleanOrderQueue + _getAuroraTau();
         }
@@ -284,7 +287,9 @@ contract StakingManager is AccessControl, IStakingManager {
         uint256 _assets,
         address _receiver
     ) external {
-        if (IStakedAuroraVault(stAurVault).stakingManager() == address(this)) { revert VaultAndManagerStillAttached(); }
+        if (IStakedAuroraVault(stAurVault).stakingManager() == address(this)) {
+            revert VaultAndManagerStillAttached();
+        }
         _transferAurora(_receiver, msg.sender, _assets);
 
         emit AltWithdraw(msg.sender, _receiver, msg.sender, _assets);
@@ -299,7 +304,6 @@ contract StakingManager is AccessControl, IStakingManager {
     /// @dev In case of emergency 🛟,
     ///   the withdraw-orders process could be temporally stopped (3, 4, 5 steps).
     function cleanOrdersQueue() public {
-        /// TODO: Evaluate GAS
         if (getDepositorsLength() == 0) { revert NoDepositors(); }
         if (nextCleanOrderQueue > block.timestamp) { revert WaitForNextCleanOrders(); }
 

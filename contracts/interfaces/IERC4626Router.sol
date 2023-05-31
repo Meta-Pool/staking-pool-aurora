@@ -76,7 +76,7 @@ interface IERC4626Router {
         uint256 _maxSharesOut
     ) external returns (uint256 _sharesOut);
 
-    // TODO: Not for release v0.2.0.
+    /// @notice Not for release v0.2.0.
     // /// @notice deposit max assets to an ERC4626 vault.
     // /// @param _vault The ERC4626 vault to deposit assets to.
     // /// @param _to The destination of ownership shares.
@@ -89,6 +89,7 @@ interface IERC4626Router {
     //     uint256 _minSharesOut
     // ) external returns (uint256 _sharesOut);
 
+    /// @notice Not for release v0.2.0.
     // /// @notice redeem max shares to an ERC4626 vault.
     // /// @param _vault The ERC4626 vault to redeem shares from.
     // /// @param _to The destination of assets.

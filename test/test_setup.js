@@ -1,6 +1,6 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { loadFixture, impersonateAccount } = require("@nomicfoundation/hardhat-network-helpers");
+const { loadFixture, impersonateAccount, time } = require("@nomicfoundation/hardhat-network-helpers");
 
 const {
   ADMIN_ADDRESS,
@@ -13,14 +13,12 @@ const {
   OPERATOR_ADDRESS,
   STAKED_AURORA_VAULT_ADDRESS,
   STAKING_MANAGER_ADDRESS,
+  TOTAL_SPAMBOTS,
+  MAX_WITHDRAW_ORDERS
 } = require("./_config");
 
 const DECIMALS = ethers.BigNumber.from(10).pow(18);
 const AURORA = ethers.BigNumber.from(1).mul(ethers.BigNumber.from(10).pow(18));
-
-const EQUAL_SPAMBOTS_WITHDRAW_ORDERS = 20;
-const TOTAL_SPAMBOTS = EQUAL_SPAMBOTS_WITHDRAW_ORDERS;
-const MAX_WITHDRAW_ORDERS = EQUAL_SPAMBOTS_WITHDRAW_ORDERS;
 
 // CONTRACT ROLES
 const ADMIN_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('ADMIN_ROLE'));
@@ -494,6 +492,69 @@ async function botsHordeFixture() {
   // AURORA deposits to the Liquidity Pool.
   await auroraTokenContract.connect(liquidity_provider).approve(liquidityPoolContract.address, providerDeposit);
   await liquidityPoolContract.connect(liquidity_provider).deposit(providerDeposit, liquidity_provider.address);
+
+  // ALL bots will already have a withdraw order.
+  const redeemBalance = ethers.BigNumber.from(1).mul(DECIMALS);
+
+  // First redeem.
+  for (let i = 0; i < TOTAL_SPAMBOTS; i++) {
+    await stakedAuroraVaultContract.connect(spambots[i]).redeem(
+      redeemBalance, spambots[i].address, spambots[i].address
+    );
+  }
+
+  // Move forward: From withdraw to pending.
+  await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
+  await stakingManagerContract.cleanOrdersQueue();
+
+  // Second redeem.
+  for (let i = 0; i < TOTAL_SPAMBOTS; i++) {
+    await stakedAuroraVaultContract.connect(spambots[i]).redeem(
+      redeemBalance, spambots[i].address, spambots[i].address
+    );
+  }
+
+  // Move forward: From pending to available.
+  await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
+  await stakingManagerContract.cleanOrdersQueue();
+
+  // Third redeem.
+  for (let i = 0; i < TOTAL_SPAMBOTS; i++) {
+    await stakedAuroraVaultContract.connect(spambots[i]).redeem(
+      redeemBalance, spambots[i].address, spambots[i].address
+    );
+  }
+
+  // Move forward: From pending to available.
+  await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
+  await stakingManagerContract.cleanOrdersQueue();
+
+  // Fourth redeem.
+  for (let i = 0; i < TOTAL_SPAMBOTS; i++) {
+    await stakedAuroraVaultContract.connect(spambots[i]).redeem(
+      redeemBalance, spambots[i].address, spambots[i].address
+    );
+  }
+
+  // Move forward: From pending to available.
+  await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
+  await stakingManagerContract.cleanOrdersQueue();
+
+  await stakedAuroraVaultContract.connect(alice).redeem(redeemBalance, alice.address, alice.address);
+  await stakedAuroraVaultContract.connect(bob).redeem(redeemBalance, bob.address, bob.address);
+  await stakedAuroraVaultContract.connect(carl).redeem(redeemBalance, carl.address, carl.address);
+
+  // Move forward: From pending to available.
+  await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
+  await stakingManagerContract.cleanOrdersQueue();
+
+  await stakedAuroraVaultContract.connect(alice).redeem(redeemBalance, alice.address, alice.address);
+  await stakedAuroraVaultContract.connect(bob).redeem(redeemBalance, bob.address, bob.address);
+  await stakedAuroraVaultContract.connect(carl).redeem(redeemBalance, carl.address, carl.address);
+
+  // Move forward: From pending to available.
+  await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
+  await stakingManagerContract.cleanOrdersQueue();
 
   return {
     auroraTokenContract,

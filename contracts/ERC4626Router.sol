@@ -6,14 +6,10 @@ pragma solidity 0.8.18;
 /// @notice The Router was developed using the following repository as reference:
 /// https://github.com/fei-protocol/ERC4626
 
-import {IERC4626Router} from "./interfaces/IERC4626Router.sol";
-
 import "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
-// // 👀
-// import "hardhat/console.sol";
+import {IERC4626Router} from "./interfaces/IERC4626Router.sol";
 
 contract ERC4626Router is IERC4626Router {
     using SafeERC20 for IERC20;
@@ -81,7 +77,7 @@ contract ERC4626Router is IERC4626Router {
         return _withdraw(_vault, _to, _amount, _maxSharesOut);
     }
 
-    // TODO: Not for release v0.2.0.
+    /// @notice Not for release v0.2.0.
     // /// @inheritdoc IERC4626Router
     // function depositMax(
     //     IERC4626 _vault,
@@ -96,6 +92,7 @@ contract ERC4626Router is IERC4626Router {
     //     return _deposit(_vault, _to, amount, _minSharesOut);
     // }
 
+    /// @notice Not for release v0.2.0.
     // /// @inheritdoc IERC4626Router
     // function redeemMax(
     //     IERC4626 _vault,

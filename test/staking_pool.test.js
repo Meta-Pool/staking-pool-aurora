@@ -1104,7 +1104,7 @@ describe("Staking Pool AURORA", function () {
       const directPosBobDep00 = await auroraStakingContract.getUserShares(depositor00Contract.address);
       const directPosBobDep01 = await auroraStakingContract.getUserShares(depositor01Contract.address);
 
-      // The assets increase in price very FAST (at least during this test :( - not in reallity).
+      // The assets increase in price very FAST (at least during this test :( - not in reality).
       expect(preBobDep00).to.lessThan(posBobDep00);
       expect(preBobDep01).to.lessThan(posBobDep01);
       expect(directPreBobDep00).to.equal(directPosBobDep00);

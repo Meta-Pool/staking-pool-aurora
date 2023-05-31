@@ -5,6 +5,7 @@ pragma solidity 0.8.18;
 
 import "./interfaces/ILiquidityPool.sol";
 import "./interfaces/IStakedAuroraVault.sol";
+import "./utils/FullyOperational.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -12,7 +13,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
 /// @notice Liquidity Pool that allows the fast convertion of stAUR to AURORA tokens.
 
-contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
+contract LiquidityPool is FullyOperational, ERC4626, AccessControl, ILiquidityPool {
     using SafeERC20 for IERC20;
     using SafeERC20 for IStakedAuroraVault;
 
@@ -41,15 +42,8 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
     /// @dev The remaining Fees will be available to be collected by Meta Pool.
     uint256 public collectedStAurFees;
 
-    bool public fullyOperational;
-
     modifier onlyStAurVault() {
         if (msg.sender != stAurVault) { revert Unauthorized(); }
-        _;
-    }
-
-    modifier onlyFullyOperational() {
-        if (!fullyOperational) { revert NotFullyOperational(); }
         _;
     }
 
@@ -122,7 +116,7 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
     /// stAUR token liquidity to cover deposits (FLOW 1).
     function updateContractOperation(
         bool _isFullyOperational
-    ) public onlyRole(ADMIN_ROLE) {
+    ) public override onlyRole(ADMIN_ROLE) {
         fullyOperational = _isFullyOperational;
 
         emit ContractUpdateOperation(_isFullyOperational, msg.sender);
@@ -369,5 +363,4 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
 
         emit Withdraw(_caller, _receiver, _owner, _totalInAuroraToSend, _shares);
     }
-
 }

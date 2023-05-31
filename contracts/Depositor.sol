@@ -123,14 +123,13 @@ contract Depositor is AccessControl, IDepositor {
         emit MoveRewardsToPending(address(this), _streamId);
     }
 
-    /// IMPORTANT release note `v.2.0`.
-    /// function is "commented out" because it is still a prossibility of avoiding "Depositor.sol" `v0.1` hardfork.
+    /// @dev New function for release note `v.2.0`.
     /// @notice Manually collect depositor Stream Rewards from Aurora Plus.
-    // function moveAllRewardsToPending() external onlyRole(COLLECT_REWARDS_ROLE) {
-    //     IAuroraStaking(auroraStaking).moveAllRewardsToPending();
+    function moveAllRewardsToPending() external onlyRole(COLLECT_REWARDS_ROLE) {
+        IAuroraStaking(auroraStaking).moveAllRewardsToPending();
 
-    //     emit MoveAllRewardsToPending(address(this));
-    // }
+        emit MoveAllRewardsToPending(address(this));
+    }
 
     /// @notice Manually withdraw depositor Stream Rewards from Aurora Plus.
     function withdrawRewards(
