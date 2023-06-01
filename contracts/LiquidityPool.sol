@@ -220,6 +220,8 @@ contract LiquidityPool is FullyOperational, ERC4626, AccessControl, ILiquidityPo
         return _totalInAuroraToSend;
     }
 
+    /// @param _assets units are in the base asset, the AURORA token.
+    /// @return shares are the LP token that were burnt during the operation.
     function withdraw(
         uint256 _assets,
         address _receiver,
