@@ -8,7 +8,6 @@ import "./interfaces/ILiquidityPool.sol";
 import "./interfaces/IStakedAuroraVaultEvents.sol";
 import "./interfaces/IStakingManager.sol";
 import "./utils/FullyOperational.sol";
-import "./utils/Whitelistable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -20,8 +19,9 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 /// @notice [FullyOperational] When is NOT fully operational, users cannot:
 /// 1) mint, 2) deposit nor 3) create withdraw orders.
 
+/// @notice [Whitelistable] removed for v0.2.0. Mainnet stAUR token is NOT whitelistable.
+
 contract StakedAuroraVault is
-    Whitelistable,
     FullyOperational,
     ERC4626,
     AccessControl,
@@ -55,7 +55,6 @@ contract StakedAuroraVault is
             revert InvalidZeroAddress();
         }
         minDepositAmount = _minDepositAmount;
-        enforceWhitelist = true;
 
         _grantRole(ADMIN_ROLE, msg.sender);
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -122,44 +121,6 @@ contract StakedAuroraVault is
         emit ContractUpdateOperation(_isFullyOperational, msg.sender);
     }
 
-    function updateEnforceWhitelist(
-        bool _isWhitelistRequired
-    ) external override onlyRole(OPERATOR_ROLE) {
-        enforceWhitelist = _isWhitelistRequired;
-
-        emit ContractUpdateWhitelist(_isWhitelistRequired, msg.sender);
-    }
-
-    function whitelistAccount(address _account) public override onlyRole(OPERATOR_ROLE) {
-        accountWhitelist[_account] = true;
-
-        emit AccountWhitelisted(_account, msg.sender);
-    }
-
-    function bulkWhitelistAccount(
-        address[] memory _accounts
-    ) external override onlyRole(OPERATOR_ROLE) {
-        uint256 _totalAccounts = _accounts.length;
-        for (uint i = 0; i < _totalAccounts; ++i) {
-            whitelistAccount(_accounts[i]);
-        }
-    }
-
-    function blacklistAccount(address _account) public override onlyRole(OPERATOR_ROLE) {
-        accountWhitelist[_account] = false;
-
-        emit AccountBlacklisted(_account, msg.sender);
-    }
-
-    function bulkBlacklistAccount(
-        address[] memory _accounts
-    ) external override onlyRole(OPERATOR_ROLE) {
-        uint256 _totalAccounts = _accounts.length;
-        for (uint i = 0; i < _totalAccounts; ++i) {
-            blacklistAccount(_accounts[i]);
-        }
-    }
-
     function getStAurPrice() public view returns (uint256) {
         uint256 ONE_AURORA = 1 ether;
         return convertToAssets(ONE_AURORA);
@@ -174,7 +135,7 @@ contract StakedAuroraVault is
     function deposit(
         uint256 _assets,
         address _receiver
-    ) public override onlyFullyOperational checkWhitelist returns (uint256) {
+    ) public override onlyFullyOperational returns (uint256) {
         if (_assets < minDepositAmount) { revert LessThanMinDeposit(); }
         require(_assets <= maxDeposit(_receiver), "ERC4626: deposit more than max");
 
@@ -187,7 +148,7 @@ contract StakedAuroraVault is
     function mint(
         uint256 _shares,
         address _receiver
-    ) public override onlyFullyOperational checkWhitelist returns (uint256) {
+    ) public override onlyFullyOperational returns (uint256) {
         uint256 assets = previewMint(_shares);
         if (assets < minDepositAmount) { revert LessThanMinDeposit(); }
         require(_shares <= maxMint(_receiver), "ERC4626: mint more than max");
