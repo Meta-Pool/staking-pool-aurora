@@ -196,6 +196,8 @@ contract StakedAuroraVault is
         uint256 _assets,
         address _receiver
     ) public {
+        // The transfer is settled only if the msg.sender has enough available funds in
+        // the manager contract.
         IStakingManager(stakingManager).transferAurora(_receiver, msg.sender, _assets);
 
         emit Withdraw(msg.sender, _receiver, msg.sender, _assets, 0);
