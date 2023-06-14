@@ -9,7 +9,7 @@ interface IStakingManager {
     event NewDepositorAdded(address _depositor, address _sender);
     event UpdateProcessWithdrawOrders(bool _isProcessStopped, address _sender);
 
-    error AvobeMaxOrders();
+    error AboveMaxOrders();
     error BellowMaxOrders();
     error BelowCurrentLength();
     error DepositorExists();
