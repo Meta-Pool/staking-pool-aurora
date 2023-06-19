@@ -5,16 +5,18 @@ import "./utils/DeploymentHelper.sol";
 
 // Part of the Halborn Audit May 2023.
 
+// Can the "Inflation Attack" affects the current stAUR 🪐 deployment `v0.1.0`?
+
 contract TestHalbornStakingPool is DeploymentHelper {
-    uint256 testNumber;
+    // uint256 testNumber;
 
     function setUp() public {
-        testNumber = 42;
+        // testNumber = 42;
     }
 
-    function test_NumberIs42() public {
-        assertEq(testNumber, 42);
-    }
+    // function test_NumberIs42() public {
+    //     assertEq(testNumber, 42);
+    // }
 
     function testInflationAttack() public {
         prepareBalances();
@@ -33,7 +35,7 @@ contract TestHalbornStakingPool is DeploymentHelper {
             console.log("[*] After ATTACKER's deposit:");
             printBalances();
 
-            // v0.1.1 removing the `burn` functionality.
+            // v0.2.0 removing the `burn` functionality.
             // stakedAuroraVault.burn(100 ether);  // Inflate shares' value
             console.log("[*] After ATTACKER's inflation:");
             printBalances();
@@ -58,9 +60,8 @@ contract TestHalbornStakingPool is DeploymentHelper {
             skip(2 hours);  // AURORA's tau
 
             stakingManager.cleanOrdersQueue();  // Withdraw pending tokens
-            stakedAuroraVault.withdraw(
+            stakedAuroraVault.completeDelayUnstake(
                 stakingManager.getAvailableAssets(ATTACKER),
-                ATTACKER,
                 ATTACKER
             );
         }

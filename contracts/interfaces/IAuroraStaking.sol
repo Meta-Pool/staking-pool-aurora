@@ -9,6 +9,7 @@ enum StreamStatus {
 
 interface IAuroraStaking {
     function getPending(uint256 _streamId, address _account) external view returns (uint256);
+    function getStreamsCount() external view returns (uint256);
     function getReleaseTime(uint256 _streamId, address _account) external view returns (uint256);
     function getStream(uint256 _streamId) external view returns (
         address streamOwner,
@@ -26,10 +27,10 @@ interface IAuroraStaking {
     function getTotalAmountOfStakedAurora() external view returns (uint256);
     function getUserShares(address _account) external view returns (uint256);
     function moveRewardsToPending(uint256 _streamId) external;
+    function moveAllRewardsToPending() external;
     function stake(uint256 _amount) external;
     function totalAuroraShares() external view returns (uint256);
     function unstake(uint256 _amount) external;
     function unstakeAll() external;
     function withdraw(uint256 _streamId) external;
-
 }

@@ -47,7 +47,7 @@ describe("Emergency flow 🦺", function () {
 
       await expect(
         stakedAuroraVaultContract.connect(alice).redeem(aliceShares, alice.address, alice.address)
-      ).to.be.revertedWith("TOO_MANY_WITHDRAW_ORDERS");
+      ).to.be.revertedWithCustomError(stakingManagerContract, "MaxOrdersExceeded");
 
       // Move forward: From withdraw to pending.
       await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
@@ -64,9 +64,8 @@ describe("Emergency flow 🦺", function () {
       const nextSpamBalance = (await auroraTokenContract.balanceOf(spambots[0].address)).add(
         await stakingManagerContract.getAvailableAssets(spambots[0].address)
       );
-      await stakedAuroraVaultContract.connect(spambots[0]).withdraw(
+      await stakedAuroraVaultContract.connect(spambots[0]).completeDelayUnstake(
         await stakingManagerContract.getAvailableAssets(spambots[0].address),
-        spambots[0].address,
         spambots[0].address
       );
       expect(await auroraTokenContract.balanceOf(spambots[0].address)).to.equal(nextSpamBalance);
@@ -78,9 +77,8 @@ describe("Emergency flow 🦺", function () {
       const nextAliceBalance = (await auroraTokenContract.balanceOf(alice.address)).add(
         await stakingManagerContract.getAvailableAssets(alice.address)
       );
-      await stakedAuroraVaultContract.connect(alice).withdraw(
+      await stakedAuroraVaultContract.connect(alice).completeDelayUnstake(
         await stakingManagerContract.getAvailableAssets(alice.address),
-        alice.address,
         alice.address
       );
       expect(await auroraTokenContract.balanceOf(alice.address)).to.equal(nextAliceBalance);
@@ -88,9 +86,8 @@ describe("Emergency flow 🦺", function () {
       const nextBobBalance = (await auroraTokenContract.balanceOf(bob.address)).add(
         await stakingManagerContract.getAvailableAssets(bob.address)
       );
-      await stakedAuroraVaultContract.connect(bob).withdraw(
+      await stakedAuroraVaultContract.connect(bob).completeDelayUnstake(
         await stakingManagerContract.getAvailableAssets(bob.address),
-        bob.address,
         bob.address
       );
       expect(await auroraTokenContract.balanceOf(bob.address)).to.equal(nextBobBalance);
@@ -98,191 +95,44 @@ describe("Emergency flow 🦺", function () {
       const nextCarlBalance = (await auroraTokenContract.balanceOf(carl.address)).add(
         await stakingManagerContract.getAvailableAssets(carl.address)
       );
-      await stakedAuroraVaultContract.connect(carl).withdraw(
+      await stakedAuroraVaultContract.connect(carl).completeDelayUnstake(
         await stakingManagerContract.getAvailableAssets(carl.address),
-        carl.address,
-        carl.address
-      );
-      expect(await auroraTokenContract.balanceOf(carl.address)).to.equal(nextCarlBalance);
-    });
-
-    it("Should return Partially withdraw orders to users.", async function () {
-      const {
-        auroraTokenContract,
-        stakedAuroraVaultContract,
-        stakingManagerContract,
-        alice,
-        bob,
-        carl,
-        spambots
-      } = await loadFixture(botsHordeFixture);
-
-      const redeemBalance = ethers.BigNumber.from(1).mul(DECIMALS);
-
-      // First redeem.
-      for (let i = 0; i < TOTAL_SPAMBOTS; i++) {
-        await stakedAuroraVaultContract.connect(spambots[i]).redeem(
-          redeemBalance, spambots[i].address, spambots[i].address
-        );
-      }
-
-      // Move forward: From withdraw to pending.
-      await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
-      await stakingManagerContract.cleanOrdersQueue();
-
-      // Second redeem.
-      for (let i = 0; i < TOTAL_SPAMBOTS; i++) {
-        await stakedAuroraVaultContract.connect(spambots[i]).redeem(
-          redeemBalance, spambots[i].address, spambots[i].address
-        );
-      }
-
-      // Move forward: From pending to available.
-      await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
-      await stakingManagerContract.cleanOrdersQueue();
-
-      // Third redeem.
-      for (let i = 0; i < TOTAL_SPAMBOTS; i++) {
-        await stakedAuroraVaultContract.connect(spambots[i]).redeem(
-          redeemBalance, spambots[i].address, spambots[i].address
-        );
-      }
-
-      // Move forward: From pending to available.
-      await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
-      await stakingManagerContract.cleanOrdersQueue();
-
-      // Fourth redeem.
-      for (let i = 0; i < TOTAL_SPAMBOTS; i++) {
-        await stakedAuroraVaultContract.connect(spambots[i]).redeem(
-          redeemBalance, spambots[i].address, spambots[i].address
-        );
-      }
-
-      // Move forward: From pending to available.
-      await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
-      await stakingManagerContract.cleanOrdersQueue();
-
-      await stakedAuroraVaultContract.connect(alice).redeem(redeemBalance, alice.address, alice.address);
-      await stakedAuroraVaultContract.connect(bob).redeem(redeemBalance, bob.address, bob.address);
-      await stakedAuroraVaultContract.connect(carl).redeem(redeemBalance, carl.address, carl.address);
-
-      // Move forward: From pending to available.
-      await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
-      await stakingManagerContract.cleanOrdersQueue();
-
-      await stakedAuroraVaultContract.connect(alice).redeem(redeemBalance, alice.address, alice.address);
-      await stakedAuroraVaultContract.connect(bob).redeem(redeemBalance, bob.address, bob.address);
-      await stakedAuroraVaultContract.connect(carl).redeem(redeemBalance, carl.address, carl.address);
-
-      // Move forward: From pending to available.
-      await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
-      await stakingManagerContract.cleanOrdersQueue();
-
-      const aliceShares = await stakedAuroraVaultContract.balanceOf(alice.address);
-      const bobShares = await stakedAuroraVaultContract.balanceOf(bob.address);
-      const carlShares = await stakedAuroraVaultContract.balanceOf(carl.address);
-
-      // Redeem ALL bots balances.
-      for (let i = 0; i < TOTAL_SPAMBOTS; i++) {
-        var shares = await stakedAuroraVaultContract.balanceOf(spambots[i].address);
-        await stakedAuroraVaultContract.connect(spambots[i]).redeem(
-          shares, spambots[i].address, spambots[i].address
-        );
-      }
-
-      await expect(
-        stakedAuroraVaultContract.connect(alice).redeem(aliceShares, alice.address, alice.address)
-      ).to.be.revertedWith("TOO_MANY_WITHDRAW_ORDERS");
-
-      // Move forward: From withdraw to pending.
-      await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
-      await stakingManagerContract.cleanOrdersQueue();
-
-      await stakedAuroraVaultContract.connect(alice).redeem(aliceShares, alice.address, alice.address);
-      await stakedAuroraVaultContract.connect(bob).redeem(bobShares, bob.address, bob.address);
-      await stakedAuroraVaultContract.connect(carl).redeem(carlShares, carl.address, carl.address);
-
-      // Move forward: From pending to available.
-      await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
-      await stakingManagerContract.cleanOrdersQueue();
-
-      // After the redeem, let's pull the funds out with a withdraw.
-      const nextSpamBalance = (await auroraTokenContract.balanceOf(spambots[0].address)).add(
-        await stakingManagerContract.getAvailableAssets(spambots[0].address)
-      );
-      await stakedAuroraVaultContract.connect(spambots[0]).withdraw(
-        await stakingManagerContract.getAvailableAssets(spambots[0].address),
-        spambots[0].address,
-        spambots[0].address
-      );
-      expect(await auroraTokenContract.balanceOf(spambots[0].address)).to.equal(nextSpamBalance);
-
-      // Move forward: From pending to available.
-      await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
-      await stakingManagerContract.cleanOrdersQueue();
-
-      const nextAliceBalance = (await auroraTokenContract.balanceOf(alice.address)).add(
-        await stakingManagerContract.getAvailableAssets(alice.address)
-      );
-      await stakedAuroraVaultContract.connect(alice).withdraw(
-        await stakingManagerContract.getAvailableAssets(alice.address),
-        alice.address,
-        alice.address
-      );
-      expect(await auroraTokenContract.balanceOf(alice.address)).to.equal(nextAliceBalance);
-
-      const nextBobBalance = (await auroraTokenContract.balanceOf(bob.address)).add(
-        await stakingManagerContract.getAvailableAssets(bob.address)
-      );
-      await stakedAuroraVaultContract.connect(bob).withdraw(
-        await stakingManagerContract.getAvailableAssets(bob.address),
-        bob.address,
-        bob.address
-      );
-      expect(await auroraTokenContract.balanceOf(bob.address)).to.equal(nextBobBalance);
-
-      const nextCarlBalance = (await auroraTokenContract.balanceOf(carl.address)).add(
-        await stakingManagerContract.getAvailableAssets(carl.address)
-      );
-      await stakedAuroraVaultContract.connect(carl).withdraw(
-        await stakingManagerContract.getAvailableAssets(carl.address),
-        carl.address,
         carl.address
       );
       expect(await auroraTokenContract.balanceOf(carl.address)).to.equal(nextCarlBalance);
     });
   });
 
-  describe("Bulk White 🐻‍❄️ and Black 🐈‍⬛ listing", function () {
-    it("Should work properly.", async function () {
-      const {
-        stakedAuroraVaultContract,
-        operator,
-        spambots
-      } = await loadFixture(botsHordeFixture);
+  // v0.2 is no longer whitelisted.
+  // describe("Bulk White 🐻‍❄️ and Black 🐈‍⬛ listing", function () {
+  //   it("Should work properly.", async function () {
+  //     const {
+  //       stakedAuroraVaultContract,
+  //       operator,
+  //       spambots
+  //     } = await loadFixture(botsHordeFixture);
 
-      expect(await stakedAuroraVaultContract.enforceWhitelist()).to.be.false;
-      await stakedAuroraVaultContract.connect(operator).updateEnforceWhitelist(true);
-      expect(await stakedAuroraVaultContract.enforceWhitelist()).to.be.true;
+  //     // expect(await stakedAuroraVaultContract.enforceWhitelist()).to.be.false;
+  //     // await stakedAuroraVaultContract.connect(operator).updateEnforceWhitelist(true);
+  //     // expect(await stakedAuroraVaultContract.enforceWhitelist()).to.be.true;
 
-      const accounts = [];
-      for (let i = 0; i < spambots.length; i++) {
-        expect(await stakedAuroraVaultContract.isWhitelisted(spambots[i].address)).to.be.false;
-        accounts.push(spambots[i].address);
-      }
+  //     const accounts = [];
+  //     for (let i = 0; i < spambots.length; i++) {
+  //       expect(await stakedAuroraVaultContract.isWhitelisted(spambots[i].address)).to.be.false;
+  //       accounts.push(spambots[i].address);
+  //     }
 
-      await stakedAuroraVaultContract.connect(operator).bulkWhitelistAccount(accounts);
-      for (let i = 0; i < spambots.length; i++) {
-        expect(await stakedAuroraVaultContract.isWhitelisted(spambots[i].address)).to.be.true;
-      }
+  //     await stakedAuroraVaultContract.connect(operator).bulkWhitelistAccount(accounts);
+  //     for (let i = 0; i < spambots.length; i++) {
+  //       expect(await stakedAuroraVaultContract.isWhitelisted(spambots[i].address)).to.be.true;
+  //     }
 
-      await stakedAuroraVaultContract.connect(operator).bulkBlacklistAccount(accounts);
-      for (let i = 0; i < spambots.length; i++) {
-        expect(await stakedAuroraVaultContract.isWhitelisted(spambots[i].address)).to.be.false;
-      }
-    });
-  });
+  //     await stakedAuroraVaultContract.connect(operator).bulkBlacklistAccount(accounts);
+  //     for (let i = 0; i < spambots.length; i++) {
+  //       expect(await stakedAuroraVaultContract.isWhitelisted(spambots[i].address)).to.be.false;
+  //     }
+  //   });
+  // });
 
   describe("Contract is not longer fully operational", function () {
     it("Should pause all deposits and redeems from the StakedAuroraVault contract.", async function () {
@@ -306,17 +156,17 @@ describe("Emergency flow 🦺", function () {
       await auroraTokenContract.connect(alice).approve(stakedAuroraVaultContract.address, aliceDeposit);
       await expect(
         stakedAuroraVaultContract.connect(alice).deposit(aliceDeposit, alice.address)
-      ).to.be.revertedWith("CONTRACT_IS_NOT_FULLY_OPERATIONAL");
+      ).to.be.revertedWithCustomError(stakedAuroraVaultContract, "NotFullyOperational");
 
       await expect(
         stakedAuroraVaultContract.connect(alice).mint(
           ethers.BigNumber.from(1).mul(DECIMALS), alice.address)
-      ).to.be.revertedWith("CONTRACT_IS_NOT_FULLY_OPERATIONAL");
+      ).to.be.revertedWithCustomError(stakedAuroraVaultContract, "NotFullyOperational");
 
       await expect(
         stakedAuroraVaultContract.connect(alice).redeem(
           await stakedAuroraVaultContract.balanceOf(alice.address), alice.address, alice.address)
-      ).to.be.revertedWith("CONTRACT_IS_NOT_FULLY_OPERATIONAL");
+      ).to.be.revertedWithCustomError(stakedAuroraVaultContract, "NotFullyOperational");
 
       // Move forward: From withdraw to pending.
       await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
@@ -329,9 +179,8 @@ describe("Emergency flow 🦺", function () {
       const nextBobBalance = (await auroraTokenContract.balanceOf(bob.address)).add(
         await stakingManagerContract.getAvailableAssets(bob.address)
       );
-      await stakedAuroraVaultContract.connect(bob).withdraw(
+      await stakedAuroraVaultContract.connect(bob).completeDelayUnstake(
         await stakingManagerContract.getAvailableAssets(bob.address),
-        bob.address,
         bob.address
       );
       expect(await auroraTokenContract.balanceOf(bob.address)).to.equal(nextBobBalance);
@@ -424,9 +273,8 @@ describe("Emergency flow 🦺", function () {
       await stakingManagerContract.cleanOrdersQueue();
 
       // All good for alice.
-      await stakedAuroraVaultContract.connect(alice).withdraw(
+      await stakedAuroraVaultContract.connect(alice).completeDelayUnstake(
         await stakingManagerContract.getAvailableAssets(alice.address),
-        alice.address,
         alice.address
       );
 
@@ -435,16 +283,15 @@ describe("Emergency flow 🦺", function () {
           await stakingManagerContract.getAvailableAssets(bob.address),
           bob.address
         )
-      ).to.be.revertedWith("VAULT_AND_MANAGER_STILL_ATTACHED");
+      ).to.be.revertedWithCustomError(stakingManagerContract, "VaultAndManagerStillAttached");
 
       // DETACHING ✂️ Vault and Manager. // Now the owner address is the Manager.
       await stakedAuroraVaultContract.connect(owner).updateStakingManager(owner.address);
 
       // Too late for bob.
       await expect(
-        stakedAuroraVaultContract.connect(bob).withdraw(
+        stakedAuroraVaultContract.connect(bob).completeDelayUnstake(
           await stakingManagerContract.getAvailableAssets(bob.address),
-          bob.address,
           bob.address
         )
       ).to.be.reverted;

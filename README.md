@@ -35,7 +35,7 @@ Finally, the `stAUR` 🪐 token is in the wild, live on AURORA `mainnet`.
 
 The `stAUR` 🪐 token is the **Liquid Staking** token that represents a proportion of the total AURORA tokens staked in the [**Aurora Plus**](https://aurora.plus/) staking service. The staking is done through an additional smart contracts called **Depositors**. A good number of depositors to start with is two.
 
-The **Depositors** are independent smart contracts that deposit the delegated AURORA tokens into the Aurora Plus staking service. The objective of spliting the deposits into multiple depositors is to allow deposits from one depositor, keeping the others of them without the redeem penalization.
+The **Depositors** are independent smart contracts that deposit the delegated AURORA tokens into the Aurora Plus staking service. The objective of splitting the deposits into multiple depositors is to allow deposits from one depositor, keeping the others of them without the redeem penalization.
 
 Three different contracts are needed to be deployed.
 
@@ -43,7 +43,7 @@ Three different contracts are needed to be deployed.
 - The staking manager is the contract than contains all the logic to stake, unstake and the stAUR-AURORA liquidity pool.
 - The depositors are separated smart contracts that have the logic to deposit and withdraw from the Aurora plus staking service.
 
-Using the Aurora SDK, after the liquidity pool is developed, the stAUR token could be used directy in Meta Yield.
+Using the Aurora SDK, after the liquidity pool is developed, the stAUR token could be used directly in Meta Yield.
 
 ![Architecture](media/stakingAurora.png)
 
@@ -123,7 +123,7 @@ forge remappings > remappings.txt
 ```
 
 ```sh
-## Runing the test in verbose mode.
+## Running the test in verbose mode.
 $ forge test -vvv
 [⠆] Compiling...
 No files changed, compilation skipped

@@ -5,7 +5,6 @@ async function main() {
   const TEST_RELEASE = " v0.1.0-a2"
   const TEST_RELEASE_SHORT = "a2"
   const MAX_WITHDRAW_ORDERS = 20;
-  const MAX_DEPOSITORS = 3;
   const DECIMALS = ethers.BigNumber.from(10).pow(18);
   const AuroraToken = await ethers.getContractFactory("Token");
   const CentauriToken = await ethers.getContractFactory("Token");
@@ -82,8 +81,7 @@ async function main() {
     auroraStakingContract.address,
     bob.address,
     bob.address,
-    MAX_WITHDRAW_ORDERS,
-    MAX_DEPOSITORS
+    MAX_WITHDRAW_ORDERS
   );
   await stakingManagerContract.deployed();
   console.log("       ...done in %s!", stakingManagerContract.address);

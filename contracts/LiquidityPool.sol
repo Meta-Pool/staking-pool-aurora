@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.18;
 
+/// @title Meta Pool stAUR 🪐 <> AURORA liquidity pool contract.
+
 import "./interfaces/ILiquidityPool.sol";
 import "./interfaces/IStakedAuroraVault.sol";
+import "./utils/FullyOperational.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -10,7 +13,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
 /// @notice Liquidity Pool that allows the fast convertion of stAUR to AURORA tokens.
 
-contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
+contract LiquidityPool is FullyOperational, ERC4626, AccessControl, ILiquidityPool {
     using SafeERC20 for IERC20;
     using SafeERC20 for IStakedAuroraVault;
 
@@ -39,20 +42,13 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
     /// @dev The remaining Fees will be available to be collected by Meta Pool.
     uint256 public collectedStAurFees;
 
-    bool public fullyOperational;
-
     modifier onlyStAurVault() {
-        require(msg.sender == stAurVault, "ONLY_FOR_STAUR_VAULT");
-        _;
-    }
-
-    modifier onlyFullyOperational() {
-        require(fullyOperational, "CONTRACT_IS_NOT_FULLY_OPERATIONAL");
+        if (msg.sender != stAurVault) { revert Unauthorized(); }
         _;
     }
 
     modifier checkBasisPoints(uint256 _basisPoints) {
-        require(_basisPoints <= ONE_HUNDRED_PERCENT, "INVALID_BASIS_POINTS");
+        if (_basisPoints > ONE_HUNDRED_PERCENT) { revert InvalidBasisPoints(); }
         _;
     }
 
@@ -72,13 +68,10 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
         checkBasisPoints(_swapFeeBasisPoints)
         checkBasisPoints(_liqProvFeeCutBasisPoints)
     {
-        require(
-            _stAurVault != address(0)
-                && _auroraToken != address(0)
-                && _feeCollectorRole != address(0)
-                && _contractOperatorRole != address(0),
-            "INVALID_ZERO_ADDRESS"
-        );
+        if (_stAurVault == address(0)
+                || _auroraToken == address(0)
+                || _feeCollectorRole == address(0)
+                || _contractOperatorRole == address(0)) { revert InvalidZeroAddress(); }
         stAurVault = _stAurVault;
         auroraToken = _auroraToken;
         minDepositAmount = _minDepositAmount;
@@ -123,7 +116,7 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
     /// stAUR token liquidity to cover deposits (FLOW 1).
     function updateContractOperation(
         bool _isFullyOperational
-    ) public onlyRole(ADMIN_ROLE) {
+    ) public override onlyRole(ADMIN_ROLE) {
         fullyOperational = _isFullyOperational;
 
         emit ContractUpdateOperation(_isFullyOperational, msg.sender);
@@ -131,7 +124,7 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
 
     /// @notice Function to evaluate if a Vault deposit can be covered by the
     /// balance of stAUR tokens in the Liquidity Pool.
-    function isStAurBalanceAvailable(uint _amount) external view returns(bool) {
+    function isStAurBalanceAvailable(uint256 _amount) external view returns(bool) {
         return (stAurBalance >= _amount) && fullyOperational;
     }
 
@@ -167,12 +160,37 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
         uint256 _assets,
         address _receiver
     ) public override onlyFullyOperational returns (uint256) {
-        require(_assets >= minDepositAmount, "LESS_THAN_MIN_DEPOSIT_AMOUNT");
+        if (_assets < minDepositAmount) { revert LessThanMinDeposit(); }
+        require(_assets <= maxDeposit(_receiver), "ERC4626: deposit more than max");
 
         uint256 _shares = previewDeposit(_assets);
         _deposit(msg.sender, _receiver, _assets, _shares);
 
         return _shares;
+    }
+
+    function mint(
+        uint256 _shares,
+        address _receiver
+    ) public override onlyFullyOperational returns (uint256) {
+        require(_shares <= maxMint(_receiver), "ERC4626: mint more than max");
+
+        uint256 assets = previewMint(_shares);
+        if (assets < minDepositAmount) { revert LessThanMinDeposit(); }
+        _deposit(msg.sender, _receiver, assets, _shares);
+
+        return assets;
+    }
+
+    /// @notice Front-end can preview the amount that will be redeemed.
+    function calculatePreviewRedeem(uint256 _shares) public view returns (uint256, uint256) {
+        // Core Calculations.
+        uint256 ONE_AURORA = 1 ether;
+        uint256 poolPercentage = (_shares * ONE_AURORA) / totalSupply();
+        uint256 auroraToSend = (poolPercentage * auroraBalance) / ONE_AURORA;
+        uint256 stAurToSend = (poolPercentage * stAurBalance) / ONE_AURORA;
+
+        return (auroraToSend, stAurToSend);
     }
 
     /// @notice The redeem flow is used to **Remove** liquidity from the Liquidity Pool.
@@ -184,48 +202,48 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
         address _receiver,
         address _owner
     ) public override onlyFullyOperational returns (uint256) {
-        require(_shares > 0, "CANNOT_REDEEM_ZERO_SHARES");
-        if (msg.sender != _owner) {
-            _spendAllowance(_owner, msg.sender, _shares);
-        }
+        if (_shares == 0) { revert InvalidZeroAmount(); }
+        require(_shares <= maxRedeem(_owner), "ERC4626: redeem more than max");
 
-        // Core Calculations.
-        uint256 ONE_AURORA = 1 ether;
-        uint256 poolPercentage = (_shares * ONE_AURORA) / totalSupply();
-        uint256 auroraToSend = (poolPercentage * auroraBalance) / ONE_AURORA;
-        uint256 stAurToSend = (poolPercentage * stAurBalance) / ONE_AURORA;
-
-        auroraBalance -= auroraToSend;
-        stAurBalance -= stAurToSend;
-
-        // IMPORTANT NOTE: run the burn 🔥 AFTER the calculations.
-        _burn(msg.sender, _shares);
-
-        // Send Aurora tokens.
-        IERC20(asset()).safeTransfer(_receiver, auroraToSend);
-
-        // Then, send stAUR tokens.
-        IStakedAuroraVault(stAurVault).safeTransfer(_receiver, stAurToSend);
-
-        emit RemoveLiquidity(
+        (uint256 _auroraToSend, uint256 _stAurToSend) = calculatePreviewRedeem(_shares);
+        uint256 _totalInAuroraToSend = _auroraToSend + IERC4626(stAurVault).convertToAssets(_stAurToSend);
+        _withdraw(
             msg.sender,
             _receiver,
             _owner,
-            _shares,
-            auroraToSend,
-            stAurToSend
+            _auroraToSend,
+            _stAurToSend,
+            _totalInAuroraToSend,
+            _shares
         );
-        return auroraToSend;
+
+        return _totalInAuroraToSend;
     }
 
-    /// @dev Use deposit fn instead.
-    function mint(uint256, address) public override pure returns (uint256) {
-        revert("UNAVAILABLE_FUNCTION");
-    }
+    /// @param _assets units are in the base asset, the AURORA token.
+    /// @return shares are the LP token that were burnt during the operation.
+    function withdraw(
+        uint256 _assets,
+        address _receiver,
+        address _owner
+    ) public override onlyFullyOperational returns (uint256) {
+        if (_assets == 0) { revert InvalidZeroAmount(); }
+        require(_assets <= maxWithdraw(_owner), "ERC4626: withdraw more than max");
 
-    /// @dev Use redeem fn instead.
-    function withdraw(uint256, address, address) public override pure returns (uint256) {
-        revert("UNAVAILABLE_FUNCTION");
+        uint256 shares = previewWithdraw(_assets);
+        (uint256 _auroraToSend, uint256 _stAurToSend) = calculatePreviewRedeem(shares);
+        uint256 _totalInAuroraToSend = _auroraToSend + IERC4626(stAurVault).convertToAssets(_stAurToSend);
+        _withdraw(
+            msg.sender,
+            _receiver,
+            _owner,
+            _auroraToSend,
+            _stAurToSend,
+            _totalInAuroraToSend,
+            shares
+        );
+
+        return shares;
     }
 
     /// @param _amount Denominated in stAUR.
@@ -243,7 +261,7 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
         uint256 _stAurAmount,
         uint256 _minAuroraToReceive
     ) external onlyFullyOperational {
-        require(_stAurAmount > 0, "CANNOT_SWAP_ZERO_AMOUNT");
+        if (_stAurAmount == 0) { revert InvalidZeroAmount(); }
         (
             uint256 _discountedAmount,
             uint256 _collectedFee,
@@ -253,8 +271,8 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
         IStakedAuroraVault vault = IStakedAuroraVault(stAurVault);
         uint256 auroraToSend = vault.convertToAssets(_discountedAmount);
 
-        require(auroraToSend <= auroraBalance, "NOT_ENOUGH_AURORA");
-        require(auroraToSend >= _minAuroraToReceive, "UNREACHED_MIN_SWAP_AMOUNT");
+        if (auroraToSend > auroraBalance) { revert NotEnoughBalance(); }
+        if (auroraToSend < _minAuroraToReceive) { revert SlippageError(); }
 
         stAurBalance += (_discountedAmount + _lpFeeCut);
         collectedStAurFees += _collectedFee;
@@ -318,5 +336,33 @@ contract LiquidityPool is ERC4626, AccessControl, ILiquidityPool {
         _mint(_receiver, _shares);
 
         emit AddLiquidity(_caller, _receiver, _assets, _shares);
+    }
+
+    function _withdraw(
+        address _caller,
+        address _receiver,
+        address _owner,
+        uint256 _auroraToSend,
+        uint256 _stAurToSend,
+        uint256 _totalInAuroraToSend,
+        uint256 _shares
+    ) internal virtual {
+        if (_caller != _owner) {
+            _spendAllowance(_owner, _caller, _shares);
+        }
+
+        auroraBalance -= _auroraToSend;
+        stAurBalance -= _stAurToSend;
+
+        // IMPORTANT NOTE: run the burn 🔥 AFTER the calculations.
+        _burn(_caller, _shares);
+
+        // Send Aurora tokens.
+        IERC20(asset()).safeTransfer(_receiver, _auroraToSend);
+
+        // Then, send stAUR tokens.
+        IStakedAuroraVault(stAurVault).safeTransfer(_receiver, _stAurToSend);
+
+        emit Withdraw(_caller, _receiver, _owner, _totalInAuroraToSend, _shares);
     }
 }

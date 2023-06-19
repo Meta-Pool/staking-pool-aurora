@@ -10,7 +10,12 @@ import { StakingManager } from "contracts/StakingManager.sol";
 import { Depositor } from "contracts/Depositor.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 
-contract DeploymentHelper is Test {
+/// Values that will be hard-coded in the manager contract:
+///     uint256 public constant MAX_MAX_WITHDRAW_ORDERS = 200;
+///     uint256 public constant MIN_MAX_WITHDRAW_ORDERS = 50;
+///     uint256 public constant MAX_DEPOSITORS = 20;
+
+contract MaxCapacityHelper is Test {
     address public ALICE = makeAddr("ALICE");
     address public BOB = makeAddr("BOB");
     address public CHARLIE = makeAddr("CHARLIE");
@@ -24,7 +29,12 @@ contract DeploymentHelper is Test {
     StakedAuroraVault stakedAuroraVault;
     LiquidityPool liquidityPool;
     StakingManager stakingManager;
-    Depositor depositor;
+    // Depositor depositor;
+
+    uint256 public constant MAX_MAX_WITHDRAW_ORDERS = 200;
+    uint256 public constant MIN_MAX_WITHDRAW_ORDERS = 50;
+    uint256 public constant MAX_DEPOSITORS = 20;
+
     constructor() {
         aur = new MockERC20("Aurora", "AUR");
         centauri = new MockERC20("Centauri", "CEN");
@@ -54,16 +64,54 @@ contract DeploymentHelper is Test {
             address(stakedAuroraVault),
             address(auroraStaking),
             OPERATOR,
-            50
+            MAX_MAX_WITHDRAW_ORDERS
         );
-        depositor = new Depositor(
-            address(stakingManager),
-            address(REWARDCOLLECTOR)
-        );
-        stakingManager.insertDepositor(address(depositor));
+
+        for (uint i = 0; i < MAX_DEPOSITORS; ++i) {
+            Depositor _depositor = new Depositor(
+                address(stakingManager),
+                address(REWARDCOLLECTOR)
+            );
+            stakingManager.insertDepositor(address(_depositor));
+        }
         stakedAuroraVault.initializeLiquidStaking(
             address(stakingManager),
             address(liquidityPool)
         );
+        _depositPool();
+    }
+
+    /// depositPoolFixture
+    function _depositPool() private {
+        uint256 DEPOSIT_ALICE = 6_000 ether;
+        uint256 DEPOSIT_BOB = 100_000 ether;
+        uint256 DEPOSIT_CHARLIE = 24_000 ether;
+
+        vm.startPrank(ALICE);
+        {
+            aur.approve(address(stakedAuroraVault), DEPOSIT_ALICE);
+            stakedAuroraVault.deposit(DEPOSIT_ALICE, address(ALICE));
+        }
+        vm.stopPrank();
+
+        // Use for 1 line, the next-line.
+        vm.prank(OPERATOR);
+        stakedAuroraVault.updateEnforceWhitelist(false);
+
+        vm.startPrank(BOB);
+        {
+            aur.approve(address(stakedAuroraVault), DEPOSIT_BOB);
+            stakedAuroraVault.deposit(DEPOSIT_BOB, address(BOB));
+        }
+        vm.stopPrank();
+
+        vm.startPrank(CHARLIE);
+        {
+            aur.approve(address(stakedAuroraVault), DEPOSIT_CHARLIE);
+            stakedAuroraVault.deposit(DEPOSIT_CHARLIE, address(CHARLIE));
+        }
+        vm.stopPrank();
+        
+        stakingManager.cleanOrdersQueue();
     }
 }

@@ -1,14 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./utils/DeploymentHelper.sol";
+import "./utils/MaxCapacityHelper.sol";
 
-// Can the "Inflation Attack" affects the current stAUR 🪐 deployment `v0.1.0`?
+/// Testing 
 
-contract TestBurnDefense is DeploymentHelper {
+/// Based on Halborn Audit `HAL-05` and `HAL-06`.
+
+contract TestMaxCapacityDosAttack is MaxCapacityHelper {
     // uint256 testNumber;
 
     function setUp() public {}
+
+    function testMaxCapacity() public {
+
+    }
 
     // function testInflationAttack() public {
     //     prepareBalances();

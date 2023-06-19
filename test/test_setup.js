@@ -1,6 +1,6 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { loadFixture, impersonateAccount } = require("@nomicfoundation/hardhat-network-helpers");
+const { loadFixture, impersonateAccount, time } = require("@nomicfoundation/hardhat-network-helpers");
 
 const {
   ADMIN_ADDRESS,
@@ -13,15 +13,12 @@ const {
   OPERATOR_ADDRESS,
   STAKED_AURORA_VAULT_ADDRESS,
   STAKING_MANAGER_ADDRESS,
+  TOTAL_SPAMBOTS,
+  MAX_WITHDRAW_ORDERS
 } = require("./_config");
 
 const DECIMALS = ethers.BigNumber.from(10).pow(18);
 const AURORA = ethers.BigNumber.from(1).mul(ethers.BigNumber.from(10).pow(18));
-
-const EQUAL_SPAMBOTS_WITHDRAW_ORDERS = 20;
-const TOTAL_SPAMBOTS = EQUAL_SPAMBOTS_WITHDRAW_ORDERS;
-const MAX_WITHDRAW_ORDERS = EQUAL_SPAMBOTS_WITHDRAW_ORDERS;
-const MAX_DEPOSITORS = 3;
 
 // CONTRACT ROLES
 const ADMIN_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('ADMIN_ROLE'));
@@ -114,6 +111,7 @@ async function deployPoolFixture() {
   const Depositor = await ethers.getContractFactory("Depositor");
   const StakedAuroraVault = await ethers.getContractFactory("StakedAuroraVault");
   const LiquidityPool = await ethers.getContractFactory("LiquidityPool");
+  const Router = await ethers.getContractFactory("ERC4626Router");
 
   const [
     owner,
@@ -147,7 +145,7 @@ async function deployPoolFixture() {
   );
   await centauriTokenContract.deployed();
 
-  // Sharing total suply with Bob and Carl.
+  // Sharing total supply with Bob and Carl.
   const splitSupply = ethers.BigNumber.from(3_000_000).mul(DECIMALS);
   await auroraTokenContract.connect(alice).transfer(bob.address, splitSupply);
   await auroraTokenContract.connect(alice).transfer(carl.address, splitSupply);
@@ -183,8 +181,7 @@ async function deployPoolFixture() {
     stakedAuroraVaultContract.address,
     auroraStakingContract.address,
     operator.address,
-    MAX_WITHDRAW_ORDERS,
-    MAX_DEPOSITORS
+    MAX_WITHDRAW_ORDERS
   );
   await stakingManagerContract.deployed();
 
@@ -220,10 +217,10 @@ async function deployPoolFixture() {
   // Initialize the Liquid Staking service.
   await expect(
     stakedAuroraVaultContract.updateStakingManager(stakingManagerContract.address)
-  ).to.be.revertedWith("NOT_INITIALIZED");
+  ).to.be.revertedWithCustomError(stakedAuroraVaultContract, "ContractNotInitialized");
   await expect(
     stakedAuroraVaultContract.updateLiquidityPool(liquidityPoolContract.address)
-  ).to.be.revertedWith("NOT_INITIALIZED");
+  ).to.be.revertedWithCustomError(stakedAuroraVaultContract, "ContractNotInitialized");
   await stakedAuroraVaultContract.initializeLiquidStaking(
     stakingManagerContract.address,
     liquidityPoolContract.address
@@ -233,16 +230,22 @@ async function deployPoolFixture() {
       stakingManagerContract.address,
       liquidityPoolContract.address
     )
-  ).to.be.revertedWith("ALREADY_INITIALIZED");
+  ).to.be.revertedWithCustomError(stakedAuroraVaultContract, "ContractAlreadyInitialized");
 
   // Staking Aurora Vault should be fully operational by now.
   expect(await stakedAuroraVaultContract.fullyOperational()).to.be.true;
 
-  // Whitelisting all the accounts.
-  await stakedAuroraVaultContract.connect(operator).whitelistAccount(alice.address);
-  await stakedAuroraVaultContract.connect(operator).whitelistAccount(bob.address);
-  await stakedAuroraVaultContract.connect(operator).whitelistAccount(carl.address);
-  await stakedAuroraVaultContract.connect(operator).whitelistAccount(liquidity_provider.address);
+  // Deploying router for stAurVault and LiquidityPool.
+  const RouterContract = await Router.deploy();
+  await RouterContract.deployed();
+
+  // v0.2 is no longer whitelisted.
+  // // Whitelisting all the accounts.
+  // await stakedAuroraVaultContract.connect(operator).whitelistAccount(alice.address);
+  // await stakedAuroraVaultContract.connect(operator).whitelistAccount(bob.address);
+  // await stakedAuroraVaultContract.connect(operator).whitelistAccount(carl.address);
+  // await stakedAuroraVaultContract.connect(operator).whitelistAccount(liquidity_provider.address);
+  // await stakedAuroraVaultContract.connect(operator).whitelistAccount(RouterContract.address);
 
   // Fixtures can return anything you consider useful for your tests
   return {
@@ -254,6 +257,7 @@ async function deployPoolFixture() {
     depositor00Contract,
     depositor01Contract,
     liquidityPoolContract,
+    RouterContract,
     owner,
     depositors_owner,
     liquidity_pool_owner,
@@ -277,6 +281,7 @@ async function depositPoolFixture() {
     depositor00Contract,
     depositor01Contract,
     liquidityPoolContract,
+    RouterContract,
     owner,
     depositors_owner,
     liquidity_pool_owner,
@@ -289,10 +294,11 @@ async function depositPoolFixture() {
     carl
   } = await loadFixture(deployPoolFixture);
 
+  // v0.2 is no longer whitelisted.
   // Blacklist some of the accounts for testing purposes.
-  await stakedAuroraVaultContract.connect(operator).blacklistAccount(alice.address);
-  await stakedAuroraVaultContract.connect(operator).blacklistAccount(bob.address);
-  await stakedAuroraVaultContract.connect(operator).blacklistAccount(carl.address);
+  // await stakedAuroraVaultContract.connect(operator).blacklistAccount(alice.address);
+  // await stakedAuroraVaultContract.connect(operator).blacklistAccount(bob.address);
+  // await stakedAuroraVaultContract.connect(operator).blacklistAccount(carl.address);
 
   // Test deposit with a not fully operational contract.
   const aliceDeposit = ethers.BigNumber.from(6_000).mul(DECIMALS);
@@ -300,25 +306,29 @@ async function depositPoolFixture() {
   await stakedAuroraVaultContract.connect(owner).updateContractOperation(false);
   await expect(
     stakedAuroraVaultContract.connect(alice).deposit(aliceDeposit, alice.address)
-  ).to.be.revertedWith("CONTRACT_IS_NOT_FULLY_OPERATIONAL");
+  ).to.be.revertedWithCustomError(stakedAuroraVaultContract, "NotFullyOperational");
   await stakedAuroraVaultContract.connect(owner).updateContractOperation(true);
 
-  await expect(
-    stakedAuroraVaultContract.connect(alice).deposit(aliceDeposit, alice.address)
-  ).to.be.revertedWith("ACCOUNT_IS_NOT_WHITELISTED");
+  // v0.2 is no longer whitelisted.
+  // await expect(
+  //   stakedAuroraVaultContract.connect(alice).deposit(aliceDeposit, alice.address)
+  // ).to.be.revertedWithCustomError(stakedAuroraVaultContract, "AccountNotWhitelisted");
 
-  await stakedAuroraVaultContract.connect(operator).whitelistAccount(alice.address);
+  // v0.2 is no longer whitelisted.
+  // await stakedAuroraVaultContract.connect(operator).whitelistAccount(alice.address);
   await stakedAuroraVaultContract.connect(alice).deposit(aliceDeposit, alice.address);
 
-  await stakedAuroraVaultContract.connect(operator).updateEnforceWhitelist(false);
+  // v0.2 is no longer whitelisted.
+  // await stakedAuroraVaultContract.connect(operator).updateEnforceWhitelist(false);
 
   const bobDeposit = ethers.BigNumber.from(100_000).mul(DECIMALS);
   await auroraTokenContract.connect(bob).approve(stakedAuroraVaultContract.address, bobDeposit);
   await stakedAuroraVaultContract.connect(bob).deposit(bobDeposit, bob.address);
 
-  await stakedAuroraVaultContract.connect(operator).updateEnforceWhitelist(true);
-  await stakedAuroraVaultContract.connect(operator).whitelistAccount(bob.address);
-  await stakedAuroraVaultContract.connect(operator).whitelistAccount(carl.address);
+  // v0.2 is no longer whitelisted.
+  // await stakedAuroraVaultContract.connect(operator).updateEnforceWhitelist(true);
+  // await stakedAuroraVaultContract.connect(operator).whitelistAccount(bob.address);
+  // await stakedAuroraVaultContract.connect(operator).whitelistAccount(carl.address);
 
   const carlDeposit = ethers.BigNumber.from(24_000).mul(DECIMALS);
   await auroraTokenContract.connect(carl).approve(stakedAuroraVaultContract.address, carlDeposit);
@@ -335,6 +345,7 @@ async function depositPoolFixture() {
     depositor00Contract,
     depositor01Contract,
     liquidityPoolContract,
+    RouterContract,
     owner,
     depositors_owner,
     liquidity_pool_owner,
@@ -358,6 +369,7 @@ async function liquidityPoolFixture() {
     depositor00Contract,
     depositor01Contract,
     liquidityPoolContract,
+    RouterContract,
     owner,
     depositors_owner,
     liquidity_pool_owner,
@@ -402,6 +414,7 @@ async function liquidityPoolFixture() {
     depositor00Contract,
     depositor01Contract,
     liquidityPoolContract,
+    RouterContract,
     owner,
     depositors_owner,
     liquidity_pool_owner,
@@ -452,7 +465,8 @@ async function botsHordeFixture() {
     spambots.push(wallet);
   }
 
-  await stakedAuroraVaultContract.connect(operator).updateEnforceWhitelist(false);
+  // v0.2 is no longer whitelisted.
+  // await stakedAuroraVaultContract.connect(operator).updateEnforceWhitelist(false);
 
   // AURORA deposits to the Vault.
   const aliceDeposit = ethers.BigNumber.from(6_000).mul(DECIMALS);
@@ -485,6 +499,69 @@ async function botsHordeFixture() {
   // AURORA deposits to the Liquidity Pool.
   await auroraTokenContract.connect(liquidity_provider).approve(liquidityPoolContract.address, providerDeposit);
   await liquidityPoolContract.connect(liquidity_provider).deposit(providerDeposit, liquidity_provider.address);
+
+  // ALL bots will already have a withdraw order.
+  const redeemBalance = ethers.BigNumber.from(1).mul(DECIMALS);
+
+  // First redeem.
+  for (let i = 0; i < TOTAL_SPAMBOTS; i++) {
+    await stakedAuroraVaultContract.connect(spambots[i]).redeem(
+      redeemBalance, spambots[i].address, spambots[i].address
+    );
+  }
+
+  // Move forward: From withdraw to pending.
+  await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
+  await stakingManagerContract.cleanOrdersQueue();
+
+  // Second redeem.
+  for (let i = 0; i < TOTAL_SPAMBOTS; i++) {
+    await stakedAuroraVaultContract.connect(spambots[i]).redeem(
+      redeemBalance, spambots[i].address, spambots[i].address
+    );
+  }
+
+  // Move forward: From pending to available.
+  await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
+  await stakingManagerContract.cleanOrdersQueue();
+
+  // Third redeem.
+  for (let i = 0; i < TOTAL_SPAMBOTS; i++) {
+    await stakedAuroraVaultContract.connect(spambots[i]).redeem(
+      redeemBalance, spambots[i].address, spambots[i].address
+    );
+  }
+
+  // Move forward: From pending to available.
+  await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
+  await stakingManagerContract.cleanOrdersQueue();
+
+  // Fourth redeem.
+  for (let i = 0; i < TOTAL_SPAMBOTS; i++) {
+    await stakedAuroraVaultContract.connect(spambots[i]).redeem(
+      redeemBalance, spambots[i].address, spambots[i].address
+    );
+  }
+
+  // Move forward: From pending to available.
+  await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
+  await stakingManagerContract.cleanOrdersQueue();
+
+  await stakedAuroraVaultContract.connect(alice).redeem(redeemBalance, alice.address, alice.address);
+  await stakedAuroraVaultContract.connect(bob).redeem(redeemBalance, bob.address, bob.address);
+  await stakedAuroraVaultContract.connect(carl).redeem(redeemBalance, carl.address, carl.address);
+
+  // Move forward: From pending to available.
+  await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
+  await stakingManagerContract.cleanOrdersQueue();
+
+  await stakedAuroraVaultContract.connect(alice).redeem(redeemBalance, alice.address, alice.address);
+  await stakedAuroraVaultContract.connect(bob).redeem(redeemBalance, bob.address, bob.address);
+  await stakedAuroraVaultContract.connect(carl).redeem(redeemBalance, carl.address, carl.address);
+
+  // Move forward: From pending to available.
+  await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
+  await stakingManagerContract.cleanOrdersQueue();
 
   return {
     auroraTokenContract,
@@ -519,7 +596,6 @@ module.exports = {
   DECIMALS,
   TOTAL_SPAMBOTS,
   MAX_WITHDRAW_ORDERS,
-  MAX_DEPOSITORS,
   ADMIN_ROLE,
   DEPOSITORS_OWNER_ROLE,
   OPERATOR_ROLE,

@@ -2,13 +2,11 @@ const hre = require("hardhat");
 const { getCurrentTimestamp, getDepositorsArray } = require("../utils");
 const {
   AURORA_PLUS_ADDRESS,
-  MAX_DEPOSITORS,
   MAX_WITHDRAW_ORDERS,
   STAKED_AURORA_VAULT_ADDRESS,
   CURRENT_MANAGER_ADDRESS,
-  NEW_MANAGER_ADDRESS,
   generateAccounts
-} = require("./config");
+} = require("./_config");
 
 console.log("Mr Robot 🤖 - EMERGENCY MODE 🔥 - Step 02");
 console.log("Started at: %s", getCurrentTimestamp());
@@ -24,8 +22,7 @@ async function main() {
     STAKED_AURORA_VAULT_ADDRESS,
     AURORA_PLUS_ADDRESS,
     NEW_MANAGER_OPERATOR_ACCOUNT.address,
-    MAX_WITHDRAW_ORDERS,
-    MAX_DEPOSITORS
+    MAX_WITHDRAW_ORDERS
   );
   await StakingManagerContract.deployed();
   console.log("       ...done!");

@@ -24,80 +24,80 @@ async function printBalances(aur, stakedAuroraVault, attacker, alice) {
   console.log("");
 }
 
-describe("Staking Pool AURORA under Inflation attack.", function () {
-  describe("Run Inflation attack. 💸 Halborn replica 🐸.", function () {
-    it("Should be correct for all contracts initial parameters.", async function () {
-      const {
-        StakedAuroraVaultContract, alice, bob, impersonatedAdmin, impersonatedOperator,
-        AuroraTokenContract
-      } = await loadFixture(useProdForkFixture);
+// describe("Staking Pool AURORA under Inflation attack.", function () {
+//   describe("Run Inflation attack. 💸 Halborn replica 🐸.", function () {
+//     it("Should be correct for all contracts initial parameters.", async function () {
+//       const {
+//         StakedAuroraVaultContract, alice, bob, impersonatedAdmin, impersonatedOperator,
+//         AuroraTokenContract
+//       } = await loadFixture(useProdForkFixture);
 
-      // Bob is the attacker.
-      // Alice is the 🐏.
-      const attacker = bob;
+//       // Bob is the attacker.
+//       // Alice is the 🐏.
+//       const attacker = bob;
 
-      // Get the Balance in AURORA ETH.
-      const provider = ethers.getDefaultProvider();
+//       // Get the Balance in AURORA ETH.
+//       const provider = ethers.getDefaultProvider();
 
-      console.log("Alice: %s", await provider.getBalance(alice.address));
-      console.log("Attacker: %s", await provider.getBalance(attacker.address));
-      console.log("impersonatedAdmin: %s", await provider.getBalance(impersonatedAdmin.address));
+//       console.log("Alice: %s", await provider.getBalance(alice.address));
+//       console.log("Attacker: %s", await provider.getBalance(attacker.address));
+//       console.log("impersonatedAdmin: %s", await provider.getBalance(impersonatedAdmin.address));
 
-      await AuroraTokenContract.connect(impersonatedAdmin).transfer(
-        attacker.address,
-        ethers.BigNumber.from(200).mul(DECIMALS)
-      );
+//       await AuroraTokenContract.connect(impersonatedAdmin).transfer(
+//         attacker.address,
+//         ethers.BigNumber.from(200).mul(DECIMALS)
+//       );
 
-      await AuroraTokenContract.connect(impersonatedAdmin).transfer(
-        alice.address,
-        ethers.BigNumber.from(200).mul(DECIMALS)
-      );
+//       await AuroraTokenContract.connect(impersonatedAdmin).transfer(
+//         alice.address,
+//         ethers.BigNumber.from(200).mul(DECIMALS)
+//       );
 
-      await StakedAuroraVaultContract.connect(impersonatedOperator).updateEnforceWhitelist(false);
+//       await StakedAuroraVaultContract.connect(impersonatedOperator).updateEnforceWhitelist(false);
 
-      console.log("[-] Initial balances:");
-      await printBalances(AuroraTokenContract, StakedAuroraVaultContract, attacker, alice);
+//       console.log("[-] Initial balances:");
+//       await printBalances(AuroraTokenContract, StakedAuroraVaultContract, attacker, alice);
 
-      // Start prank (ATTACKER);
-      await AuroraTokenContract.connect(attacker).approve(
-        StakedAuroraVaultContract.address,
-        ethers.BigNumber.from(100).mul(DECIMALS).add(1)
-      );
-      await StakedAuroraVaultContract.connect(attacker).deposit(
-        ethers.BigNumber.from(100).mul(DECIMALS).add(1),
-        attacker.address
-      );
+//       // Start prank (ATTACKER);
+//       await AuroraTokenContract.connect(attacker).approve(
+//         StakedAuroraVaultContract.address,
+//         ethers.BigNumber.from(100).mul(DECIMALS).add(1)
+//       );
+//       await StakedAuroraVaultContract.connect(attacker).deposit(
+//         ethers.BigNumber.from(100).mul(DECIMALS).add(1),
+//         attacker.address
+//       );
 
-      // console.log("[*] After ATTACKER's deposit:");
-      // await printBalances(AuroraTokenContract, StakedAuroraVaultContract, attacker, alice);
+//       // console.log("[*] After ATTACKER's deposit:");
+//       // await printBalances(AuroraTokenContract, StakedAuroraVaultContract, attacker, alice);
 
-      // await StakedAuroraVaultContract.connect(alice).burn(
-      //   ethers.BigNumber.from(100).mul(DECIMALS)
-      // );
+//       // await StakedAuroraVaultContract.connect(alice).burn(
+//       //   ethers.BigNumber.from(100).mul(DECIMALS)
+//       // );
 
-      // console.log("[*] After ATTACKER's inflation:");
-      // await printBalances(AuroraTokenContract, StakedAuroraVaultContract, attacker, alice);
+//       // console.log("[*] After ATTACKER's inflation:");
+//       // await printBalances(AuroraTokenContract, StakedAuroraVaultContract, attacker, alice);
 
-      // await AuroraTokenContract.connect(bob).approve(
-      //   StakedAuroraVaultContract.address,
-      //   ethers.BigNumber.from(200).mul(DECIMALS)
-      // );
-      // await StakedAuroraVaultContract.connect(bob).deposit(
-      //   ethers.BigNumber.from(200).mul(DECIMALS),
-      //   bob.address
-      // );
+//       // await AuroraTokenContract.connect(bob).approve(
+//       //   StakedAuroraVaultContract.address,
+//       //   ethers.BigNumber.from(200).mul(DECIMALS)
+//       // );
+//       // await StakedAuroraVaultContract.connect(bob).deposit(
+//       //   ethers.BigNumber.from(200).mul(DECIMALS),
+//       //   bob.address
+//       // );
 
-      // console.log("[+] Victim deposit tokens:");
-      // await printBalances(AuroraTokenContract, StakedAuroraVaultContract, attacker, alice);
+//       // console.log("[+] Victim deposit tokens:");
+//       // await printBalances(AuroraTokenContract, StakedAuroraVaultContract, attacker, alice);
             
 
-      // console.log("HEREE!!!!");
-      // console.log(
-      //   "Alice Balance: %s", 
-      //   await StakedAuroraVaultContract.balanceOf(impersonatedAdmin.address)
-      // );
+//       // console.log("HEREE!!!!");
+//       // console.log(
+//       //   "Alice Balance: %s",
+//       //   await StakedAuroraVaultContract.balanceOf(impersonatedAdmin.address)
+//       // );
 
-    });
+//     });
 
-  });
-});
+//   });
+// });

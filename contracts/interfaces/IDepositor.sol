@@ -3,6 +3,7 @@ pragma solidity 0.8.18;
 
 interface IDepositor {
     event MoveRewardsToPending(address indexed _depositor, uint256 _streamId);
+    event MoveAllRewardsToPending(address indexed _depositor);
     event NewManagerUpdate(address _new, address _sender);
     event StakeThroughDepositor(address indexed _depositor, uint256 _assets);
     event UnstakeAllThroughDepositor(address indexed _depositor);
@@ -16,6 +17,10 @@ interface IDepositor {
     function stake(uint256 _assets) external;
     function unstake(uint256 _assets) external;
     function unstakeAll() external;
-    function withdraw(uint _assets) external;
+    function withdraw(uint256 _assets) external;
     function withdrawRewards(uint256 _streamId, address _spender) external;
+
+    error InvalidStreamId();
+    error InvalidZeroAddress();
+    error Unauthorized();
 }

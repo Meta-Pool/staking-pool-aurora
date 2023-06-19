@@ -122,8 +122,8 @@ async function displayVaultStatus() {
   const fullyOperational = await StakedAuroraVaultContract.fullyOperational();
   console.log("Fully Operatnal: %s", fullyOperational);
 
-  const enforceWhitelist = await StakedAuroraVaultContract.enforceWhitelist();
-  console.log("Check Whitelist: %s", enforceWhitelist);
+  // const enforceWhitelist = await StakedAuroraVaultContract.enforceWhitelist();
+  // console.log("Check Whitelist: %s", enforceWhitelist);
 
   const minDepositAmount = await StakedAuroraVaultContract.minDepositAmount();
   console.log("minDepos Amount: %s AURORA", ethers.utils.formatEther(minDepositAmount));

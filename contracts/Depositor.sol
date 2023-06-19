@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.18;
 
+/// @title Meta Pool stAUR 🪐 <> AURORA depositor contract.
+
 import "./interfaces/IAuroraStaking.sol";
 import "./interfaces/IDepositor.sol";
 import "./interfaces/IStakingManager.sol";
@@ -22,12 +24,12 @@ contract Depositor is AccessControl, IDepositor {
     address immutable public auroraStaking;
 
     modifier onlyManager() {
-        require(msg.sender == stakingManager, "ONLY_FOR_STAUR_MANAGER");
+        if (msg.sender != stakingManager) { revert Unauthorized(); }
         _;
     }
 
     modifier onlyStAurVault() {
-        require(msg.sender == stAurVault, "ONLY_FOR_STAUR_VAULT");
+        if (msg.sender != stAurVault) { revert Unauthorized(); }
         _;
     }
 
@@ -35,7 +37,7 @@ contract Depositor is AccessControl, IDepositor {
         address _stakingManager,
         address _collectRewardsRole
     ) {
-        require(_stakingManager != address(0), "INVALID_ZERO_ADDRESS");
+        if (_stakingManager == address(0)) { revert InvalidZeroAddress(); }
         stakingManager = _stakingManager;
 
         IStakingManager manager = IStakingManager(_stakingManager);
@@ -54,7 +56,7 @@ contract Depositor is AccessControl, IDepositor {
     function updateStakingManager(
         address _stakingManager
     ) external onlyRole(ADMIN_ROLE) {
-        require(_stakingManager != address(0), "INVALID_ZERO_ADDRESS");
+        if (_stakingManager == address(0)) { revert InvalidZeroAddress(); }
         stakingManager = _stakingManager;
 
         emit NewManagerUpdate(_stakingManager, msg.sender);
@@ -121,12 +123,21 @@ contract Depositor is AccessControl, IDepositor {
         emit MoveRewardsToPending(address(this), _streamId);
     }
 
+    /// @dev New function for release note `v.2.0`.
+    /// @notice Manually collect depositor Stream Rewards from Aurora Plus.
+    function moveAllRewardsToPending() external onlyRole(COLLECT_REWARDS_ROLE) {
+        IAuroraStaking(auroraStaking).moveAllRewardsToPending();
+
+        emit MoveAllRewardsToPending(address(this));
+    }
+
     /// @notice Manually withdraw depositor Stream Rewards from Aurora Plus.
     function withdrawRewards(
         uint256 _streamId,
         address _spender
     ) external onlyRole(COLLECT_REWARDS_ROLE) {
-        require(_streamId > 0, "WITHDRAW_ONLY_FOR_REWARDS");
+        // Withdraw only for the Rewards, the streamId 0 is reserved for AURORA.
+        if (_streamId == 0) { revert InvalidStreamId(); }
         IAuroraStaking staking = IAuroraStaking(auroraStaking);
         (,address rewardToken,,,,,,,,,) = staking.getStream(_streamId);
         uint256 _amount = staking.getPending(_streamId, address(this));
