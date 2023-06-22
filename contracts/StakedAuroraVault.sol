@@ -19,7 +19,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 /// @notice [FullyOperational] When is NOT fully operational, users cannot:
 /// 1) mint, 2) deposit nor 3) create withdraw orders.
 
-/// @notice [Whitelistable] removed for v0.2.0. Mainnet stAUR token is NOT whitelistable.
+/// @notice [Whitelistable] removed for `v0.2`. Mainnet stAUR token is NOT whitelistable.
 
 contract StakedAuroraVault is
     FullyOperational,
