@@ -20,7 +20,7 @@ async function generateAccounts() {
   const [
     admin,
     operator,
-    lpFeeCollector,
+    treasury,
     depositorFeeCollector
   ] = await ethers.getSigners();
 
@@ -33,14 +33,14 @@ async function generateAccounts() {
   const VAULT_OPERATOR_ACCOUNT = operator;
   const MANAGER_OPERATOR_ACCOUNT = operator;
 
-  const LP_FEE_COLLECTOR_ACCOUNT = lpFeeCollector;
+  const TREASURY_ACCOUNT = treasury;
   const DEPOSITOR_FEE_COLLECTOR_ACCOUNT = depositorFeeCollector;
 
   return {
     DEPOSITOR_ADMIN_ACCOUNT,
     DEPOSITOR_FEE_COLLECTOR_ACCOUNT,
     LIQ_POOL_ADMIN_ACCOUNT,
-    LP_FEE_COLLECTOR_ACCOUNT,
+    TREASURY_ACCOUNT,
     MANAGER_ADMIN_ACCOUNT,
     MANAGER_OPERATOR_ACCOUNT,
     VAULT_ADMIN_ACCOUNT,

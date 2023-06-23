@@ -5,7 +5,7 @@ const {
   deployPoolFixture,
   liquidityPoolFixture,
   DECIMALS,
-  FEE_COLLECTOR_ROLE,
+  TREASURY_ROLE,
   ADMIN_ROLE,
   OPERATOR_ROLE
 } = require("./test_setup");
@@ -23,7 +23,7 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
       } = await loadFixture(deployPoolFixture);
 
       expect(await liquidityPoolContract.hasRole(ADMIN_ROLE, liquidity_pool_owner.address)).to.be.true;
-      expect(await liquidityPoolContract.hasRole(FEE_COLLECTOR_ROLE, fee_collector.address)).to.be.true;
+      expect(await liquidityPoolContract.hasRole(TREASURY_ROLE, fee_collector.address)).to.be.true;
       expect(await liquidityPoolContract.hasRole(OPERATOR_ROLE, operator.address)).to.be.true;
       expect(await liquidityPoolContract.stAurVault()).to.equal(stakedAuroraVaultContract.address);
       expect(await liquidityPoolContract.auroraToken()).to.equal(auroraTokenContract.address);

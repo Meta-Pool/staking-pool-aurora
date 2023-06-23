@@ -7,13 +7,17 @@ async function main() {
   const SWAP_FEE_BASIS_POINTS = 200;            // 2.00%
   const LIQ_PROV_FEE_CUT_BASIS_POINTS = 8000;   // 80.00%
 
-  // AURORA Addresses
+  // stAUR Fee Mint.
+  const FEE_PER_YEAR_BASIS_POINTS = 500;        // 5.00%
+  const FEE_MINT_COOLING_PERIOD = 60 * 60 * 24; // 24 hours in seconds.
+
+  // AURORA Addresses in production.
   const AURORA_TOKEN_ADDRESS = "0x8BEc47865aDe3B172A928df8f990Bc7f2A3b9f79";
   const AURORA_PLUS_ADDRESS = "0xccc2b1aD21666A5847A804a73a41F904C4a4A0Ec";
   const [
     ADMIN_ACCOUNT,
     OPERATOR_ACCOUNT,
-    LP_FEE_COLLECTOR_ACCOUNT,
+    TREASURY_ACCOUNT,
     DEPOSITOR_FEE_COLLECTOR_ACCOUNT
   ] = await ethers.getSigners();
 
@@ -24,20 +28,23 @@ async function main() {
 
   // ----------------- Step 1. Deploying the Staked Aurora Vault contract.
   console.log("Step 1. Deploying StakedAuroraVault...")
-  const stakedAuroraVaultContract = await StakedAuroraVault.connect(ADMIN_ACCOUNT).deploy(
-    AURORA_TOKEN_ADDRESS,
+  const StakedAuroraVaultContract = await StakedAuroraVault.connect(ADMIN_ACCOUNT).deploy(
+    FEE_PER_YEAR_BASIS_POINTS,
+    FEE_MINT_COOLING_PERIOD,
+    MIN_DEPOSIT_AMOUNT,
     OPERATOR_ACCOUNT.address,
+    TREASURY_ACCOUNT.address,
+    AURORA_TOKEN_ADDRESS,
     "Staked Aurora Token",
-    "stAUR",
-    MIN_DEPOSIT_AMOUNT
+    "stAUR"
   );
-  await stakedAuroraVaultContract.deployed();
-  console.log("       ...done in %s!", stakedAuroraVaultContract.address);
+  await StakedAuroraVaultContract.deployed();
+  console.log("       ...done in %s!", StakedAuroraVaultContract.address);
 
   // ----------------- Step 2. Deploying the Staking Manager contract.
   console.log("Step 2. Deploying StakingManager...")
   const stakingManagerContract = await StakingManager.connect(ADMIN_ACCOUNT).deploy(
-    stakedAuroraVaultContract.address,
+    StakedAuroraVaultContract.address,
     AURORA_PLUS_ADDRESS,
     OPERATOR_ACCOUNT.address,
     MAX_WITHDRAW_ORDERS
@@ -48,9 +55,9 @@ async function main() {
    // ----------------- Step 3. Deploying the Liquidity Pool contract.
    console.log("Step 3. Deploying LiquidityPool...")
    const liquidityPoolContract = await LiquidityPool.connect(ADMIN_ACCOUNT).deploy(
-    stakedAuroraVaultContract.address,
+    StakedAuroraVaultContract.address,
     AURORA_TOKEN_ADDRESS,
-    LP_FEE_COLLECTOR_ACCOUNT.address,
+    TREASURY_ACCOUNT.address,
     OPERATOR_ACCOUNT.address,
     "stAUR/AURORA LP Token",
     "stAUR/AUR",
@@ -62,7 +69,7 @@ async function main() {
   console.log("       ...done in %s!", liquidityPoolContract.address);
 
   // Initialize the Liquid Staking Service.
-  const request01 = await stakedAuroraVaultContract
+  const request01 = await StakedAuroraVaultContract
     .connect(ADMIN_ACCOUNT)
     .initializeLiquidStaking(
       stakingManagerContract.address,
@@ -110,7 +117,7 @@ async function main() {
   console.log(" - StakingManager: ----- %s", stakingManagerContract.address);
   console.log(" - Depositor 00: ------- %s", depositor00Contract.address);
   console.log(" - Depositor 01: ------- %s", depositor01Contract.address);
-  console.log(" - StakedAuroraVault: -- %s", stakedAuroraVaultContract.address);
+  console.log(" - StakedAuroraVault: -- %s", StakedAuroraVaultContract.address);
   console.log(" - LiquidityPool: ------ %s", liquidityPoolContract.address);
 }
 

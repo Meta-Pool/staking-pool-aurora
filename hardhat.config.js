@@ -48,7 +48,7 @@ module.exports = {
       accounts: [
         process.env.ADMIN_PRIVATE_KEY,
         process.env.OPERATOR_PRIVATE_KEY,
-        process.env.LP_FEE_COLLECTOR_PRIVATE_KEY,
+        process.env.TREASURY_PRIVATE_KEY,
         process.env.DEPOSITOR_FEE_COLLECTOR_PRIVATE_KEY
       ]
     },

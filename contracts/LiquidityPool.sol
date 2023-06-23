@@ -21,8 +21,8 @@ contract LiquidityPool is FullyOperational, ERC4626, AccessControl, ILiquidityPo
     uint256 public constant ONE_HUNDRED_PERCENT = 10_000;
 
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
-    bytes32 public constant FEE_COLLECTOR_ROLE = keccak256("FEE_COLLECTOR_ROLE");
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
+    bytes32 public constant TREASURY_ROLE = keccak256("TREASURY_ROLE");
 
     /// @dev Contract addresses of the stAUR vault and the AURORA token.
     address immutable public stAurVault;
@@ -81,7 +81,7 @@ contract LiquidityPool is FullyOperational, ERC4626, AccessControl, ILiquidityPo
 
         _grantRole(ADMIN_ROLE, msg.sender);
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _grantRole(FEE_COLLECTOR_ROLE, _feeCollectorRole);
+        _grantRole(TREASURY_ROLE, _feeCollectorRole);
         _grantRole(OPERATOR_ROLE, _contractOperatorRole);
     }
 
@@ -295,7 +295,7 @@ contract LiquidityPool is FullyOperational, ERC4626, AccessControl, ILiquidityPo
     /// @notice The collected stAUR fees are owned by Meta Pool.
     function withdrawCollectedStAurFees(
         address _receiver
-    ) onlyRole(FEE_COLLECTOR_ROLE) external {
+    ) onlyRole(TREASURY_ROLE) external {
         uint256 _toTransfer = collectedStAurFees;
         collectedStAurFees = 0;
         IStakedAuroraVault(stAurVault).safeTransfer(_receiver, _toTransfer);
@@ -304,10 +304,10 @@ contract LiquidityPool is FullyOperational, ERC4626, AccessControl, ILiquidityPo
     }
 
     /// @notice The fee is splited in two: first, for the Liquidity Providers, and
-    /// second, for Meta Pool, granted for FEE_COLLECTOR_ROLE.
+    /// second, for Meta Pool, granted for TREASURY_ROLE.
     /// @dev CONSIDER FORMULA: _discountedAmount + _collectedFee + _lpFeeCut == _amount
     /// @return _discountedAmount stAUR to be taken from the pool to cover the swap.
-    /// @return _collectedFee stAUR to be granted for FEE_COLLECTOR_ROLE.
+    /// @return _collectedFee stAUR to be granted for TREASURY_ROLE.
     /// @return _lpFeeCut stAUR for our friends, the Liquidity Providers.
     function _calculatePoolFees(
         uint256 _amount

@@ -25,7 +25,7 @@ const ADMIN_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('ADMIN_ROLE')
 const DEPOSITORS_OWNER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('DEPOSITORS_OWNER_ROLE'));
 const OPERATOR_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('OPERATOR_ROLE'));
 const COLLECT_REWARDS_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('COLLECT_REWARDS_ROLE'));
-const FEE_COLLECTOR_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('FEE_COLLECTOR_ROLE'));
+const TREASURY_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes('TREASURY_ROLE'));
 
 async function useProdForkFixture() {
   // Get the ContractFactory and Signers here.
@@ -593,5 +593,5 @@ module.exports = {
   DEPOSITORS_OWNER_ROLE,
   OPERATOR_ROLE,
   COLLECT_REWARDS_ROLE,
-  FEE_COLLECTOR_ROLE
+  TREASURY_ROLE
 };

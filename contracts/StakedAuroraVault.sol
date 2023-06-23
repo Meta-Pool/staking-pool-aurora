@@ -8,6 +8,7 @@ import "./interfaces/ILiquidityPool.sol";
 import "./interfaces/IStakedAuroraVaultEvents.sol";
 import "./interfaces/IStakingManager.sol";
 import "./utils/FullyOperational.sol";
+import "./utils/ERC4626FeeMintable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -25,31 +26,32 @@ contract StakedAuroraVault is
     FullyOperational,
     ERC4626,
     AccessControl,
-    IStakedAuroraVaultEvents
+    IStakedAuroraVaultEvents,
+    ERC4626FeeMintable
 {
     using SafeERC20 for IERC20;
 
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
+    bytes32 public constant TREASURY_ROLE = keccak256("TREASURY_ROLE");
 
     address public stakingManager;
     address public liquidityPool;
     uint256 public minDepositAmount;
 
-    modifier onlyManager() {
-        if (msg.sender != stakingManager) { revert Unauthorized(); }
-        _;
-    }
-
     constructor(
-        address _asset,
+        uint16 _feePerYearBasisPoints,
+        uint64 _feeMintCoolingPeriod,
+        uint256 _minDepositAmount,
         address _contractOperatorRole,
+        address _treasuryRole,
+        address _asset,
         string memory _stAurName,
-        string memory _stAurSymbol,
-        uint256 _minDepositAmount
+        string memory _stAurSymbol
     )
         ERC4626(IERC20(_asset))
         ERC20(_stAurName, _stAurSymbol)
+        ERC4626FeeMintable(_feeMintCoolingPeriod, _feePerYearBasisPoints)
     {
         if (_asset == address(0) || _contractOperatorRole == address(0)) {
             revert InvalidZeroAddress();
@@ -57,11 +59,16 @@ contract StakedAuroraVault is
         minDepositAmount = _minDepositAmount;
 
         _grantRole(ADMIN_ROLE, msg.sender);
+        _grantRole(TREASURY_ROLE, _treasuryRole);
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(OPERATOR_ROLE, _contractOperatorRole);
     }
 
     receive() external payable {}
+
+    // *******************
+    // * Admin functions *
+    // *******************
 
     function initializeLiquidStaking(
         address _stakingManager,
@@ -130,6 +137,10 @@ contract StakedAuroraVault is
     function totalAssets() public view override returns (uint256) {
         return IStakingManager(stakingManager).totalAssets();
     }
+
+    // ******************
+    // * Core functions *
+    // ******************
 
     /// @dev Same as ERC-4626, but adding evaluation of min deposit amount.
     function deposit(
@@ -202,6 +213,31 @@ contract StakedAuroraVault is
 
         emit Withdraw(msg.sender, _receiver, msg.sender, _assets, 0);
     }
+
+    // **********************
+    // * Treasury functions *
+    // **********************
+
+    function mintFee() public override
+        onlyRole(TREASURY_ROLE)
+        feeMintAvailable
+    returns (uint256) {
+        uint256 elapsedSeconds = block.timestamp - lastFeeMint;
+
+        uint256 _fee = (
+            totalSupply()
+            * (uint256(feePerYearBasisPoints) / 10_000)
+            * (elapsedSeconds / uint256(SECONDS_PER_YEAR))
+        );
+        _mint(msg.sender, _fee);
+        lastFeeMint = uint64(block.timestamp);
+
+        return _fee;
+    }
+
+    // *********************
+    // * Private functions *
+    // *********************
 
     function _deposit(
         address _caller,
