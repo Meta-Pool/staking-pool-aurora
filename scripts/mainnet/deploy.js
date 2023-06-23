@@ -9,7 +9,6 @@ async function main() {
 
   // stAUR Fee Mint.
   const FEE_PER_YEAR_BASIS_POINTS = 500;        // 5.00%
-  const FEE_MINT_COOLING_PERIOD = 60 * 60 * 24; // 24 hours in seconds.
 
   // AURORA Addresses in production.
   const AURORA_TOKEN_ADDRESS = "0x8BEc47865aDe3B172A928df8f990Bc7f2A3b9f79";
@@ -32,7 +31,6 @@ async function main() {
   const StakedAuroraVaultContract = await StakedAuroraVault.connect(ADMIN_ACCOUNT).deploy(
     MIN_DEPOSIT_AMOUNT,
     OPERATOR_ACCOUNT.address,
-    TREASURY_ACCOUNT.address,
     AURORA_TOKEN_ADDRESS,
     "Staked Aurora Token",
     "stAUR"
@@ -44,7 +42,6 @@ async function main() {
   console.log("Step 2. Deploying StakingManager...")
   const stakingManagerContract = await StakingManager.connect(ADMIN_ACCOUNT).deploy(
     FEE_PER_YEAR_BASIS_POINTS,
-    FEE_MINT_COOLING_PERIOD,
     MAX_WITHDRAW_ORDERS,
     StakedAuroraVaultContract.address,
     AURORA_PLUS_ADDRESS,

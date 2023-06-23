@@ -158,28 +158,6 @@ contract StakingManager is AccessControl, IStakingManager, ManagerFeeMintable {
         emit UpdateProcessWithdrawOrders(_isProcessStopped, msg.sender);
     }
 
-    /// @dev If the user do NOT have a withdraw order, expect an index of "0".
-    function _getUserWithdrawOrderIndex(address _account) private view returns (uint256) {
-        uint256 _totalOrders = getTotalWithdrawOrders();
-        for (uint i = 1; i <= _totalOrders; ++i) {
-            if (withdrawOrder[i].receiver == _account) {
-                return i;
-            }
-        }
-        return 0;
-    }
-
-    /// @dev If the user do NOT have a pending order, expect an index of "0".
-    function _getUserPendingOrderIndex(address _account) private view returns (uint256) {
-        uint256 _totalOrders = getTotalPendingOrders();
-        for (uint i = 1; i <= _totalOrders; ++i) {
-            if (pendingOrder[i].receiver == _account) {
-                return i;
-            }
-        }
-        return 0;
-    }
-
     /// @notice Returns the amount of assets of a user in the withdraw orders.
     function getWithdrawOrderAssets(address _account) external view returns (uint256) {
         uint256 index = _getUserWithdrawOrderIndex(_account);
@@ -232,10 +210,6 @@ contract StakingManager is AccessControl, IStakingManager, ManagerFeeMintable {
             }
         }
         return false;
-    }
-
-    function _updateDepositorShares(address _depositor) private {
-        depositorShares[_depositor] = IAuroraStaking(auroraStaking).getUserShares(_depositor);
     }
 
     /// @dev The next depositor will always be the one with LESS shares.
@@ -468,5 +442,33 @@ contract StakingManager is AccessControl, IStakingManager, ManagerFeeMintable {
         if (availableAssets[_owner] < _assets) { revert NotEnoughBalance(); }
         availableAssets[_owner] -= _assets;
         auroraToken.safeTransfer(_receiver, _assets);
+    }
+
+    function _updateDepositorShares(address _depositor) private {
+        depositorShares[_depositor] = IAuroraStaking(
+            auroraStaking
+        ).getUserShares(_depositor);
+    }
+
+    /// @dev If the user do NOT have a pending order, expect an index of "0".
+    function _getUserPendingOrderIndex(address _account) private view returns (uint256) {
+        uint256 _totalOrders = getTotalPendingOrders();
+        for (uint i = 1; i <= _totalOrders; ++i) {
+            if (pendingOrder[i].receiver == _account) {
+                return i;
+            }
+        }
+        return 0;
+    }
+
+    /// @dev If the user do NOT have a withdraw order, expect an index of "0".
+    function _getUserWithdrawOrderIndex(address _account) private view returns (uint256) {
+        uint256 _totalOrders = getTotalWithdrawOrders();
+        for (uint i = 1; i <= _totalOrders; ++i) {
+            if (withdrawOrder[i].receiver == _account) {
+                return i;
+            }
+        }
+        return 0;
     }
 }

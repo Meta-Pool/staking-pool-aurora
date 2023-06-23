@@ -198,9 +198,11 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
       expect(await liquidityPoolContract.collectedStAurFees()).to.equal(collectedStAurFeesTracker);
 
       const aliceBalancePre = await StakedAuroraVaultContract.balanceOf(alice.address);
+      console.log("ACAAAAA!");
       await expect(
         liquidityPoolContract.connect(alice).withdrawCollectedStAurFees(alice.address)
-      ).to.be.revertedWith("AccessControl: account 0x14dc79964da2c08b23698b3d3cc7ca32193d9955 is missing role 0x2dca0f5ce7e75a4b43fe2b0d6f5d0b7a2bf92ecf89f8f0aa17b8308b67038821");
+      ).to.be.revertedWith("AccessControl: account 0x14dc79964da2c08b23698b3d3cc7ca32193d9955 is missing role 0xe1dcbdb91df27212a29bc27177c840cf2f819ecf2187432e1fac86c2dd5dfca9");
+      console.log("NO!");
       await liquidityPoolContract.connect(treasury).withdrawCollectedStAurFees(alice.address);
       expect(await liquidityPoolContract.collectedStAurFees()).to.equal(0);
       expect(await StakedAuroraVaultContract.balanceOf(alice.address)).to.equal(
