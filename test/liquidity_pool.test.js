@@ -18,12 +18,12 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
         liquidityPoolContract,
         liquidity_pool_owner,
         stakedAuroraVaultContract,
-        fee_collector,
+        treasury,
         operator
       } = await loadFixture(deployPoolFixture);
 
       expect(await liquidityPoolContract.hasRole(ADMIN_ROLE, liquidity_pool_owner.address)).to.be.true;
-      expect(await liquidityPoolContract.hasRole(TREASURY_ROLE, fee_collector.address)).to.be.true;
+      expect(await liquidityPoolContract.hasRole(TREASURY_ROLE, treasury.address)).to.be.true;
       expect(await liquidityPoolContract.hasRole(OPERATOR_ROLE, operator.address)).to.be.true;
       expect(await liquidityPoolContract.stAurVault()).to.equal(stakedAuroraVaultContract.address);
       expect(await liquidityPoolContract.auroraToken()).to.equal(auroraTokenContract.address);
@@ -141,7 +141,7 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
         liquidityPoolContract,
         stakedAuroraVaultContract,
         liquidity_provider,
-        fee_collector,
+        treasury,
         alice,
         bob,
         carl
@@ -201,7 +201,7 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
       await expect(
         liquidityPoolContract.connect(alice).withdrawCollectedStAurFees(alice.address)
       ).to.be.revertedWith("AccessControl: account 0x14dc79964da2c08b23698b3d3cc7ca32193d9955 is missing role 0x2dca0f5ce7e75a4b43fe2b0d6f5d0b7a2bf92ecf89f8f0aa17b8308b67038821");
-      await liquidityPoolContract.connect(fee_collector).withdrawCollectedStAurFees(alice.address);
+      await liquidityPoolContract.connect(treasury).withdrawCollectedStAurFees(alice.address);
       expect(await liquidityPoolContract.collectedStAurFees()).to.equal(0);
       expect(await stakedAuroraVaultContract.balanceOf(alice.address)).to.equal(
         aliceBalancePre.add(collectedStAurFeesTracker)

@@ -50,7 +50,7 @@ async function useProdForkFixture() {
     liquidity_pool_owner,
     liquidity_provider,
     operator,
-    fee_collector,
+    treasury,
     reward_collector,
     alice,
     bob,
@@ -92,7 +92,7 @@ async function useProdForkFixture() {
     liquidity_pool_owner,
     liquidity_provider,
     operator,
-    fee_collector,
+    treasury,
     reward_collector,
     alice,
     bob,
@@ -119,7 +119,7 @@ async function deployPoolFixture() {
     liquidity_pool_owner,
     liquidity_provider,
     operator,
-    fee_collector,
+    treasury,
     reward_collector,
     alice,
     bob,
@@ -169,11 +169,14 @@ async function deployPoolFixture() {
 
   const minDepositAmount = ethers.BigNumber.from(1).mul(DECIMALS);
   const stakedAuroraVaultContract = await StakedAuroraVault.connect(owner).deploy(
-    auroraTokenContract.address,
+    500,            // Basis points
+    60 * 60 * 24,   // Cooling period
+    minDepositAmount,
     operator.address,
+    treasury.address,
+    AURORA_TOKEN_ADDRESS,
     "Staked Aurora Token",
-    "stAUR",
-    minDepositAmount
+    "stAUR"
   );
   await stakedAuroraVaultContract.deployed();
 
@@ -204,7 +207,7 @@ async function deployPoolFixture() {
   const liquidityPoolContract = await LiquidityPool.connect(liquidity_pool_owner).deploy(
     stakedAuroraVaultContract.address,
     auroraTokenContract.address,
-    fee_collector.address,
+    treasury.address,
     operator.address,
     "stAUR/AURORA LP Token",
     "stAUR/AUR",
@@ -262,7 +265,7 @@ async function deployPoolFixture() {
     liquidity_pool_owner,
     liquidity_provider,
     operator,
-    fee_collector,
+    treasury,
     reward_collector,
     alice,
     bob,
@@ -286,7 +289,7 @@ async function depositPoolFixture() {
     liquidity_pool_owner,
     liquidity_provider,
     operator,
-    fee_collector,
+    treasury,
     reward_collector,
     alice,
     bob,
@@ -345,7 +348,7 @@ async function depositPoolFixture() {
     liquidity_pool_owner,
     liquidity_provider,
     operator,
-    fee_collector,
+    treasury,
     reward_collector,
     alice,
     bob,
@@ -369,7 +372,7 @@ async function liquidityPoolFixture() {
     liquidity_pool_owner,
     liquidity_provider,
     operator,
-    fee_collector,
+    treasury,
     reward_collector,
     alice,
     bob,
@@ -414,7 +417,7 @@ async function liquidityPoolFixture() {
     liquidity_pool_owner,
     liquidity_provider,
     operator,
-    fee_collector,
+    treasury,
     reward_collector,
     alice,
     bob,
@@ -440,7 +443,7 @@ async function botsHordeFixture() {
     liquidity_pool_owner,
     liquidity_provider,
     operator,
-    fee_collector,
+    treasury,
     reward_collector,
     alice,
     bob,
@@ -570,7 +573,7 @@ async function botsHordeFixture() {
     liquidity_pool_owner,
     liquidity_provider,
     operator,
-    fee_collector,
+    treasury,
     reward_collector,
     alice,
     bob,

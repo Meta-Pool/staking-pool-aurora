@@ -6,7 +6,7 @@ require("dotenv").config()
 
 const DECIMALS = ethers.BigNumber.from(10).pow(18);
 
-// Max Capacity
+// Max Capacity - IMPORTANT ⚠️
 // For courtesy, this value is set as 20 instead of 200, because the tests takes
 // too long for 200 withdraw orders.
 // const EQUAL_SPAMBOTS_WITHDRAW_ORDERS = 200;
