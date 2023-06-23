@@ -27,7 +27,7 @@ async function main() {
     const auroraTokenContract = await AuroraToken.attach(TokenAddress);
     const depositor00Contract = await Depositor00.attach(Depositor00Address);
     const depositor01Contract = await Depositor01.attach(Depositor01Address);
-    const stakedAuroraVaultContract = await StakedAuroraVault.attach(StakedAuroraVaultAddress);
+    const StakedAuroraVaultContract = await StakedAuroraVault.attach(StakedAuroraVaultAddress);
     const stakingManagerContract = await StakingManager.attach(StakingManagerAddress);
 
     await stakingManagerContract.connect(alice).cleanOrdersQueue();

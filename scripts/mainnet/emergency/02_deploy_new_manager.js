@@ -5,6 +5,8 @@ const {
   MAX_WITHDRAW_ORDERS,
   STAKED_AURORA_VAULT_ADDRESS,
   CURRENT_MANAGER_ADDRESS,
+  FEE_PER_YEAR_BASIS_POINTS,
+  FEE_MINT_COOLING_PERIOD,
   generateAccounts
 } = require("./_config");
 
@@ -19,10 +21,19 @@ async function main() {
 
   console.log("Deploying StakingManager...")
   const StakingManagerContract = await StakingManager.connect(NEW_MANAGER_ADMIN_ACCOUNT).deploy(
+    uint16 _feePerYearBasisPoints,
+    uint64 _feeMintCoolingPeriod,
+    uint256 _maxWithdrawOrders,
+    IStakedAuroraVault _stAurVault,
+    address _auroraStaking,
+    address _contractOperatorRole
+
+    FEE_PER_YEAR_BASIS_POINTS,
+    FEE_MINT_COOLING_PERIOD,
+    MAX_WITHDRAW_ORDERS,
     STAKED_AURORA_VAULT_ADDRESS,
     AURORA_PLUS_ADDRESS,
     NEW_MANAGER_OPERATOR_ACCOUNT.address,
-    MAX_WITHDRAW_ORDERS
   );
   await StakingManagerContract.deployed();
   console.log("       ...done!");

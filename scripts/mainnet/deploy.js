@@ -30,8 +30,6 @@ async function main() {
   // ----------------- Step 1. Deploying the Staked Aurora Vault contract.
   console.log("Step 1. Deploying StakedAuroraVault...")
   const StakedAuroraVaultContract = await StakedAuroraVault.connect(ADMIN_ACCOUNT).deploy(
-    FEE_PER_YEAR_BASIS_POINTS,
-    FEE_MINT_COOLING_PERIOD,
     MIN_DEPOSIT_AMOUNT,
     OPERATOR_ACCOUNT.address,
     TREASURY_ACCOUNT.address,
@@ -45,10 +43,12 @@ async function main() {
   // ----------------- Step 2. Deploying the Staking Manager contract.
   console.log("Step 2. Deploying StakingManager...")
   const stakingManagerContract = await StakingManager.connect(ADMIN_ACCOUNT).deploy(
+    FEE_PER_YEAR_BASIS_POINTS,
+    FEE_MINT_COOLING_PERIOD,
+    MAX_WITHDRAW_ORDERS,
     StakedAuroraVaultContract.address,
     AURORA_PLUS_ADDRESS,
     OPERATOR_ACCOUNT.address,
-    MAX_WITHDRAW_ORDERS
   );
   await stakingManagerContract.deployed();
   console.log("       ...done in %s!", stakingManagerContract.address);

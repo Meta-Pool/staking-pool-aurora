@@ -18,26 +18,26 @@ contract Depositor is AccessControl, IDepositor {
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant COLLECT_REWARDS_ROLE = keccak256("COLLECT_REWARDS_ROLE");
 
-    address public stakingManager;
-    address immutable public stAurVault;
-    address immutable public auroraToken;
+    IStakingManager public stakingManager;
+    IStakedAuroraVault immutable public stAurVault;
+    IERC20 immutable public auroraToken;
     address immutable public auroraStaking;
 
     modifier onlyManager() {
-        if (msg.sender != stakingManager) { revert Unauthorized(); }
+        if (msg.sender != address(stakingManager)) { revert Unauthorized(); }
         _;
     }
 
     modifier onlyStAurVault() {
-        if (msg.sender != stAurVault) { revert Unauthorized(); }
+        if (msg.sender != address(stAurVault)) { revert Unauthorized(); }
         _;
     }
 
     constructor(
-        address _stakingManager,
+        IStakingManager _stakingManager,
         address _collectRewardsRole
     ) {
-        if (_stakingManager == address(0)) { revert InvalidZeroAddress(); }
+        if (address(_stakingManager) == address(0)) { revert InvalidZeroAddress(); }
         stakingManager = _stakingManager;
 
         IStakingManager manager = IStakingManager(_stakingManager);
@@ -54,19 +54,19 @@ contract Depositor is AccessControl, IDepositor {
 
     /// @dev In case of emergency 🛟, update the Manager contract.
     function updateStakingManager(
-        address _stakingManager
+        IStakingManager _stakingManager
     ) external onlyRole(ADMIN_ROLE) {
-        if (_stakingManager == address(0)) { revert InvalidZeroAddress(); }
+        if (address(_stakingManager) == address(0)) { revert InvalidZeroAddress(); }
         stakingManager = _stakingManager;
 
-        emit NewManagerUpdate(_stakingManager, msg.sender);
+        emit NewManagerUpdate(address(_stakingManager), msg.sender);
     }
 
     /// @notice The staking has to go first through the stAUR vault.
     function stake(uint256 _assets) external onlyStAurVault {
         IERC20 aurora = IERC20(auroraToken);
         address _auroraStaking = auroraStaking;
-        aurora.safeTransferFrom(stAurVault, address(this), _assets);
+        aurora.safeTransferFrom(address(stAurVault), address(this), _assets);
         aurora.safeIncreaseAllowance(_auroraStaking, _assets);
         IAuroraStaking(_auroraStaking).stake(_assets);
 
@@ -92,8 +92,8 @@ contract Depositor is AccessControl, IDepositor {
     /// @dev The param of 0 in withdraw refers to the streamId for the Aurora Token.
     function withdraw(uint256 _assets) external onlyManager {
         IAuroraStaking(auroraStaking).withdraw(0);
-        address _stakingManager = stakingManager;
-        IERC20(auroraToken).safeTransfer(_stakingManager, _assets);
+        address _stakingManager = address(stakingManager);
+        auroraToken.safeTransfer(_stakingManager, _assets);
 
         emit WithdrawThroughDepositor(address(this), _stakingManager, _assets);
     }

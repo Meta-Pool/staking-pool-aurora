@@ -17,7 +17,7 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
         auroraTokenContract,
         liquidityPoolContract,
         liquidity_pool_owner,
-        stakedAuroraVaultContract,
+        StakedAuroraVaultContract,
         treasury,
         operator
       } = await loadFixture(deployPoolFixture);
@@ -25,7 +25,7 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
       expect(await liquidityPoolContract.hasRole(ADMIN_ROLE, liquidity_pool_owner.address)).to.be.true;
       expect(await liquidityPoolContract.hasRole(TREASURY_ROLE, treasury.address)).to.be.true;
       expect(await liquidityPoolContract.hasRole(OPERATOR_ROLE, operator.address)).to.be.true;
-      expect(await liquidityPoolContract.stAurVault()).to.equal(stakedAuroraVaultContract.address);
+      expect(await liquidityPoolContract.stAurVault()).to.equal(StakedAuroraVaultContract.address);
       expect(await liquidityPoolContract.auroraToken()).to.equal(auroraTokenContract.address);
       expect(await liquidityPoolContract.stAurBalance()).to.equal(0);
       expect(await liquidityPoolContract.auroraBalance()).to.equal(0);
@@ -65,12 +65,14 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
       const {
         auroraTokenContract,
         liquidityPoolContract,
-        stakedAuroraVaultContract,
+        StakedAuroraVaultContract,
         liquidity_provider,
         alice,
         bob,
         carl
       } = await loadFixture(liquidityPoolFixture);
+
+      console.log("ARE WE HERE???");
 
       var auroraBalanceTracker = ethers.BigNumber.from(1_000_000).mul(DECIMALS);
       expect(await liquidityPoolContract.stAurBalance()).to.equal(0);
@@ -78,7 +80,7 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
 
       // StAUR deposits to the Liquidity Pool.
       const providerSwap = ethers.BigNumber.from(90_000).mul(DECIMALS); // The amount of stAUR the provider will swap back to AURORA.
-      await stakedAuroraVaultContract.connect(liquidity_provider).approve(liquidityPoolContract.address, providerSwap);
+      await StakedAuroraVaultContract.connect(liquidity_provider).approve(liquidityPoolContract.address, providerSwap);
 
       const providerPreBalance = await auroraTokenContract.balanceOf(liquidity_provider.address);
       await liquidityPoolContract.connect(liquidity_provider).swapStAurForAurora(
@@ -93,7 +95,7 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
       // Alice swap.
       var auroraBalanceTracker = await liquidityPoolContract.auroraBalance();
       const aliceSwap = ethers.BigNumber.from(200).mul(DECIMALS);
-      await stakedAuroraVaultContract.connect(alice).approve(liquidityPoolContract.address, aliceSwap);
+      await StakedAuroraVaultContract.connect(alice).approve(liquidityPoolContract.address, aliceSwap);
 
       const alicePreBalance = await auroraTokenContract.balanceOf(alice.address);
       await liquidityPoolContract.connect(alice).swapStAurForAurora(
@@ -108,7 +110,7 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
       // Bob swap.
       var auroraBalanceTracker = await liquidityPoolContract.auroraBalance();
       const bobSwap = ethers.BigNumber.from(3_400).mul(DECIMALS);
-      await stakedAuroraVaultContract.connect(bob).approve(liquidityPoolContract.address, bobSwap);
+      await StakedAuroraVaultContract.connect(bob).approve(liquidityPoolContract.address, bobSwap);
 
       const bobPreBalance = await auroraTokenContract.balanceOf(bob.address);
       await liquidityPoolContract.connect(bob).swapStAurForAurora(
@@ -123,7 +125,7 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
       // Carl swap.
       var auroraBalanceTracker = await liquidityPoolContract.auroraBalance();
       const carlSwap = ethers.BigNumber.from(132).mul(DECIMALS);
-      await stakedAuroraVaultContract.connect(carl).approve(liquidityPoolContract.address, carlSwap);
+      await StakedAuroraVaultContract.connect(carl).approve(liquidityPoolContract.address, carlSwap);
 
       const carlPreBalance = await auroraTokenContract.balanceOf(carl.address);
       await liquidityPoolContract.connect(carl).swapStAurForAurora(
@@ -139,7 +141,7 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
     it("Should generate fee 🪙 for the contract.", async function () {
       const {
         liquidityPoolContract,
-        stakedAuroraVaultContract,
+        StakedAuroraVaultContract,
         liquidity_provider,
         treasury,
         alice,
@@ -151,7 +153,7 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
 
       // StAUR deposits to the Liquidity Pool.
       const providerSwap = ethers.BigNumber.from(90_000).mul(DECIMALS); // The amount of stAUR the provider will swap back to AURORA.
-      await stakedAuroraVaultContract.connect(liquidity_provider).approve(liquidityPoolContract.address, providerSwap);
+      await StakedAuroraVaultContract.connect(liquidity_provider).approve(liquidityPoolContract.address, providerSwap);
 
       await liquidityPoolContract.connect(liquidity_provider).swapStAurForAurora(
         providerSwap,
@@ -163,7 +165,7 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
 
       // Alice swap.
       const aliceSwap = ethers.BigNumber.from(200).mul(DECIMALS);
-      await stakedAuroraVaultContract.connect(alice).approve(liquidityPoolContract.address, aliceSwap);
+      await StakedAuroraVaultContract.connect(alice).approve(liquidityPoolContract.address, aliceSwap);
 
       await liquidityPoolContract.connect(alice).swapStAurForAurora(
         aliceSwap,
@@ -175,7 +177,7 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
 
       // Bob swap.
       const bobSwap = ethers.BigNumber.from(3_400).mul(DECIMALS);
-      await stakedAuroraVaultContract.connect(bob).approve(liquidityPoolContract.address, bobSwap);
+      await StakedAuroraVaultContract.connect(bob).approve(liquidityPoolContract.address, bobSwap);
 
       await liquidityPoolContract.connect(bob).swapStAurForAurora(
         bobSwap,
@@ -187,7 +189,7 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
 
       // Carl swap.
       const carlSwap = ethers.BigNumber.from(132).mul(DECIMALS);
-      await stakedAuroraVaultContract.connect(carl).approve(liquidityPoolContract.address, carlSwap);
+      await StakedAuroraVaultContract.connect(carl).approve(liquidityPoolContract.address, carlSwap);
 
       await liquidityPoolContract.connect(carl).swapStAurForAurora(
         carlSwap,
@@ -197,13 +199,13 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
       var collectedStAurFeesTracker = collectedStAurFeesTracker.add(ethers.BigNumber.from("528000000000000000"));
       expect(await liquidityPoolContract.collectedStAurFees()).to.equal(collectedStAurFeesTracker);
 
-      const aliceBalancePre = await stakedAuroraVaultContract.balanceOf(alice.address);
+      const aliceBalancePre = await StakedAuroraVaultContract.balanceOf(alice.address);
       await expect(
         liquidityPoolContract.connect(alice).withdrawCollectedStAurFees(alice.address)
       ).to.be.revertedWith("AccessControl: account 0x14dc79964da2c08b23698b3d3cc7ca32193d9955 is missing role 0x2dca0f5ce7e75a4b43fe2b0d6f5d0b7a2bf92ecf89f8f0aa17b8308b67038821");
       await liquidityPoolContract.connect(treasury).withdrawCollectedStAurFees(alice.address);
       expect(await liquidityPoolContract.collectedStAurFees()).to.equal(0);
-      expect(await stakedAuroraVaultContract.balanceOf(alice.address)).to.equal(
+      expect(await StakedAuroraVaultContract.balanceOf(alice.address)).to.equal(
         aliceBalancePre.add(collectedStAurFeesTracker)
       );
     });

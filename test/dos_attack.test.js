@@ -11,7 +11,7 @@ describe("Testing Max Capacity. DOS attack.", function () {
     it("❌ WARNING: For courtesy Max Capacity test are disable. 200 withdraw orders and 20 depositors.", async function () {
       const {
         auroraTokenContract,
-        stakedAuroraVaultContract,
+        StakedAuroraVaultContract,
         stakingManagerContract,
         alice,
         bob,
@@ -34,20 +34,20 @@ describe("Testing Max Capacity. DOS attack.", function () {
       // GAS used on clean-orders:  BigNumber { value: "142120" }
       const VERBOSE = false;
 
-      const aliceShares = await stakedAuroraVaultContract.balanceOf(alice.address);
-      const bobShares = await stakedAuroraVaultContract.balanceOf(bob.address);
-      const carlShares = await stakedAuroraVaultContract.balanceOf(carl.address);
+      const aliceShares = await StakedAuroraVaultContract.balanceOf(alice.address);
+      const bobShares = await StakedAuroraVaultContract.balanceOf(bob.address);
+      const carlShares = await StakedAuroraVaultContract.balanceOf(carl.address);
 
       // Redeem ALL bots balances.
       for (let i = 0; i < TOTAL_SPAMBOTS; i++) {
-        var shares = await stakedAuroraVaultContract.balanceOf(spambots[i].address);
-        await stakedAuroraVaultContract.connect(spambots[i]).redeem(
+        var shares = await StakedAuroraVaultContract.balanceOf(spambots[i].address);
+        await StakedAuroraVaultContract.connect(spambots[i]).redeem(
           shares, spambots[i].address, spambots[i].address
         );
       }
 
       await expect(
-        stakedAuroraVaultContract.connect(alice).redeem(aliceShares, alice.address, alice.address)
+        StakedAuroraVaultContract.connect(alice).redeem(aliceShares, alice.address, alice.address)
       ).to.be.revertedWithCustomError(stakingManagerContract, "MaxOrdersExceeded");
 
       // Move forward: From withdraw to pending.
@@ -56,9 +56,9 @@ describe("Testing Max Capacity. DOS attack.", function () {
       var gasUsed = (await tx.wait()).gasUsed;
       if (VERBOSE) { console.log("GAS used on clean-orders: ", gasUsed); }
 
-      await stakedAuroraVaultContract.connect(alice).redeem(aliceShares, alice.address, alice.address);
-      await stakedAuroraVaultContract.connect(bob).redeem(bobShares, bob.address, bob.address);
-      await stakedAuroraVaultContract.connect(carl).redeem(carlShares, carl.address, carl.address);
+      await StakedAuroraVaultContract.connect(alice).redeem(aliceShares, alice.address, alice.address);
+      await StakedAuroraVaultContract.connect(bob).redeem(bobShares, bob.address, bob.address);
+      await StakedAuroraVaultContract.connect(carl).redeem(carlShares, carl.address, carl.address);
 
       // Move forward: From pending to available.
       await time.increaseTo(await stakingManagerContract.nextCleanOrderQueue());
@@ -70,7 +70,7 @@ describe("Testing Max Capacity. DOS attack.", function () {
       const nextSpamBalance = (await auroraTokenContract.balanceOf(spambots[0].address)).add(
         await stakingManagerContract.getAvailableAssets(spambots[0].address)
       );
-      await stakedAuroraVaultContract.connect(spambots[0]).completeDelayUnstake(
+      await StakedAuroraVaultContract.connect(spambots[0]).completeDelayUnstake(
         await stakingManagerContract.getAvailableAssets(spambots[0].address),
         spambots[0].address
       );
@@ -85,7 +85,7 @@ describe("Testing Max Capacity. DOS attack.", function () {
       const nextAliceBalance = (await auroraTokenContract.balanceOf(alice.address)).add(
         await stakingManagerContract.getAvailableAssets(alice.address)
       );
-      await stakedAuroraVaultContract.connect(alice).completeDelayUnstake(
+      await StakedAuroraVaultContract.connect(alice).completeDelayUnstake(
         await stakingManagerContract.getAvailableAssets(alice.address),
         alice.address
       );
@@ -94,7 +94,7 @@ describe("Testing Max Capacity. DOS attack.", function () {
       const nextBobBalance = (await auroraTokenContract.balanceOf(bob.address)).add(
         await stakingManagerContract.getAvailableAssets(bob.address)
       );
-      await stakedAuroraVaultContract.connect(bob).completeDelayUnstake(
+      await StakedAuroraVaultContract.connect(bob).completeDelayUnstake(
         await stakingManagerContract.getAvailableAssets(bob.address),
         bob.address
       );
@@ -103,7 +103,7 @@ describe("Testing Max Capacity. DOS attack.", function () {
       const nextCarlBalance = (await auroraTokenContract.balanceOf(carl.address)).add(
         await stakingManagerContract.getAvailableAssets(carl.address)
       );
-      await stakedAuroraVaultContract.connect(carl).completeDelayUnstake(
+      await StakedAuroraVaultContract.connect(carl).completeDelayUnstake(
         await stakingManagerContract.getAvailableAssets(carl.address),
         carl.address
       );

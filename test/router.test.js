@@ -2,16 +2,16 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { loadFixture, time } = require("@nomicfoundation/hardhat-network-helpers");
 const {
-  deployPoolFixture,
+  // deployPoolFixture,
   depositPoolFixture,
   liquidityPoolFixture,
-  botsHordeFixture,
-  AURORA,
+  // botsHordeFixture,
+  // AURORA,
   DECIMALS,
-  TOTAL_SPAMBOTS,
-  ADMIN_ROLE,
-  OPERATOR_ROLE,
-  COLLECT_REWARDS_ROLE
+  // TOTAL_SPAMBOTS,
+  // ADMIN_ROLE,
+  // OPERATOR_ROLE,
+  // COLLECT_REWARDS_ROLE
 } = require("./test_setup");
 
 describe("Router 🛜 : one router, two vaults", function () {
@@ -19,23 +19,23 @@ describe("Router 🛜 : one router, two vaults", function () {
     it("Should allow deposit from the router.", async function () {
       const {
         auroraTokenContract,
-        stakedAuroraVaultContract,
+        StakedAuroraVaultContract,
         RouterContract,
         bob
       } = await loadFixture(depositPoolFixture);
 
       const bobDeposit = ethers.BigNumber.from(100_000).mul(DECIMALS);
       const bobMinShares = ethers.BigNumber.from(99_999).mul(DECIMALS);
-      const bobExpects = (await stakedAuroraVaultContract.balanceOf(bob.address)).add(bobMinShares);
+      const bobExpects = (await StakedAuroraVaultContract.balanceOf(bob.address)).add(bobMinShares);
 
       await auroraTokenContract.connect(bob).approve(RouterContract.address, bobDeposit);
       await RouterContract.connect(bob).depositToVault(
-        stakedAuroraVaultContract.address,
+        StakedAuroraVaultContract.address,
         bob.address,
         bobDeposit,
         bobMinShares
       );
-      expect(await stakedAuroraVaultContract.balanceOf(bob.address)).to.be.greaterThan(bobExpects);
+      expect(await StakedAuroraVaultContract.balanceOf(bob.address)).to.be.greaterThan(bobExpects);
     });
 
     /// @notice Not for release v0.2.0.
@@ -43,7 +43,7 @@ describe("Router 🛜 : one router, two vaults", function () {
     //   const {
     //     auroraTokenContract,
     //     // auroraStakingContract,
-    //     stakedAuroraVaultContract,
+    //     StakedAuroraVaultContract,
     //     stakingManagerContract,
     //     RouterContract,
     //     alice,
@@ -54,25 +54,25 @@ describe("Router 🛜 : one router, two vaults", function () {
     //   // const rlMint = ethers.BigNumber.from(24_000).mul(DECIMALS);
     //   const aliceApprove = ethers.BigNumber.from(400).mul(DECIMALS);
     //   // const carlMaxAssets = ethers.BigNumber.from(24_100).mul(DECIMALS);
-    //   // const carlExpects = (await stakedAuroraVaultContract.balanceOf(carl.address)).add(carlMint);
+    //   // const carlExpects = (await StakedAuroraVaultContract.balanceOf(carl.address)).add(carlMint);
     //   await auroraTokenContract.connect(alice).approve(
     //     RouterContract.address,
     //     aliceApprove
     //   );
     //   await RouterContract.connect(carl).redeemFromVault(
-    //     stakedAuroraVaultContract.address,
+    //     StakedAuroraVaultContract.address,
     //     carl.address,
     //     carlMint,
     //     carlMaxAssets
     //   );
-    //   expect(await stakedAuroraVaultContract.balanceOf(carl.address)).to.be.equal(carlExpects);
+    //   expect(await StakedAuroraVaultContract.balanceOf(carl.address)).to.be.equal(carlExpects);
     //   expect(1).to.be.equal(0);
     // });
 
     it("Should allow mint from the router.", async function () {
       const {
         auroraTokenContract,
-        stakedAuroraVaultContract,
+        StakedAuroraVaultContract,
         RouterContract,
         carl
       } = await loadFixture(depositPoolFixture);
@@ -80,35 +80,35 @@ describe("Router 🛜 : one router, two vaults", function () {
       const carlMint = ethers.BigNumber.from(24_000).mul(DECIMALS);
       const carlApprove = ethers.BigNumber.from(30_000).mul(DECIMALS);
       const carlMaxAssets = ethers.BigNumber.from(24_100).mul(DECIMALS);
-      const carlExpects = (await stakedAuroraVaultContract.balanceOf(carl.address)).add(carlMint);
+      const carlExpects = (await StakedAuroraVaultContract.balanceOf(carl.address)).add(carlMint);
 
       await auroraTokenContract.connect(carl).approve(
         RouterContract.address,
         carlApprove
       );
       await RouterContract.connect(carl).mintToVault(
-        stakedAuroraVaultContract.address,
+        StakedAuroraVaultContract.address,
         carl.address,
         carlMint,
         carlMaxAssets
       );
-      expect(await stakedAuroraVaultContract.balanceOf(carl.address)).to.be.equal(carlExpects);
+      expect(await StakedAuroraVaultContract.balanceOf(carl.address)).to.be.equal(carlExpects);
     });
 
     it("Should allow redeem from the router.", async function () {
       const {
         auroraTokenContract,
-        stakedAuroraVaultContract,
+        StakedAuroraVaultContract,
         RouterContract,
         alice
       } = await loadFixture(depositPoolFixture);
 
       // Shares Ops
       const aliceSharesToRedeem = ethers.BigNumber.from(400).mul(DECIMALS);
-      const aliceExpectsB = (await stakedAuroraVaultContract.balanceOf(alice.address)).sub(aliceSharesToRedeem);
+      const aliceExpectsB = (await StakedAuroraVaultContract.balanceOf(alice.address)).sub(aliceSharesToRedeem);
 
       // console.log("Alice expects shares: %s: ", aliceExpectsB);
-      // console.log("Alice shares balance: %s: ", await stakedAuroraVaultContract.balanceOf(alice.address));
+      // console.log("Alice shares balance: %s: ", await StakedAuroraVaultContract.balanceOf(alice.address));
 
       // Base asset token Ops
       const _minAmountOut = ethers.BigNumber.from(399).mul(DECIMALS);
@@ -117,17 +117,17 @@ describe("Router 🛜 : one router, two vaults", function () {
       // console.log("Alice expects assets: %s: ", aliceExpectsA);
       // console.log("Alice assets balance: %s: ", await auroraTokenContract.balanceOf(alice.address));
 
-      await stakedAuroraVaultContract.connect(alice).approve(
+      await StakedAuroraVaultContract.connect(alice).approve(
         RouterContract.address,
         aliceSharesToRedeem
       );
       await RouterContract.connect(alice).redeemFromVault(
-        stakedAuroraVaultContract.address,
+        StakedAuroraVaultContract.address,
         alice.address,
         aliceSharesToRedeem,
         _minAmountOut
       );
-      expect(await stakedAuroraVaultContract.balanceOf(alice.address)).to.be.equal(aliceExpectsB);
+      expect(await StakedAuroraVaultContract.balanceOf(alice.address)).to.be.equal(aliceExpectsB);
       // This test should exclude the _minAmountOut, because the delay of 2 days for delay-unstake operations.
       expect(await auroraTokenContract.balanceOf(alice.address)).to.be.equal(aliceExpectsA);
     });
@@ -137,7 +137,7 @@ describe("Router 🛜 : one router, two vaults", function () {
     //   const {
     //     auroraTokenContract,
     //     // auroraStakingContract,
-    //     stakedAuroraVaultContract,
+    //     StakedAuroraVaultContract,
     //     stakingManagerContract,
     //     RouterContract,
     //     alice,
@@ -148,25 +148,25 @@ describe("Router 🛜 : one router, two vaults", function () {
     //   // const rlMint = ethers.BigNumber.from(24_000).mul(DECIMALS);
     //   const aliceApprove = ethers.BigNumber.from(400).mul(DECIMALS);
     //   // const carlMaxAssets = ethers.BigNumber.from(24_100).mul(DECIMALS);
-    //   // const carlExpects = (await stakedAuroraVaultContract.balanceOf(carl.address)).add(carlMint);
+    //   // const carlExpects = (await StakedAuroraVaultContract.balanceOf(carl.address)).add(carlMint);
     //   await auroraTokenContract.connect(alice).approve(
     //     RouterContract.address,
     //     aliceApprove
     //   );
     //   await RouterContract.connect(carl).redeemFromVault(
-    //     stakedAuroraVaultContract.address,
+    //     StakedAuroraVaultContract.address,
     //     carl.address,
     //     carlMint,
     //     carlMaxAssets
     //   );
-    //   expect(await stakedAuroraVaultContract.balanceOf(carl.address)).to.be.equal(carlExpects);
+    //   expect(await StakedAuroraVaultContract.balanceOf(carl.address)).to.be.equal(carlExpects);
     //   expect(1).to.be.equal(0);
     // });
 
     it("Should allow withdraw from the router.", async function () {
       const {
         auroraTokenContract,
-        stakedAuroraVaultContract,
+        StakedAuroraVaultContract,
         RouterContract,
         alice
       } = await loadFixture(depositPoolFixture);
@@ -176,28 +176,28 @@ describe("Router 🛜 : one router, two vaults", function () {
       const aliceExpectsB = await auroraTokenContract.balanceOf(alice.address);
 
       // console.log("Alice expects shares: %s: ", aliceExpectsB);
-      // console.log("Alice shares balance: %s: ", await stakedAuroraVaultContract.balanceOf(alice.address));
+      // console.log("Alice shares balance: %s: ", await StakedAuroraVaultContract.balanceOf(alice.address));
 
       // Shares Ops
       const _maxSharesOut = ethers.BigNumber.from(701).mul(DECIMALS);
-      const aliceExpectsA = (await stakedAuroraVaultContract.balanceOf(alice.address)).sub(_maxSharesOut);
+      const aliceExpectsA = (await StakedAuroraVaultContract.balanceOf(alice.address)).sub(_maxSharesOut);
 
       // console.log("Alice expects assets: %s: ", aliceExpectsA);
       // console.log("Alice assets balance: %s: ", await auroraTokenContract.balanceOf(alice.address));
 
-      await stakedAuroraVaultContract.connect(alice).approve(
+      await StakedAuroraVaultContract.connect(alice).approve(
         RouterContract.address,
         _maxSharesOut
       );
       await RouterContract.connect(alice).withdrawFromVault(
-        stakedAuroraVaultContract.address,
+        StakedAuroraVaultContract.address,
         alice.address,
         aliceAssetsToWithdraw,
         _maxSharesOut
       );
       // This test should exclude the _minAmountOut, because the delay of 2 days for delay-unstake operations.
       expect(await auroraTokenContract.balanceOf(alice.address)).to.be.equal(aliceExpectsB);
-      expect(await stakedAuroraVaultContract.balanceOf(alice.address)).to.be.greaterThan(aliceExpectsA);
+      expect(await StakedAuroraVaultContract.balanceOf(alice.address)).to.be.greaterThan(aliceExpectsA);
     });
   });
 
@@ -205,7 +205,7 @@ describe("Router 🛜 : one router, two vaults", function () {
     it("Should allow safe deposit.", async function () {
       const {
         auroraTokenContract,
-        stakedAuroraVaultContract,
+        StakedAuroraVaultContract,
         RouterContract,
         bob
       } = await loadFixture(depositPoolFixture);
@@ -214,7 +214,7 @@ describe("Router 🛜 : one router, two vaults", function () {
       const bobMinShares = ethers.BigNumber.from(199_999).mul(DECIMALS);
       await auroraTokenContract.connect(bob).approve(RouterContract.address, bobDeposit);
       await expect(RouterContract.connect(bob).depositToVault(
-        stakedAuroraVaultContract.address,
+        StakedAuroraVaultContract.address,
         bob.address,
         bobDeposit,
         bobMinShares
@@ -224,7 +224,7 @@ describe("Router 🛜 : one router, two vaults", function () {
     it("Should allow safe mint.", async function () {
       const {
         auroraTokenContract,
-        stakedAuroraVaultContract,
+        StakedAuroraVaultContract,
         RouterContract,
         carl
       } = await loadFixture(depositPoolFixture);
@@ -237,7 +237,7 @@ describe("Router 🛜 : one router, two vaults", function () {
         carlApprove
       );
       await expect(RouterContract.connect(carl).mintToVault(
-        stakedAuroraVaultContract.address,
+        StakedAuroraVaultContract.address,
         carl.address,
         carlMint,
         carlMaxAssets
@@ -246,7 +246,7 @@ describe("Router 🛜 : one router, two vaults", function () {
 
     it("Should allow safe redeem.", async function () {
       const {
-        stakedAuroraVaultContract,
+        StakedAuroraVaultContract,
         RouterContract,
         alice
       } = await loadFixture(depositPoolFixture);
@@ -257,12 +257,12 @@ describe("Router 🛜 : one router, two vaults", function () {
       // Base asset token Ops
       const _minAmountOut = ethers.BigNumber.from(402).mul(DECIMALS);
 
-      await stakedAuroraVaultContract.connect(alice).approve(
+      await StakedAuroraVaultContract.connect(alice).approve(
         RouterContract.address,
         aliceSharesToRedeem
       );
       await expect(RouterContract.connect(alice).redeemFromVault(
-        stakedAuroraVaultContract.address,
+        StakedAuroraVaultContract.address,
         alice.address,
         aliceSharesToRedeem,
         _minAmountOut
@@ -271,7 +271,7 @@ describe("Router 🛜 : one router, two vaults", function () {
 
     it("Should allow safe withdraw.", async function () {
       const {
-        stakedAuroraVaultContract,
+        StakedAuroraVaultContract,
         RouterContract,
         alice
       } = await loadFixture(depositPoolFixture);
@@ -283,12 +283,12 @@ describe("Router 🛜 : one router, two vaults", function () {
       const _maxSharesOut = ethers.BigNumber.from(699).mul(DECIMALS);
       const aliceApprove = ethers.BigNumber.from(701).mul(DECIMALS);
 
-      await stakedAuroraVaultContract.connect(alice).approve(
+      await StakedAuroraVaultContract.connect(alice).approve(
         RouterContract.address,
         aliceApprove
       );
       await expect(RouterContract.connect(alice).withdrawFromVault(
-        stakedAuroraVaultContract.address,
+        StakedAuroraVaultContract.address,
         alice.address,
         aliceAssetsToWithdraw,
         _maxSharesOut

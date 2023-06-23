@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.18;
 
+import "./IStakedAuroraVault.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 interface IStakingManager {
     event AltWithdraw(address indexed _caller, address indexed _receiver, address indexed _owner, uint256 _assets);
     event CleanOrdersQueue(uint256 _nextCleanTimestamp);
@@ -27,7 +30,7 @@ interface IStakingManager {
 
     function alternativeWithdraw(uint256 _assets, address _receiver) external;
     function auroraStaking() external view returns (address);
-    function auroraToken() external view returns (address);
+    function auroraToken() external view returns (IERC20);
     function changeMaxWithdrawOrders(uint256 _maxWithdrawOrders) external;
     function cleanOrdersQueue() external;
     function createWithdrawOrder(uint256 _assets, address _receiver) external;
@@ -45,7 +48,7 @@ interface IStakingManager {
     function insertDepositor(address _depositor) external;
     function nextDepositor() external view returns (address);
     function setNextDepositor() external;
-    function stAurVault() external view returns (address);
+    function stAurVault() external view returns (IStakedAuroraVault);
     function totalAssets() external view returns (uint256);
     function transferAurora(address _receiver, address _owner, uint256 _assets) external;
 }

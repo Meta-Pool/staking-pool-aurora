@@ -27,17 +27,17 @@ async function main() {
     const auroraTokenContract = await AuroraToken.attach(TokenAddress);
     const depositor00Contract = await Depositor00.attach(Depositor00Address);
     const depositor01Contract = await Depositor01.attach(Depositor01Address);
-    const stakedAuroraVaultContract = await StakedAuroraVault.attach(StakedAuroraVaultAddress);
+    const StakedAuroraVaultContract = await StakedAuroraVault.attach(StakedAuroraVaultAddress);
     const stakingManagerContract = await StakingManager.attach(StakingManagerAddress);
 
     console.log("User current Balances: =================================");
-    console.log("Alice stAUR: %s", await stakedAuroraVaultContract.balanceOf(alice.address));
+    console.log("Alice stAUR: %s", await StakedAuroraVaultContract.balanceOf(alice.address));
     console.log("Alice AUROR: %s", await auroraTokenContract.balanceOf(alice.address));
     console.log("--------");
-    console.log("Bob   stAUR: %s", await stakedAuroraVaultContract.balanceOf(bob.address));
+    console.log("Bob   stAUR: %s", await StakedAuroraVaultContract.balanceOf(bob.address));
     console.log("Bob   AUROR: %s", await auroraTokenContract.balanceOf(bob.address));
     console.log("--------");
-    console.log("Carl  stAUR: %s", await stakedAuroraVaultContract.balanceOf(carl.address));
+    console.log("Carl  stAUR: %s", await StakedAuroraVaultContract.balanceOf(carl.address));
     console.log("Carl  AUROR: %s", await auroraTokenContract.balanceOf(carl.address));
     console.log("\n");
   

@@ -65,19 +65,19 @@ async function main() {
   // ----------------- Step 4. Deploying the IMMUTABLE Staked Aurora Vault contract.
   console.log("Step 4. Deploying StakedAuroraVault...")
   const minDepositAmount = ethers.BigNumber.from(1).mul(DECIMALS);
-  const stakedAuroraVaultContract = await StakedAuroraVault.connect(alice).deploy(
+  const StakedAuroraVaultContract = await StakedAuroraVault.connect(alice).deploy(
     auroraTokenContract.address,
     "Staked Aurora Token".concat(TEST_RELEASE),
     "stAUR".concat(TEST_RELEASE_SHORT),
     minDepositAmount
   );
-  await stakedAuroraVaultContract.deployed();
-  console.log("       ...done in %s!", stakedAuroraVaultContract.address);
+  await StakedAuroraVaultContract.deployed();
+  console.log("       ...done in %s!", StakedAuroraVaultContract.address);
 
   // ----------------- Step 5. Deploying the MUTABLE Staking Manager contract.
   console.log("Step 5. Deploying StakingManager...")
   const stakingManagerContract = await StakingManager.connect(alice).deploy(
-    stakedAuroraVaultContract.address,
+    StakedAuroraVaultContract.address,
     auroraStakingContract.address,
     bob.address,
     bob.address,
@@ -89,7 +89,7 @@ async function main() {
    // ----------------- Step 6. Deploying the MUTABLE Liquidity Pool contract.
    console.log("Step 6. Deploying LiquidityPool...")
    const liquidityPoolContract = await LiquidityPool.connect(alice).deploy(
-    stakedAuroraVaultContract.address,
+    StakedAuroraVaultContract.address,
     auroraTokenContract.address,
     "stAUR/AURORA LP Token".concat(TEST_RELEASE),
     "stAUR/AUR".concat(TEST_RELEASE_SHORT),
@@ -100,7 +100,7 @@ async function main() {
   console.log("       ...done in %s!", liquidityPoolContract.address);
 
   // Initialize the Liquid Staking Service.
-  await stakedAuroraVaultContract.initializeLiquidStaking(
+  await StakedAuroraVaultContract.initializeLiquidStaking(
     stakingManagerContract.address,
     liquidityPoolContract.address
   )
@@ -120,7 +120,7 @@ async function main() {
   await depositor01Contract.deployed();
 
   // Whitelist all.
-  await stakedAuroraVaultContract.updateEnforceWhitelist(false);
+  await StakedAuroraVaultContract.updateEnforceWhitelist(false);
 
   console.log("       ...2 contracts deployed!");
   console.log("       ... %s!", depositor00Contract.address);
@@ -130,8 +130,8 @@ async function main() {
   await stakingManagerContract.connect(bob).insertDepositor(depositor01Contract.address);
 
   // // Staking Aurora Vault should be fully operational by now.
-  // expect(await stakedAuroraVaultContract.fullyOperational()).to.be.true;
-  // expect(await stakedAuroraVaultContract.enforceWhitelist()).to.be.false;
+  // expect(await StakedAuroraVaultContract.fullyOperational()).to.be.true;
+  // expect(await StakedAuroraVaultContract.enforceWhitelist()).to.be.false;
 
   console.log("Addresses of the deployed contracts:")
   console.log(" - AuroraToken 💚: ----- %s", auroraTokenContract.address);
@@ -140,7 +140,7 @@ async function main() {
   console.log(" - StakingManager: ----- %s", stakingManagerContract.address);
   console.log(" - Depositor 00: ------- %s", depositor00Contract.address);
   console.log(" - Depositor 01: ------- %s", depositor01Contract.address);
-  console.log(" - StakedAuroraVault: -- %s", stakedAuroraVaultContract.address);
+  console.log(" - StakedAuroraVault: -- %s", StakedAuroraVaultContract.address);
   console.log(" - LiquidityPool: ------ %s", liquidityPoolContract.address);
 }
 

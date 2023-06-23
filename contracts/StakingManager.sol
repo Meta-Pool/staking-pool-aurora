@@ -7,6 +7,7 @@ import "./interfaces/IAuroraStaking.sol";
 import "./interfaces/IDepositor.sol";
 import "./interfaces/IStakedAuroraVault.sol";
 import "./interfaces/IStakingManager.sol";
+import "./utils/ManagerFeeMintable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -39,7 +40,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 /// 4. Deploy a new Manager and update the address in the Vault and in Depositors.
 /// 5. Pending tokens could be removed from the old Manager with the alternativeWithdraw.
 
-contract StakingManager is AccessControl, IStakingManager {
+contract StakingManager is AccessControl, IStakingManager, ManagerFeeMintable {
     using SafeERC20 for IERC20;
 
     /// @dev If there are problems with the clean-orders,
@@ -58,9 +59,10 @@ contract StakingManager is AccessControl, IStakingManager {
 
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
+    bytes32 public constant TREASURY_ROLE = keccak256("TREASURY_ROLE");
 
-    address immutable public stAurVault;
-    address immutable public auroraToken;
+    IStakedAuroraVault immutable public stAurVault;
+    IERC20 immutable public auroraToken;
     address immutable public auroraStaking;
 
     /// @dev Timestamp that allows the clean-orders process to run.
@@ -91,24 +93,27 @@ contract StakingManager is AccessControl, IStakingManager {
     uint256 maxWithdrawOrders;
 
     modifier onlyStAurVault() {
-        if (msg.sender != stAurVault) { revert Unauthorized(); }
+        if (msg.sender != address(stAurVault)) { revert Unauthorized(); }
         _;
     }
 
     constructor(
-        address _stAurVault,
+        uint16 _feePerYearBasisPoints,
+        uint256 _maxWithdrawOrders,
+        IStakedAuroraVault _stAurVault,
         address _auroraStaking,
-        address _contractOperatorRole,
-        uint256 _maxWithdrawOrders
-    ) {
-        if (_stAurVault == address(0)
+        address _contractOperatorRole
+    )
+        ManagerFeeMintable(_feePerYearBasisPoints)
+    {
+        if (address(_stAurVault) == address(0)
                 || _auroraStaking == address(0)
                 || _contractOperatorRole == address(0)) {
             revert InvalidZeroAddress();
         }
         stAurVault = _stAurVault;
         auroraStaking = _auroraStaking;
-        auroraToken = IERC4626(_stAurVault).asset();
+        auroraToken = IERC20(_stAurVault.asset());
         maxWithdrawOrders = _maxWithdrawOrders;
         nextCleanOrderQueue = block.timestamp;
 
@@ -287,7 +292,7 @@ contract StakingManager is AccessControl, IStakingManager {
         uint256 _assets,
         address _receiver
     ) external {
-        if (IStakedAuroraVault(stAurVault).stakingManager() == address(this)) {
+        if (address(stAurVault.stakingManager()) == address(this)) {
             revert VaultAndManagerStillAttached();
         }
         _transferAurora(_receiver, msg.sender, _assets);
@@ -342,6 +347,35 @@ contract StakingManager is AccessControl, IStakingManager {
             withdrawOrder[index].amount += _assets;
         }
     }
+
+    // **********************
+    // * Treasury functions *
+    // **********************
+
+    function mintFee() public override
+        onlyRole(TREASURY_ROLE)
+        feeMintAvailable
+    returns (uint256) {
+        uint256 elapsedSeconds = block.timestamp - lastFeeMint;
+
+        uint256 _fee = (
+            stAurVault.totalSupply()
+            * (uint256(feePerYearBasisPoints) / 10_000)
+            * (elapsedSeconds / uint256(SECONDS_PER_YEAR))
+        );
+        stAurVault.mintFee(msg.sender, _fee);
+        lastFeeMint = uint64(block.timestamp);
+
+        return _fee;
+    }
+
+    function updateFeePerYear(uint16 _basisPoints) public override {
+
+    }
+
+    // *********************
+    // * Private functions *
+    // *********************
 
     /// @dev The tau is the pending release period for the AURORA stream.
     function _getAuroraTau() private view returns (uint256) {
@@ -431,6 +465,6 @@ contract StakingManager is AccessControl, IStakingManager {
         if (_assets == 0) { revert InvalidZeroAmount(); }
         if (availableAssets[_owner] < _assets) { revert NotEnoughBalance(); }
         availableAssets[_owner] -= _assets;
-        IERC20(auroraToken).safeTransfer(_receiver, _assets);
+        auroraToken.safeTransfer(_receiver, _assets);
     }
 }

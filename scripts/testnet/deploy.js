@@ -24,19 +24,19 @@ async function main() {
   // Step 1. Deploying the IMMUTABLE Staked Aurora Vault contract.
   console.log("Step 1. Deploying StakedAuroraVault...")
   const minDepositAmount = ethers.BigNumber.from(1).mul(decimals);
-  const stakedAuroraVaultContract = await StakedAuroraVault.connect(alice).deploy(
+  const StakedAuroraVaultContract = await StakedAuroraVault.connect(alice).deploy(
     MAINNET_AURORA_TOKEN,
     "Staked Aurora Token",
     "stAUR",
     minDepositAmount
   );
-  await stakedAuroraVaultContract.deployed();
-  console.log(" ...done in %s!", stakedAuroraVaultContract.address);
+  await StakedAuroraVaultContract.deployed();
+  console.log(" ...done in %s!", StakedAuroraVaultContract.address);
 
   // Step 2. Deploying the MUTABLE Staking Manager contract.
   console.log("Step 2. Deploying StakingManager...")
   const stakingManagerContract = await StakingManager.connect(alice).deploy(
-    stakedAuroraVaultContract.address,
+    StakedAuroraVaultContract.address,
     MAINNET_AURORA_PLUS,
     bob.address,
     10
@@ -45,7 +45,7 @@ async function main() {
   console.log(" ...done in %s!", stakingManagerContract.address);
 
   // Insert/update the staking manager in the ERC-4626
-  await stakedAuroraVaultContract.updateStakingManager(stakingManagerContract.address);
+  await StakedAuroraVaultContract.updateStakingManager(stakingManagerContract.address);
 
   // Step 3. Deploying the multiple Depositor contracts.
   console.log("Step 5. Deploying 2 Depositor contracts...")
@@ -72,7 +72,7 @@ async function main() {
   console.log(" - StakingManager:    %s", stakingManagerContract.address);
   console.log(" - Depositor 00:      %s", depositor00Contract.address);
   console.log(" - Depositor 01:      %s", depositor01Contract.address);
-  console.log(" - StakedAuroraVault: %s", stakedAuroraVaultContract.address);
+  console.log(" - StakedAuroraVault: %s", StakedAuroraVaultContract.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

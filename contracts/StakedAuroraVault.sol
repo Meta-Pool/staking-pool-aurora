@@ -8,7 +8,6 @@ import "./interfaces/ILiquidityPool.sol";
 import "./interfaces/IStakedAuroraVaultEvents.sol";
 import "./interfaces/IStakingManager.sol";
 import "./utils/FullyOperational.sol";
-import "./utils/ERC4626FeeMintable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -26,40 +25,38 @@ contract StakedAuroraVault is
     FullyOperational,
     ERC4626,
     AccessControl,
-    IStakedAuroraVaultEvents,
-    ERC4626FeeMintable
+    IStakedAuroraVaultEvents
 {
     using SafeERC20 for IERC20;
 
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
-    bytes32 public constant TREASURY_ROLE = keccak256("TREASURY_ROLE");
 
-    address public stakingManager;
-    address public liquidityPool;
+    IStakingManager public stakingManager;
+    ILiquidityPool public liquidityPool;
     uint256 public minDepositAmount;
 
+    modifier onlyManager() {
+        if (msg.sender != address(stakingManager)) { revert Unauthorized(); }
+        _;
+    }
+
     constructor(
-        uint16 _feePerYearBasisPoints,
-        uint64 _feeMintCoolingPeriod,
         uint256 _minDepositAmount,
         address _contractOperatorRole,
-        address _treasuryRole,
-        address _asset,
+        IERC20 _asset,
         string memory _stAurName,
         string memory _stAurSymbol
     )
-        ERC4626(IERC20(_asset))
+        ERC4626(_asset)
         ERC20(_stAurName, _stAurSymbol)
-        ERC4626FeeMintable(_feeMintCoolingPeriod, _feePerYearBasisPoints)
     {
-        if (_asset == address(0) || _contractOperatorRole == address(0)) {
+        if (address(_asset) == address(0) || _contractOperatorRole == address(0)) {
             revert InvalidZeroAddress();
         }
         minDepositAmount = _minDepositAmount;
 
         _grantRole(ADMIN_ROLE, msg.sender);
-        _grantRole(TREASURY_ROLE, _treasuryRole);
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(OPERATOR_ROLE, _contractOperatorRole);
     }
@@ -71,13 +68,15 @@ contract StakedAuroraVault is
     // *******************
 
     function initializeLiquidStaking(
-        address _stakingManager,
-        address _liquidityPool
+        IStakingManager _stakingManager,
+        ILiquidityPool _liquidityPool
     ) external onlyRole(ADMIN_ROLE) {
-        if (liquidityPool != address(0) || stakingManager != address(0)) {
+        if (address(liquidityPool) != address(0)
+                || address(stakingManager) != address(0)) {
             revert ContractAlreadyInitialized();
         }
-        if (_stakingManager == address(0) || _liquidityPool == address(0)) {
+        if (address(_stakingManager) == address(0)
+                || address(_liquidityPool) == address(0)) {
             revert InvalidZeroAddress();
         }
 
@@ -87,24 +86,32 @@ contract StakedAuroraVault is
         // Get fully operational for the first time.
         updateContractOperation(true);
 
-        emit ContractInitialized(_stakingManager, _liquidityPool, msg.sender);
+        emit ContractInitialized(
+            address(_stakingManager),
+            address(_liquidityPool),
+            msg.sender
+        );
     }
 
     /// @dev In case of emergency 🛟, update the Manager contract.
-    function updateStakingManager(address _stakingManager) external onlyRole(ADMIN_ROLE) {
-        if (_stakingManager == address(0)) { revert InvalidZeroAddress(); }
-        if (stakingManager == address(0)) { revert ContractNotInitialized(); }
+    function updateStakingManager(
+        IStakingManager _stakingManager
+    ) external onlyRole(ADMIN_ROLE) {
+        if (address(_stakingManager) == address(0)) { revert InvalidZeroAddress(); }
+        if (address(stakingManager) == address(0)) { revert ContractNotInitialized(); }
         stakingManager = _stakingManager;
 
-        emit NewManagerUpdate(_stakingManager, msg.sender);
+        emit NewManagerUpdate(address(_stakingManager), msg.sender);
     }
 
-    function updateLiquidityPool(address _liquidityPool) external onlyRole(ADMIN_ROLE) {
-        if (_liquidityPool == address(0)) { revert InvalidZeroAddress(); }
-        if (liquidityPool == address(0)) { revert ContractNotInitialized(); }
+    function updateLiquidityPool(
+        ILiquidityPool _liquidityPool
+    ) external onlyRole(ADMIN_ROLE) {
+        if (address(_liquidityPool) == address(0)) { revert InvalidZeroAddress(); }
+        if (address(liquidityPool) == address(0)) { revert ContractNotInitialized(); }
         liquidityPool = _liquidityPool;
 
-        emit NewLiquidityPoolUpdate(_liquidityPool, msg.sender);
+        emit NewLiquidityPoolUpdate(address(_liquidityPool), msg.sender);
     }
 
     function updateMinDepositAmount(uint256 _amount) external onlyRole(OPERATOR_ROLE) {
@@ -119,8 +126,8 @@ contract StakedAuroraVault is
         bool _isFullyOperational
     ) public override onlyRole(ADMIN_ROLE) {
         if (_isFullyOperational
-                && (liquidityPool == address(0)
-                        || stakingManager == address(0))) {
+                && (address(liquidityPool) == address(0)
+                        || address(stakingManager) == address(0))) {
             revert ContractNotInitialized();
         }
         fullyOperational = _isFullyOperational;
@@ -218,21 +225,8 @@ contract StakedAuroraVault is
     // * Treasury functions *
     // **********************
 
-    function mintFee() public override
-        onlyRole(TREASURY_ROLE)
-        feeMintAvailable
-    returns (uint256) {
-        uint256 elapsedSeconds = block.timestamp - lastFeeMint;
-
-        uint256 _fee = (
-            totalSupply()
-            * (uint256(feePerYearBasisPoints) / 10_000)
-            * (elapsedSeconds / uint256(SECONDS_PER_YEAR))
-        );
-        _mint(msg.sender, _fee);
-        lastFeeMint = uint64(block.timestamp);
-
-        return _fee;
+    function mintFee(address _treasury, uint256 _fee) public onlyManager {
+        _mint(_treasury, _fee);
     }
 
     // *********************
@@ -248,12 +242,12 @@ contract StakedAuroraVault is
         IERC20 auroraToken = IERC20(asset());
         IStakingManager manager = IStakingManager(stakingManager);
         auroraToken.safeTransferFrom(_caller, address(this), _assets);
-        ILiquidityPool pool = ILiquidityPool(liquidityPool);
+        ILiquidityPool _pool = liquidityPool;
 
         // FLOW 1: Use the stAUR in the Liquidity Pool.
-        if (pool.isStAurBalanceAvailable(_shares)) {
-            auroraToken.safeIncreaseAllowance(liquidityPool, _assets);
-            pool.transferStAur(_receiver, _shares, _assets);
+        if (_pool.isStAurBalanceAvailable(_shares)) {
+            auroraToken.safeIncreaseAllowance(address(_pool), _assets);
+            _pool.transferStAur(_receiver, _shares, _assets);
 
         // FLOW 2: Stake with the depositor to mint more stAUR.
         } else {

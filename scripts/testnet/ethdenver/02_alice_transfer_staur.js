@@ -27,11 +27,11 @@ async function main() {
     const auroraTokenContract = await AuroraToken.attach(TokenAddress);
     const depositor00Contract = await Depositor00.attach(Depositor00Address);
     const depositor01Contract = await Depositor01.attach(Depositor01Address);
-    const stakedAuroraVaultContract = await StakedAuroraVault.attach(StakedAuroraVaultAddress);
+    const StakedAuroraVaultContract = await StakedAuroraVault.attach(StakedAuroraVaultAddress);
     const stakingManagerContract = await StakingManager.attach(StakingManagerAddress);
 
     const amount = ethers.BigNumber.from(2).mul(decimals);
-    await stakedAuroraVaultContract.connect(alice).transfer(carl.address, amount);
+    await StakedAuroraVaultContract.connect(alice).transfer(carl.address, amount);
   }
   
   // We recommend this pattern to be able to use async/await everywhere
