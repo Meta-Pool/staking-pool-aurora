@@ -21,6 +21,7 @@ async function main() {
   const Depositor = await ethers.getContractFactory("Depositor");
   const StakedAuroraVault = await ethers.getContractFactory("StakedAuroraVault");
   const LiquidityPool = await ethers.getContractFactory("LiquidityPool");
+  const Router = await ethers.getContractFactory("ERC4626Router");
 
   // ----------------- Step 1. Deploying the Staked Aurora Vault contract.
   console.log("Step 1. Deploying StakedAuroraVault...")
@@ -101,8 +102,10 @@ async function main() {
   console.log("Step 7. Insert Depositor 01: \n%s", request02);
   await request03.wait();
 
-
-  // TODO: Deploy Router 🛜 and whitelist on Vault.
+  // Deploy Router 🛜 and whitelist on Vault.
+  console.log("Step 8. Deploying the ERC4626 Router...")
+  const RouterContract = await Router.connect(ADMIN_ACCOUNT).deploy();
+  await RouterContract.deployed();
 
   console.log("Addresses of the deployed contracts:")
   console.log(" - AuroraToken 💚: ----- %s", AURORA_TOKEN_ADDRESS);
@@ -112,6 +115,7 @@ async function main() {
   console.log(" - Depositor 01: ------- %s", depositor01Contract.address);
   console.log(" - StakedAuroraVault: -- %s", stakedAuroraVaultContract.address);
   console.log(" - LiquidityPool: ------ %s", liquidityPoolContract.address);
+  console.log(" - ERC4626Router: ------ %s", RouterContract.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

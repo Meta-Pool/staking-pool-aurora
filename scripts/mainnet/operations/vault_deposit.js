@@ -9,7 +9,7 @@ const {
 
 // ⚠️ UPDATE the amount to deposit.
 // const vaultDeposit = ethers.BigNumber.from(300).mul(DECIMALS);
-const vaultDeposit = ethers.BigNumber.from("718062481880544989308");
+const vaultDeposit = ethers.BigNumber.from("503449624337559391359");
 
 console.log("Mr Robot 🤖");
 console.log("Started at: %s", getCurrentTimestamp());
