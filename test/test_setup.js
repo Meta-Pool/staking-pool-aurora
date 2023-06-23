@@ -388,12 +388,8 @@ async function liquidityPoolFixture() {
   // AURORA deposits to the Vault.
   const aliceDeposit = ethers.BigNumber.from(6_000).mul(DECIMALS);
   await auroraTokenContract.connect(alice).approve(StakedAuroraVaultContract.address, aliceDeposit);
-  console.log("------- 1", StakedAuroraVaultContract.address);
-  console.log("------- 1", alice.address);
-  console.log("------- >", await StakedAuroraVaultContract.balanceOf(alice.address));
   await StakedAuroraVaultContract.connect(alice).deposit(aliceDeposit, alice.address);
 
-  console.log("MUCHO DINERO PROPIO");
   const bobDeposit = ethers.BigNumber.from(100_000).mul(DECIMALS);
   await auroraTokenContract.connect(bob).approve(StakedAuroraVaultContract.address, bobDeposit);
   await StakedAuroraVaultContract.connect(bob).deposit(bobDeposit, bob.address);
@@ -407,8 +403,6 @@ async function liquidityPoolFixture() {
   await StakedAuroraVaultContract.connect(liquidity_provider).deposit(providerDeposit, liquidity_provider.address);
 
   await stakingManagerContract.cleanOrdersQueue();
-
-  console.log("MUCHO DINERO PROPIO");
 
   // AURORA deposits to the Liquidity Pool.
   await auroraTokenContract.connect(liquidity_provider).approve(liquidityPoolContract.address, providerDeposit);

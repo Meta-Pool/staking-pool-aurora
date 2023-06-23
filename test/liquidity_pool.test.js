@@ -72,8 +72,6 @@ describe("Liquidity Pool StAUR <> AURORA", function () {
         carl
       } = await loadFixture(liquidityPoolFixture);
 
-      console.log("ARE WE HERE???");
-
       var auroraBalanceTracker = ethers.BigNumber.from(1_000_000).mul(DECIMALS);
       expect(await liquidityPoolContract.stAurBalance()).to.equal(0);
       expect(await liquidityPoolContract.auroraBalance()).to.equal(auroraBalanceTracker);

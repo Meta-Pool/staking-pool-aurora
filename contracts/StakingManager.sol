@@ -369,8 +369,10 @@ contract StakingManager is AccessControl, IStakingManager, ManagerFeeMintable {
         return _fee;
     }
 
-    function updateFeePerYear(uint16 _basisPoints) public override {
-
+    function updateFeePerYear(
+        uint16 _basisPoints
+    ) public override onlyRole(TREASURY_ROLE) checkBasisPoints(_basisPoints) {
+        feePerYearBasisPoints = _basisPoints;
     }
 
     // *********************
