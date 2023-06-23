@@ -11,3 +11,6 @@ forge-cache/
 
 # Sec-Ops
 .env
+
+# mac
+.DS_Store

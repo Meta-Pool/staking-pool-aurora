@@ -138,7 +138,7 @@ contract StakingManager is AccessControl, IStakingManager {
     ) external onlyRole(OPERATOR_ROLE) {
         if (_maxWithdrawOrders == maxWithdrawOrders) { revert InvalidChange(); }
         if (_maxWithdrawOrders < getTotalWithdrawOrders()) { revert BelowCurrentLength(); }
-        if (_maxWithdrawOrders > MAX_MAX_WITHDRAW_ORDERS) { revert AvobeMaxOrders(); }
+        if (_maxWithdrawOrders > MAX_MAX_WITHDRAW_ORDERS) { revert AboveMaxOrders(); }
         if (_maxWithdrawOrders < MIN_MAX_WITHDRAW_ORDERS) { revert BellowMaxOrders(); }
         maxWithdrawOrders = _maxWithdrawOrders;
 

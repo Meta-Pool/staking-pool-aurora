@@ -103,35 +103,36 @@ describe("Emergency flow 🦺", function () {
     });
   });
 
-  describe("Bulk White 🐻‍❄️ and Black 🐈‍⬛ listing", function () {
-    it("Should work properly.", async function () {
-      const {
-        stakedAuroraVaultContract,
-        operator,
-        spambots
-      } = await loadFixture(botsHordeFixture);
+  // v0.2 is no longer whitelisted.
+  // describe("Bulk White 🐻‍❄️ and Black 🐈‍⬛ listing", function () {
+  //   it("Should work properly.", async function () {
+  //     const {
+  //       stakedAuroraVaultContract,
+  //       operator,
+  //       spambots
+  //     } = await loadFixture(botsHordeFixture);
 
-      expect(await stakedAuroraVaultContract.enforceWhitelist()).to.be.false;
-      await stakedAuroraVaultContract.connect(operator).updateEnforceWhitelist(true);
-      expect(await stakedAuroraVaultContract.enforceWhitelist()).to.be.true;
+  //     // expect(await stakedAuroraVaultContract.enforceWhitelist()).to.be.false;
+  //     // await stakedAuroraVaultContract.connect(operator).updateEnforceWhitelist(true);
+  //     // expect(await stakedAuroraVaultContract.enforceWhitelist()).to.be.true;
 
-      const accounts = [];
-      for (let i = 0; i < spambots.length; i++) {
-        expect(await stakedAuroraVaultContract.isWhitelisted(spambots[i].address)).to.be.false;
-        accounts.push(spambots[i].address);
-      }
+  //     const accounts = [];
+  //     for (let i = 0; i < spambots.length; i++) {
+  //       expect(await stakedAuroraVaultContract.isWhitelisted(spambots[i].address)).to.be.false;
+  //       accounts.push(spambots[i].address);
+  //     }
 
-      await stakedAuroraVaultContract.connect(operator).bulkWhitelistAccount(accounts);
-      for (let i = 0; i < spambots.length; i++) {
-        expect(await stakedAuroraVaultContract.isWhitelisted(spambots[i].address)).to.be.true;
-      }
+  //     await stakedAuroraVaultContract.connect(operator).bulkWhitelistAccount(accounts);
+  //     for (let i = 0; i < spambots.length; i++) {
+  //       expect(await stakedAuroraVaultContract.isWhitelisted(spambots[i].address)).to.be.true;
+  //     }
 
-      await stakedAuroraVaultContract.connect(operator).bulkBlacklistAccount(accounts);
-      for (let i = 0; i < spambots.length; i++) {
-        expect(await stakedAuroraVaultContract.isWhitelisted(spambots[i].address)).to.be.false;
-      }
-    });
-  });
+  //     await stakedAuroraVaultContract.connect(operator).bulkBlacklistAccount(accounts);
+  //     for (let i = 0; i < spambots.length; i++) {
+  //       expect(await stakedAuroraVaultContract.isWhitelisted(spambots[i].address)).to.be.false;
+  //     }
+  //   });
+  // });
 
   describe("Contract is not longer fully operational", function () {
     it("Should pause all deposits and redeems from the StakedAuroraVault contract.", async function () {

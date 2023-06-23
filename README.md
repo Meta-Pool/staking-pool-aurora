@@ -6,7 +6,7 @@ Meta Staking pool in Aurora. The stAUR 🪐 token.
 
 The last version of the deployed contract, in AURORA `mainnet`, is in the `stable` branch.
 
-Current stable version: [**v0.1.0**](https://github.com/Meta-Pool/staking-pool-aurora/releases/tag/v0.1.0)
+Current stable version: [**v0.2.0**](https://github.com/Meta-Pool/staking-pool-aurora/releases/tag/v0.2.0)
 Check all releases in [stAUR Releases](https://github.com/Meta-Pool/staking-pool-aurora/releases).
 
 To get the stable version, run the commands:
@@ -16,10 +16,30 @@ git clone https://github.com/Meta-Pool/staking-pool-aurora.git
 cd staking-pool-aurora
 git fetch origin --tags
 
-git checkout tags/v0.1.0 -b stable
+git checkout tags/v0.2.0 -b stable
 ```
 
-## Quick run
+# Addresses in AURORA 🈯️ `mainnet`
+
+Address for the Staking Pool in Aurora Mainnet.
+
+```bash
+Addresses of the deployed contracts:
+ - AuroraToken 💚: ----- 0x8BEc47865aDe3B172A928df8f990Bc7f2A3b9f79
+ - AuroraPlus: --------- 0xccc2b1aD21666A5847A804a73a41F904C4a4A0Ec
+ - StakingManager: ----- 0x0db2E0AF08757b1a50768a59C27D3EEE716809c0
+ - Depositor 00: ------- 0xa1B107aF89c773e73F3cb796368953566e6D9Cd1
+ - Depositor 01: ------- 0xF86100ce765cAE7E6C2aBD1e7555924677EFf7C7
+ - StakedAuroraVault: -- 0x2262148E0d327Fa4bcC7882c0f2Bb2D4139Cd0E7
+ - LiquidityPool: ------ 0x4162858459aE2B949Bc24d5383e33963A46CBB63
+ - ERC4626Router: ------ 0x21DEe40eFebB1F68D58FC2e2b6a0d2D0c7e87403
+```
+
+# Use the Router 🛜
+
+The `ERC4626Router` help the user to avoid slippage issues.
+
+# Quick run
 
 If you already have all the dependencies installed.
 
@@ -46,19 +66,6 @@ Three different contracts are needed to be deployed.
 Using the Aurora SDK, after the liquidity pool is developed, the stAUR token could be used directly in Meta Yield.
 
 ![Architecture](media/stakingAurora.png)
-
-Address for the Staking Pool in Aurora Mainnet.
-
-```bash
-Addresses of the deployed contracts:
- - AuroraToken 💚: ----- 0x8BEc47865aDe3B172A928df8f990Bc7f2A3b9f79
- - AuroraPlus: --------- 0xccc2b1aD21666A5847A804a73a41F904C4a4A0Ec
- - StakingManager: ----- 0x69e3a362ffD379cB56755B142c2290AFbE5A6Cc8
- - Depositor 00: ------- 0xf56Baf1EE71fD4d6938c88E1C4bd0422ee768932
- - Depositor 01: ------- 0x7ca831De9E59D7414313a1F7a003cc7d011caFE2
- - StakedAuroraVault: -- 0xb01d35D469703c6dc5B369A1fDfD7D6009cA397F
- - LiquidityPool: ------ 0x2b22F6ae30DD752B5765dB5f2fE8eF5c5d2F154B
-```
 
 # Operation
 
