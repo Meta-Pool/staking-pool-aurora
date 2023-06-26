@@ -9,24 +9,24 @@ describe("Testing the Staking Manager functionality for minting fee 🪙.", func
   it("Should mint ONLY for Treasury ROLE.", async function () {
     const {
       stakingManagerContract,
-      treasury
+      operator
     } = await loadFixture(botsHordeFixture);
 
     await expect(
       stakingManagerContract.mintFee()
-    ).to.be.revertedWith("AccessControl: account 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266 is missing role 0xe1dcbdb91df27212a29bc27177c840cf2f819ecf2187432e1fac86c2dd5dfca9");
+    ).to.be.revertedWith("AccessControl: account 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266 is missing role 0x97667070c54ef182b0f5858b034beac1b6f3089aa2d3188bb1e8929f4fa9b929");
     await time.increase(await stakingManagerContract.coolingTimeSeconds());
-    await stakingManagerContract.connect(treasury).mintFee();
+    await stakingManagerContract.connect(operator).mintFee();
   });
 
   it("Should mint ONLY after cooling period.", async function () {
     const {
       stakingManagerContract,
-      treasury
+      operator
     } = await loadFixture(botsHordeFixture);
 
     await expect(
-      stakingManagerContract.connect(treasury).mintFee()
+      stakingManagerContract.connect(operator).mintFee()
     ).to.be.revertedWithCustomError(stakingManagerContract, "FeeMintNotAvailable");
   });
 
@@ -34,7 +34,7 @@ describe("Testing the Staking Manager functionality for minting fee 🪙.", func
     const {
       StakedAuroraVaultContract,
       stakingManagerContract,
-      treasury,
+      operator,
     } = await loadFixture(botsHordeFixture);
 
     const initialMintFee = await stakingManagerContract.getAvailableMintFee();
@@ -42,7 +42,7 @@ describe("Testing the Staking Manager functionality for minting fee 🪙.", func
 
     /// Move forward after cooling time 🥶.
     await time.increase(await stakingManagerContract.coolingTimeSeconds());
-    await stakingManagerContract.connect(treasury).mintFee();
+    await stakingManagerContract.connect(operator).mintFee();
 
     // The `initialMintFee` value is increasing with time.
     expect(
@@ -54,7 +54,8 @@ describe("Testing the Staking Manager functionality for minting fee 🪙.", func
     const {
       StakedAuroraVaultContract,
       stakingManagerContract,
-      treasury,
+      operator,
+      treasury
     } = await loadFixture(botsHordeFixture);
 
     const initialMintFee = await stakingManagerContract.getAvailableMintFee();
@@ -64,7 +65,7 @@ describe("Testing the Staking Manager functionality for minting fee 🪙.", func
 
     /// Move forward after cooling time 🥶.
     await time.increase(await stakingManagerContract.SECONDS_PER_YEAR());
-    await stakingManagerContract.connect(treasury).mintFee();
+    await stakingManagerContract.connect(operator).mintFee();
 
     // The `initialMintFee` value is increasing with time.
     expect(

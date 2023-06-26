@@ -9,6 +9,8 @@ import "./interfaces/IManagerFeeMintable.sol";
 
 abstract contract ManagerFeeMintable is IManagerFeeMintable {
 
+    address public treasuryAccount;
+
     /// @notice All timestamps ⌛ are in seconds.
     uint16 constant public MAX_FEE_PER_YEAR_BASIS_POINT = 1500;
     uint32 constant public SECONDS_PER_YEAR = 60 * 60 * 24 * 365;
@@ -38,10 +40,12 @@ abstract contract ManagerFeeMintable is IManagerFeeMintable {
     }
 
     constructor(
-        uint16 _feePerYearBasisPoints
+        uint16 _feePerYearBasisPoints,
+        address _treasuryAccount
     ) checkBasisPoints(_feePerYearBasisPoints) {
         feePerYearBasisPoints = _feePerYearBasisPoints;
         lastFeeMint = uint64(block.timestamp);
+        treasuryAccount = _treasuryAccount;
     }
 
     function _proportional(
@@ -74,3 +78,31 @@ abstract contract ManagerFeeMintable is IManagerFeeMintable {
     function updateFeePerYear(uint16 _basisPoints) public virtual;
     function getAvailableMintFee() public virtual view returns (uint256);
 }
+
+/// @notice Example of Virtual functions.
+
+// // **********************
+// // * Treasury functions *
+// // **********************
+
+// function mintFee() public override
+//     onlyRole(TREASURY_ROLE)
+//     feeMintAvailable
+// returns (uint256) {
+//     uint256 _fee = getAvailableMintFee();
+//     stAurVault.mintFee(msg.sender, _fee);
+//     lastFeeMint = uint64(block.timestamp);
+
+//     emit TreasuryMintedFee(msg.sender, _fee);
+//     return _fee;
+// }
+
+// function updateFeePerYear(
+//     uint16 _basisPoints
+// ) public override onlyRole(ADMIN_ROLE) checkBasisPoints(_basisPoints) {
+//     feePerYearBasisPoints = _basisPoints;
+// }
+
+// function getAvailableMintFee() public override view returns (uint256) {
+//     return _calculateAvailableMintFee(stAurVault.totalSupply());
+// }

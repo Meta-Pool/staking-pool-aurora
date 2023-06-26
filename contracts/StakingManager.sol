@@ -59,7 +59,6 @@ contract StakingManager is AccessControl, IStakingManager, ManagerFeeMintable {
 
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
-    bytes32 public constant TREASURY_ROLE = keccak256("TREASURY_ROLE");
 
     IStakedAuroraVault immutable public stAurVault;
     IERC20 immutable public auroraToken;
@@ -103,9 +102,9 @@ contract StakingManager is AccessControl, IStakingManager, ManagerFeeMintable {
         IStakedAuroraVault _stAurVault,
         address _auroraStaking,
         address _contractOperatorRole,
-        address _treasuryRole
+        address _treasuryAccount
     )
-        ManagerFeeMintable(_feePerYearBasisPoints)
+        ManagerFeeMintable(_feePerYearBasisPoints, _treasuryAccount)
     {
         if (address(_stAurVault) == address(0)
                 || _auroraStaking == address(0)
@@ -119,7 +118,6 @@ contract StakingManager is AccessControl, IStakingManager, ManagerFeeMintable {
         nextCleanOrderQueue = block.timestamp;
 
         _grantRole(ADMIN_ROLE, msg.sender);
-        _grantRole(TREASURY_ROLE, _treasuryRole);
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(OPERATOR_ROLE, _contractOperatorRole);
     }
@@ -253,14 +251,16 @@ contract StakingManager is AccessControl, IStakingManager, ManagerFeeMintable {
     // **********************
 
     function mintFee() public override
-        onlyRole(TREASURY_ROLE)
+        onlyRole(OPERATOR_ROLE)
         feeMintAvailable
     returns (uint256) {
         uint256 _fee = getAvailableMintFee();
-        stAurVault.mintFee(msg.sender, _fee);
         lastFeeMint = uint64(block.timestamp);
 
-        emit TreasuryMintedFee(msg.sender, _fee);
+        address _treasury = treasuryAccount;
+        stAurVault.mintFee(_treasury, _fee);
+
+        emit TreasuryMintedFee(_treasury, _fee);
         return _fee;
     }
 
