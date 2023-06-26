@@ -46,6 +46,7 @@ async function main() {
     StakedAuroraVaultContract.address,
     AURORA_PLUS_ADDRESS,
     OPERATOR_ACCOUNT.address,
+    TREASURY_ACCOUNT.address
   );
   await stakingManagerContract.deployed();
   console.log("       ...done in %s!", stakingManagerContract.address);

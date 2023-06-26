@@ -19,7 +19,7 @@ const DECIMALS = ethers.BigNumber.from(10).pow(18);
 
 // Accounts
 async function generateAccounts() {
-  const [ owner, operator ] = await ethers.getSigners();
+  const [ owner, operator, treasury ] = await ethers.getSigners();
 
   // Current Contracts Accounts
   const VAULT_ADMIN_ACCOUNT = owner;
@@ -32,14 +32,17 @@ async function generateAccounts() {
 
   const DEPOSITOR_ADMIN_ACCOUNT = operator;
 
+  const TREASURY_ACCOUNT = treasury;
+
   return {
-    VAULT_ADMIN_ACCOUNT,
+    DEPOSITOR_ADMIN_ACCOUNT,
     MANAGER_ADMIN_ACCOUNT,
-    NEW_MANAGER_ADMIN_ACCOUNT,
-    VAULT_OPERATOR_ACCOUNT,
     MANAGER_OPERATOR_ACCOUNT,
+    NEW_MANAGER_ADMIN_ACCOUNT,
     NEW_MANAGER_OPERATOR_ACCOUNT,
-    DEPOSITOR_ADMIN_ACCOUNT
+    TREASURY_ACCOUNT,
+    VAULT_ADMIN_ACCOUNT,
+    VAULT_OPERATOR_ACCOUNT,
   };
 }
 

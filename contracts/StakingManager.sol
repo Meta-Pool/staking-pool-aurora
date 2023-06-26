@@ -102,7 +102,8 @@ contract StakingManager is AccessControl, IStakingManager, ManagerFeeMintable {
         uint256 _maxWithdrawOrders,
         IStakedAuroraVault _stAurVault,
         address _auroraStaking,
-        address _contractOperatorRole
+        address _contractOperatorRole,
+        address _treasuryRole
     )
         ManagerFeeMintable(_feePerYearBasisPoints)
     {
@@ -118,6 +119,7 @@ contract StakingManager is AccessControl, IStakingManager, ManagerFeeMintable {
         nextCleanOrderQueue = block.timestamp;
 
         _grantRole(ADMIN_ROLE, msg.sender);
+        _grantRole(TREASURY_ROLE, _treasuryRole);
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(OPERATOR_ROLE, _contractOperatorRole);
     }
@@ -158,60 +160,6 @@ contract StakingManager is AccessControl, IStakingManager, ManagerFeeMintable {
         emit UpdateProcessWithdrawOrders(_isProcessStopped, msg.sender);
     }
 
-    /// @notice Returns the amount of assets of a user in the withdraw orders.
-    function getWithdrawOrderAssets(address _account) external view returns (uint256) {
-        uint256 index = _getUserWithdrawOrderIndex(_account);
-        return withdrawOrder[index].amount;
-    }
-
-    function getTotalWithdrawOrders() public view returns (uint256) {
-        return lastWithdrawOrderIndex;
-    }
-
-    /// @notice Returns the estimated timestamp of availability for funds in:
-    /// withdraw or pending orders.
-    function getAvailableTimestamp(
-        bool _isWithdrawOrder
-    ) external view returns (uint256) {
-        if (_isWithdrawOrder) {
-            return nextCleanOrderQueue + _getAuroraTau();
-        }
-        return nextCleanOrderQueue;
-    }
-
-    /// @notice Returns the amount of assets of a user in the pending orders.
-    function getPendingOrderAssets(address _account) external view returns (uint256) {
-        uint256 index = _getUserPendingOrderIndex(_account);
-        return pendingOrder[index].amount;
-    }
-
-    function getTotalPendingOrders() public view returns (uint256) {
-        return lastPendingOrderIndex;
-    }
-
-    /// @notice Returns the amount of available assets of a user.
-    function getAvailableAssets(address _account) external view returns (uint256) {
-        return availableAssets[_account];
-    }
-
-    function getDepositorsLength() public view returns (uint256) {
-        return depositors.length;
-    }
-
-    function getDepositorShares(address _depositor) external view returns (uint256) {
-        return depositorShares[_depositor];
-    }
-
-    function depositorExists(address _depositor) public view returns (bool) {
-        uint256 _totalDepositors = getDepositorsLength();
-        for (uint i = 0; i < _totalDepositors; ++i) {
-            if (depositors[i] == _depositor) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     /// @dev The next depositor will always be the one with LESS shares.
     /// For tiebreaking use the depositor with lower index.
     function setNextDepositor() external onlyStAurVault {
@@ -225,28 +173,6 @@ contract StakingManager is AccessControl, IStakingManager, ManagerFeeMintable {
             }
         }
         nextDepositor = _nextDepositor;
-    }
-
-    function getTotalAssetsFromDepositor(
-        address _depositor
-    ) public view returns (uint256) {
-        uint256 depositorAuroraShares = depositorShares[_depositor];
-        if (depositorAuroraShares == 0) return 0;
-        return _calculateStakeValue(depositorAuroraShares);
-    }
-
-    function getTotalAssetsFromDepositors() public view returns (uint256) {
-        uint256 depositorsAuroraShares = 0;
-        uint256 _totalDepositors = getDepositorsLength();
-        for (uint i = 0; i < _totalDepositors; ++i) {
-            depositorsAuroraShares += depositorShares[depositors[i]];
-        }
-        if (depositorsAuroraShares == 0) return 0;
-        return _calculateStakeValue(depositorsAuroraShares);
-    }
-
-    function totalAssets() external view returns (uint256) {
-        return getTotalAssetsFromDepositors() - totalWithdrawInQueue;
     }
 
     /// @notice AURORA tokens are transfer to the users on the withdraw process,
@@ -330,23 +256,102 @@ contract StakingManager is AccessControl, IStakingManager, ManagerFeeMintable {
         onlyRole(TREASURY_ROLE)
         feeMintAvailable
     returns (uint256) {
-        uint256 elapsedSeconds = block.timestamp - lastFeeMint;
-
-        uint256 _fee = (
-            stAurVault.totalSupply()
-            * (uint256(feePerYearBasisPoints) / 10_000)
-            * (elapsedSeconds / uint256(SECONDS_PER_YEAR))
-        );
+        uint256 _fee = getAvailableMintFee();
         stAurVault.mintFee(msg.sender, _fee);
         lastFeeMint = uint64(block.timestamp);
 
+        emit TreasuryMintedFee(msg.sender, _fee);
         return _fee;
     }
 
     function updateFeePerYear(
         uint16 _basisPoints
-    ) public override onlyRole(TREASURY_ROLE) checkBasisPoints(_basisPoints) {
+    ) public override onlyRole(ADMIN_ROLE) checkBasisPoints(_basisPoints) {
         feePerYearBasisPoints = _basisPoints;
+    }
+
+    function getAvailableMintFee() public override view returns (uint256) {
+        return _calculateAvailableMintFee(stAurVault.totalSupply());
+    }
+
+    // *********************
+    // * View 🛰️ functions *
+    // *********************
+
+    function getTotalAssetsFromDepositor(
+        address _depositor
+    ) public view returns (uint256) {
+        uint256 depositorAuroraShares = depositorShares[_depositor];
+        if (depositorAuroraShares == 0) return 0;
+        return _calculateStakeValue(depositorAuroraShares);
+    }
+
+    function getTotalAssetsFromDepositors() public view returns (uint256) {
+        uint256 depositorsAuroraShares = 0;
+        uint256 _totalDepositors = getDepositorsLength();
+        for (uint i = 0; i < _totalDepositors; ++i) {
+            depositorsAuroraShares += depositorShares[depositors[i]];
+        }
+        if (depositorsAuroraShares == 0) return 0;
+        return _calculateStakeValue(depositorsAuroraShares);
+    }
+
+    function totalAssets() external view returns (uint256) {
+        return getTotalAssetsFromDepositors() - totalWithdrawInQueue;
+    }
+
+   /// @notice Returns the amount of assets of a user in the withdraw orders.
+    function getWithdrawOrderAssets(address _account) external view returns (uint256) {
+        uint256 index = _getUserWithdrawOrderIndex(_account);
+        return withdrawOrder[index].amount;
+    }
+
+    function getTotalWithdrawOrders() public view returns (uint256) {
+        return lastWithdrawOrderIndex;
+    }
+
+    /// @notice Returns the estimated timestamp of availability for funds in:
+    /// withdraw or pending orders.
+    function getAvailableTimestamp(
+        bool _isWithdrawOrder
+    ) external view returns (uint256) {
+        if (_isWithdrawOrder) {
+            return nextCleanOrderQueue + _getAuroraTau();
+        }
+        return nextCleanOrderQueue;
+    }
+
+    /// @notice Returns the amount of assets of a user in the pending orders.
+    function getPendingOrderAssets(address _account) external view returns (uint256) {
+        uint256 index = _getUserPendingOrderIndex(_account);
+        return pendingOrder[index].amount;
+    }
+
+    function getTotalPendingOrders() public view returns (uint256) {
+        return lastPendingOrderIndex;
+    }
+
+    /// @notice Returns the amount of available assets of a user.
+    function getAvailableAssets(address _account) external view returns (uint256) {
+        return availableAssets[_account];
+    }
+
+    function getDepositorsLength() public view returns (uint256) {
+        return depositors.length;
+    }
+
+    function getDepositorShares(address _depositor) external view returns (uint256) {
+        return depositorShares[_depositor];
+    }
+
+    function depositorExists(address _depositor) public view returns (bool) {
+        uint256 _totalDepositors = getDepositorsLength();
+        for (uint i = 0; i < _totalDepositors; ++i) {
+            if (depositors[i] == _depositor) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // *********************

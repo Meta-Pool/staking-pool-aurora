@@ -15,7 +15,11 @@ console.log("Network: %s", hre.network.name);
 console.log("-------------------------")
 
 async function main() {
-  const { NEW_MANAGER_ADMIN_ACCOUNT, NEW_MANAGER_OPERATOR_ACCOUNT } = await generateAccounts();
+  const {
+    NEW_MANAGER_ADMIN_ACCOUNT,
+    NEW_MANAGER_OPERATOR_ACCOUNT,
+    TREASURY_ACCOUNT
+  } = await generateAccounts();
   const StakingManager = await ethers.getContractFactory("StakingManager");
 
   console.log("Deploying StakingManager...")
@@ -25,6 +29,7 @@ async function main() {
     STAKED_AURORA_VAULT_ADDRESS,
     AURORA_PLUS_ADDRESS,
     NEW_MANAGER_OPERATOR_ACCOUNT.address,
+    TREASURY_ACCOUNT
   );
   await StakingManagerContract.deployed();
   console.log("       ...done!");

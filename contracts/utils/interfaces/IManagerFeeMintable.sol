@@ -5,5 +5,5 @@ interface IManagerFeeMintable {
     error FeeMintNotAvailable(uint64 _availableAt);
     error InvalidFeeAmount(uint16 _feeBasisPoint);
 
-    // function isWhitelisted(address _account) external view returns (bool);
+    event TreasuryMintedFee(address indexed _treasury, uint256 _fee);
 }

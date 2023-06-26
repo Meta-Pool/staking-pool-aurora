@@ -173,6 +173,7 @@ async function deployPoolFixture() {
     StakedAuroraVaultContract.address,
     auroraStakingContract.address,
     operator.address,
+    treasury.address
   );
   await stakingManagerContract.deployed();
 

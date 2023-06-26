@@ -6,7 +6,7 @@ Meta Staking pool in Aurora. The stAUR 🪐 token.
 
 The last version of the deployed contract, in AURORA `mainnet`, is in the `stable` branch.
 
-Current stable version: [**v0.2.0**](https://github.com/Meta-Pool/staking-pool-aurora/releases/tag/v0.2.0)
+Current stable version: [**v0.2.1**](https://github.com/Meta-Pool/staking-pool-aurora/releases/tag/v0.2.1)
 Check all releases in [stAUR Releases](https://github.com/Meta-Pool/staking-pool-aurora/releases).
 
 To get the stable version, run the commands:
@@ -16,7 +16,7 @@ git clone https://github.com/Meta-Pool/staking-pool-aurora.git
 cd staking-pool-aurora
 git fetch origin --tags
 
-git checkout tags/v0.2.0 -b stable
+git checkout tags/v0.2.1 -b stable
 ```
 
 # Addresses in AURORA 🈯️ `mainnet`
