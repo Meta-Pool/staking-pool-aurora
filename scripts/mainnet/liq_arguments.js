@@ -1,0 +1,18 @@
+module.exports = [
+    // StakedAuroraVaultContract.address,
+    "0x8A7feB26ee5b202804AC11Dd5a739A945C5De11d",
+    // AURORA_TOKEN_ADDRESS,
+    "0x8BEc47865aDe3B172A928df8f990Bc7f2A3b9f79",
+    // TREASURY_ACCOUNT.address,
+    "0x334538208C164d747843E6De704E985A5d5309b9",
+    // OPERATOR_ACCOUNT.address,
+    "0xd6E4be59FF015aFeFce9b9a78b1cF61be1027cF1",
+    "stAUR/AURORA LP Token",
+    "stAUR/AUR",
+    // MIN_DEPOSIT_AMOUNT,
+    "1000000000000000000",
+    // SWAP_FEE_BASIS_POINTS,
+    "200",
+    // LIQ_PROV_FEE_CUT_BASIS_POINTS
+    "8000"
+]
