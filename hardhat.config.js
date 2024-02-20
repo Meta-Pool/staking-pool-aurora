@@ -44,7 +44,8 @@ module.exports = {
       ]
     },
     aurora_mainnet: {
-      url: `https://aurora-mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      // url: `https://aurora-mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      url: `https://endpoints.omniatech.io/v1/aurora/mainnet/publicrpc`,
       accounts: [
         process.env.ADMIN_PRIVATE_KEY,
         process.env.OPERATOR_PRIVATE_KEY,

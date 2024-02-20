@@ -1,0 +1,14 @@
+module.exports = [
+    // FEE_PER_YEAR_BASIS_POINTS,
+    500,
+    // MAX_WITHDRAW_ORDERS,
+    100,
+    // StakedAuroraVaultContract.address,
+    "0x8A7feB26ee5b202804AC11Dd5a739A945C5De11d",
+    // AURORA_PLUS_ADDRESS,
+    "0xccc2b1aD21666A5847A804a73a41F904C4a4A0Ec",
+    // OPERATOR_ACCOUNT.address,
+    "0xd6E4be59FF015aFeFce9b9a78b1cF61be1027cF1",
+    // TREASURY_ACCOUNT.address
+    "0x334538208C164d747843E6De704E985A5d5309b9"
+]
